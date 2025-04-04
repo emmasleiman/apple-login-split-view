@@ -152,17 +152,17 @@ const Dashboard = () => {
       </Button>
 
       <div className="w-full max-w-4xl mx-auto px-4 py-10">
-        <div className="flex flex-col gap-2 mb-8 text-center">
+        <div className="flex flex-col gap-2 mb-10 text-center">
           <h1 className="text-3xl font-light tracking-tight text-gray-800">Data Encoder Dashboard</h1>
           <p className="text-base text-gray-500">Manage patient registrations and discharges</p>
         </div>
 
         <Tabs defaultValue="register" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 mb-8 bg-gray-100/80 p-1 rounded-lg">
-            <TabsTrigger value="register" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-base py-2.5">
+          <TabsList className="mb-8 bg-gray-100/80 rounded-xl shadow-sm">
+            <TabsTrigger value="register" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-lg py-3 flex-1">
               Register Patient
             </TabsTrigger>
-            <TabsTrigger value="discharge" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-base py-2.5">
+            <TabsTrigger value="discharge" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-lg py-3 flex-1">
               Discharge Patient
             </TabsTrigger>
           </TabsList>
