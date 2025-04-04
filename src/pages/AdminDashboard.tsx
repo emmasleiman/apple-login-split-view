@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ChevronDown, ChevronRight, AlertCircle } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, AlertCircle, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { 
   Table, 
@@ -25,6 +25,29 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 // ----------------------------------------------------------------
 // MOCK DATA - DELETE THIS SECTION WHEN CONNECTING TO BACKEND
@@ -41,15 +64,149 @@ const pendingResultsData = [
   { id: "P91234", collectionDate: "2025-04-02", status: "Pending" },
   { id: "P56789", collectionDate: "2025-04-03", status: "Pending" },
 ];
+
+// MOCK LAB RESULTS DATA - DELETE WHEN CONNECTING TO BACKEND
+const patientLabsData = {
+  "P45678": [
+    { id: "L1001", sampleType: "Blood Culture", collectionDate: "2025-04-01", status: "Pending" },
+    { id: "L1002", sampleType: "Urine Culture", collectionDate: "2025-04-01", status: "Pending" }
+  ],
+  "P91234": [
+    { id: "L2001", sampleType: "Blood Culture", collectionDate: "2025-04-02", status: "Pending" },
+    { id: "L2002", sampleType: "Wound Culture", collectionDate: "2025-04-02", status: "Pending" }
+  ],
+  "P56789": [
+    { id: "L3001", sampleType: "Blood Culture", collectionDate: "2025-04-03", status: "Pending" }
+  ],
+  "P12345": [
+    { id: "L4001", sampleType: "Blood Culture", collectionDate: "2025-04-03", status: "Pending" },
+    { id: "L4002", sampleType: "Sputum Culture", collectionDate: "2025-04-03", status: "Pending" }
+  ]
+};
 // ----------------------------------------------------------------
 // END OF MOCK DATA SECTION
 // ----------------------------------------------------------------
+
+// Form schema for patient ID input
+const patientIdSchema = z.object({
+  patientId: z.string().min(1, { message: "Patient ID is required" })
+});
+
+// Form schema for lab result input
+const labResultSchema = z.object({
+  labId: z.string(),
+  result: z.enum(["positive", "negative"], {
+    required_error: "Please select a result option",
+  }),
+});
 
 const AdminDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [activeCollapsibleA, setActiveCollapsibleA] = useState(true);
   const [activeCollapsibleB, setActiveCollapsibleB] = useState(true);
+  const [patientLabs, setPatientLabs] = useState<any[]>([]);
+  const [selectedLab, setSelectedLab] = useState<any>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  // Form for patient ID input
+  const patientIdForm = useForm<z.infer<typeof patientIdSchema>>({
+    resolver: zodResolver(patientIdSchema),
+    defaultValues: {
+      patientId: "",
+    },
+  });
+
+  // Form for lab result input
+  const labResultForm = useForm<z.infer<typeof labResultSchema>>({
+    resolver: zodResolver(labResultSchema),
+    defaultValues: {
+      labId: "",
+      result: undefined,
+    },
+  });
+
+  // Handle patient ID form submission
+  const onPatientIdSubmit = (values: z.infer<typeof patientIdSchema>) => {
+    // Here you would typically fetch the patient's lab data from the backend
+    // -----------------------------------------------------------------
+    // BACKEND INTEGRATION
+    // Replace this with an API call to fetch the patient's lab data
+    // 
+    // API endpoint: GET /api/patients/{patientId}/labs
+    // Expected response format:
+    // {
+    //   labs: [
+    //     {
+    //       id: string,
+    //       sampleType: string,
+    //       collectionDate: string,
+    //       status: string
+    //     }
+    //   ]
+    // }
+    // -----------------------------------------------------------------
+    
+    // Using mock data for now
+    const patientId = values.patientId;
+    const foundLabs = patientLabsData[patientId as keyof typeof patientLabsData] || [];
+    
+    if (foundLabs.length === 0) {
+      toast({
+        title: "No lab results found",
+        description: `No pending lab cultures found for patient ${patientId}`,
+        variant: "destructive",
+      });
+    }
+    
+    setPatientLabs(foundLabs);
+  };
+
+  // Handle lab result form submission
+  const onLabResultSubmit = (values: z.infer<typeof labResultSchema>) => {
+    // Store the values and show confirmation dialog
+    setSelectedLab({
+      ...values,
+      labData: patientLabs.find(lab => lab.id === values.labId)
+    });
+    setShowConfirmDialog(true);
+  };
+
+  // Handle final submission after confirmation
+  const handleFinalSubmit = () => {
+    // Here you would submit the result to the backend
+    // -----------------------------------------------------------------
+    // BACKEND INTEGRATION
+    // Replace this with an API call to submit the lab result
+    // 
+    // API endpoint: PUT /api/labs/{labId}/result
+    // Request body:
+    // {
+    //   result: "positive" | "negative",
+    //   submittedBy: string, // User ID or name
+    //   submittedAt: Date
+    // }
+    // -----------------------------------------------------------------
+    
+    toast({
+      title: "Lab result submitted",
+      description: `Result for lab ${selectedLab.labId} has been recorded as ${selectedLab.result}`,
+    });
+    
+    // Update local state to reflect the change
+    setPatientLabs(prevLabs => 
+      prevLabs.map(lab => 
+        lab.id === selectedLab.labId 
+          ? { ...lab, status: "Completed", result: selectedLab.result } 
+          : lab
+      )
+    );
+    
+    // Reset forms and state
+    setShowConfirmDialog(false);
+    setSelectedLab(null);
+    labResultForm.reset();
+  };
 
   const handleLogout = () => {
     // Here you would typically clear any auth tokens or user session data
@@ -247,22 +404,183 @@ const AdminDashboard = () => {
                 <CardTitle className="text-2xl font-normal text-gray-700">Input Lab Results</CardTitle>
               </CardHeader>
               <CardContent className="py-6">
-                <p className="text-gray-500">Lab results input functionality will be implemented here.</p>
+                {/* Patient ID Search Form */}
+                <Form {...patientIdForm}>
+                  <form onSubmit={patientIdForm.handleSubmit(onPatientIdSubmit)} className="space-y-4">
+                    <FormField
+                      control={patientIdForm.control}
+                      name="patientId"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col w-full md:flex-row md:items-end md:gap-4">
+                          <div className="flex-1">
+                            <FormLabel htmlFor="patientId" className="text-base">Enter Patient ID</FormLabel>
+                            <FormControl>
+                              <Input id="patientId" placeholder="Enter patient ID" {...field} className="mt-1" />
+                            </FormControl>
+                            <FormMessage />
+                          </div>
+                          <Button type="submit" className="mt-2 md:mt-0 gap-2">
+                            <Search className="h-4 w-4" />
+                            Search
+                          </Button>
+                        </FormItem>
+                      )}
+                    />
+                  </form>
+                </Form>
+
+                {/* Display patient labs if available */}
+                {patientLabs.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-lg font-medium mb-4">Pending Lab Cultures</h3>
+                    
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Lab ID</TableHead>
+                          <TableHead>Sample Type</TableHead>
+                          <TableHead>Collection Date</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {patientLabs.map((lab) => (
+                          <TableRow key={lab.id} className="hover:bg-gray-50">
+                            <TableCell className="font-medium">{lab.id}</TableCell>
+                            <TableCell>{lab.sampleType}</TableCell>
+                            <TableCell>{lab.collectionDate}</TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded text-sm ${
+                                lab.status === "Completed" 
+                                  ? "bg-green-100 text-green-800" 
+                                  : "bg-amber-100 text-amber-800"
+                              }`}>
+                                {lab.status}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+
+                    {/* Lab Result Input Form */}
+                    <div className="mt-8 border-t pt-6">
+                      <h3 className="text-lg font-medium mb-4">Input Carbapenem Resistance Result</h3>
+                      
+                      <Form {...labResultForm}>
+                        <form onSubmit={labResultForm.handleSubmit(onLabResultSubmit)} className="space-y-6">
+                          <FormField
+                            control={labResultForm.control}
+                            name="labId"
+                            render={({ field }) => (
+                              <FormItem className="space-y-2">
+                                <FormLabel>Select Lab ID</FormLabel>
+                                <FormControl>
+                                  <select
+                                    {...field}
+                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-lg ring-offset-background file:border-0 file:bg-transparent file:text-lg file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    <option value="" disabled>Select a lab</option>
+                                    {patientLabs
+                                      .filter(lab => lab.status === "Pending")
+                                      .map(lab => (
+                                        <option key={lab.id} value={lab.id}>{lab.id} - {lab.sampleType}</option>
+                                      ))
+                                    }
+                                  </select>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={labResultForm.control}
+                            name="result"
+                            render={({ field }) => (
+                              <FormItem className="space-y-3">
+                                <FormLabel>Carbapenem Resistance Result</FormLabel>
+                                <FormControl>
+                                  <RadioGroup
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                    className="flex flex-col space-y-1"
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem value="positive" id="positive" />
+                                      <label htmlFor="positive" className="text-base font-medium">
+                                        Positive (Resistance Detected)
+                                      </label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem value="negative" id="negative" />
+                                      <label htmlFor="negative" className="text-base font-medium">
+                                        Negative (No Resistance Detected)
+                                      </label>
+                                    </div>
+                                  </RadioGroup>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <Button type="submit" className="w-full md:w-auto">Submit Result</Button>
+                        </form>
+                      </Form>
+                    </div>
+                  </div>
+                )}
+
+                {/* Confirmation Dialog */}
+                <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirm Lab Result Submission</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {selectedLab && (
+                          <div className="text-left space-y-2 py-2">
+                            <p><strong>Lab ID:</strong> {selectedLab.labId}</p>
+                            {selectedLab.labData && (
+                              <>
+                                <p><strong>Sample Type:</strong> {selectedLab.labData.sampleType}</p>
+                                <p><strong>Collection Date:</strong> {selectedLab.labData.collectionDate}</p>
+                              </>
+                            )}
+                            <p>
+                              <strong>Result:</strong> 
+                              <span className={selectedLab.result === "positive" ? "text-red-600 font-semibold" : "text-green-600 font-semibold"}>
+                                {" "}{selectedLab.result === "positive" ? "Positive (Resistance Detected)" : "Negative (No Resistance Detected)"}
+                              </span>
+                            </p>
+                            <p className="mt-4 font-medium">
+                              Are you sure you want to submit this result? This action cannot be undone.
+                            </p>
+                          </div>
+                        )}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleFinalSubmit}>
+                        Confirm Submission
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 
                 {/* 
                 // ---------------------------------------------------------
                 // BACKEND INTEGRATION
-                // Replace this section with your actual form and API call when connecting to backend
+                // Replace the static form implementation with your actual API calls when connecting to backend
                 // 
-                // API endpoint: POST /api/lab-results
-                // Request format:
-                // {
-                //   patientId: string,
-                //   testType: string,
-                //   result: string,
-                //   resultDate: string,
-                //   performedBy: string
-                // }
+                // API endpoints:
+                // 1. GET /api/patients/{patientId} - Get patient info
+                // 2. GET /api/patients/{patientId}/labs - Get patient lab tests
+                // 3. PUT /api/labs/{labId}/result - Submit lab result
+                // 
+                // The forms and state management can remain similar, but the data fetching and submission
+                // should be replaced with actual API calls
                 // ---------------------------------------------------------
                 */}
               </CardContent>
