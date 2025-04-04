@@ -24,16 +24,16 @@ const Index = () => {
         
         {/* Text overlay */}
         <div className="absolute bottom-8 left-8 text-white">
-          <h2 className="text-2xl font-light tracking-tight">TraceMed</h2>
-          <p className="text-sm opacity-80">Medical tracking simplified</p>
+          <h2 className="text-3xl md:text-4xl font-light tracking-tight">TraceMed</h2>
+          <p className="text-base md:text-lg opacity-80">Medical tracking simplified</p>
         </div>
       </div>
       
       {/* Login Form Section - Right Side on desktop, Bottom on mobile */}
       <div className="md:w-1/2 flex-1 bg-white flex flex-col items-center justify-center">
         <div className="w-full max-w-md px-6">
-          <h1 className="text-2xl md:text-3xl text-gray-800 font-light mb-2 tracking-tight">TraceMed</h1>
-          <p className="text-gray-500 text-sm mb-12">Sign in to your account</p>
+          <h1 className="text-3xl md:text-4xl text-gray-800 font-light mb-2 tracking-tight">TraceMed</h1>
+          <p className="text-lg md:text-xl text-gray-500 mb-12">Sign in to your account</p>
           <LoginForm />
         </div>
       </div>

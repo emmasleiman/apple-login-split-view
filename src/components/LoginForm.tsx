@@ -58,8 +58,8 @@ const LoginForm = () => {
               placeholder="Username handle"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="h-12 border border-gray-200 rounded-md px-4 
-                focus:border-gray-400 transition-colors bg-gray-50/50 text-base"
+              className="h-14 text-lg border border-gray-200 rounded-md px-5 
+                focus:border-gray-400 transition-colors bg-gray-50/50"
               autoComplete="username"
             />
           </div>
@@ -70,16 +70,16 @@ const LoginForm = () => {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-12 border border-gray-200 rounded-md px-4
-                focus:border-gray-400 transition-colors bg-gray-50/50 text-base"
+              className="h-14 text-lg border border-gray-200 rounded-md px-5
+                focus:border-gray-400 transition-colors bg-gray-50/50"
               autoComplete="current-password"
             />
             <button 
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-3 text-gray-500 hover:text-gray-800 transition-colors"
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-800 transition-colors"
             >
-              {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+              {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
             </button>
           </div>
         </div>
@@ -88,21 +88,21 @@ const LoginForm = () => {
           <Button 
             type="submit" 
             disabled={isLoading}
-            className="w-full bg-gray-900 hover:bg-gray-800 text-white py-6 rounded-md 
-              font-normal transition-all h-12 text-base"
+            className="w-full bg-gray-900 hover:bg-gray-800 text-white py-7 rounded-md 
+              font-normal transition-all h-14 text-lg"
           >
             {isLoading ? "Signing in..." : "Sign in"}
           </Button>
         </div>
         
         <div className="text-center">
-          <a href="#" className="text-base text-gray-600 hover:text-gray-900 transition-colors">
+          <a href="#" className="text-lg text-gray-600 hover:text-gray-900 transition-colors">
             Forgot password?
           </a>
         </div>
       </form>
       
-      <div className="mt-12 text-center text-gray-400 text-sm">
+      <div className="mt-12 text-center text-gray-400 text-base">
         &copy; {new Date().getFullYear()} TraceMed. All rights reserved.
       </div>
     </div>
