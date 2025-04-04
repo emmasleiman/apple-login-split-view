@@ -277,26 +277,28 @@ const AdminDashboard = () => {
                     {activeCollapsibleA ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                   </CollapsibleTrigger>
                   <CollapsibleContent className="p-5 bg-white">
-                    {criticalPatientsData.length > 0 ? (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-1/2">Patient ID</TableHead>
-                            <TableHead className="w-1/2">Current Location</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {criticalPatientsData.map((patient) => (
-                            <TableRow key={patient.id} className="bg-red-50/50 hover:bg-red-50">
-                              <TableCell className="font-medium">{patient.id}</TableCell>
-                              <TableCell>{patient.location}</TableCell>
+                    <div className="overflow-x-auto w-full">
+                      {criticalPatientsData.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-1/2">Patient ID</TableHead>
+                              <TableHead className="w-1/2">Current Location</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <p className="text-gray-500 py-4 text-center">No critical cases currently.</p>
-                    )}
+                          </TableHeader>
+                          <TableBody>
+                            {criticalPatientsData.map((patient) => (
+                              <TableRow key={patient.id} className="bg-red-50/50 hover:bg-red-50">
+                                <TableCell className="font-medium">{patient.id}</TableCell>
+                                <TableCell>{patient.location}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <p className="text-gray-500 py-4 text-center">No critical cases currently.</p>
+                      )}
+                    </div>
                     
                     {/* 
                     // ---------------------------------------------------------
@@ -339,32 +341,34 @@ const AdminDashboard = () => {
                     {activeCollapsibleB ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                   </CollapsibleTrigger>
                   <CollapsibleContent className="p-5 bg-white">
-                    {pendingResultsData.length > 0 ? (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-1/3">Patient ID</TableHead>
-                            <TableHead className="w-1/3">Collection Date</TableHead>
-                            <TableHead className="w-1/3">Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {pendingResultsData.map((patient) => (
-                            <TableRow key={patient.id}>
-                              <TableCell className="font-medium">{patient.id}</TableCell>
-                              <TableCell>{patient.collectionDate}</TableCell>
-                              <TableCell>
-                                <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-sm">
-                                  {patient.status}
-                                </span>
-                              </TableCell>
+                    <div className="overflow-x-auto w-full">
+                      {pendingResultsData.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-1/3">Patient ID</TableHead>
+                              <TableHead className="w-1/3">Collection Date</TableHead>
+                              <TableHead className="w-1/3">Status</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <p className="text-gray-500 py-4 text-center">No pending test results.</p>
-                    )}
+                          </TableHeader>
+                          <TableBody>
+                            {pendingResultsData.map((patient) => (
+                              <TableRow key={patient.id}>
+                                <TableCell className="font-medium">{patient.id}</TableCell>
+                                <TableCell>{patient.collectionDate}</TableCell>
+                                <TableCell>
+                                  <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-sm">
+                                    {patient.status}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <p className="text-gray-500 py-4 text-center">No pending test results.</p>
+                      )}
+                    </div>
                     
                     {/* 
                     // ---------------------------------------------------------
@@ -400,7 +404,7 @@ const AdminDashboard = () => {
               <CardContent className="py-8">
                 {/* Patient ID Search Form */}
                 <Form {...patientIdForm}>
-                  <form onSubmit={patientIdForm.handleSubmit(onPatientIdSubmit)} className="space-y-6">
+                  <form onSubmit={patientIdForm.handleSubmit(onPatientIdSubmit)} className="space-y-6 max-w-2xl mx-auto">
                     <FormField
                       control={patientIdForm.control}
                       name="patientId"
@@ -425,38 +429,40 @@ const AdminDashboard = () => {
 
                 {/* Display patient labs if available */}
                 {patientLabs.length > 0 && (
-                  <div className="mt-10">
+                  <div className="mt-10 max-w-4xl mx-auto">
                     <h3 className="text-xl font-medium mb-6">Pending Lab Cultures</h3>
                     
                     <div className="rounded-lg border overflow-hidden mb-10">
-                      <Table>
-                        <TableHeader className="bg-gray-50">
-                          <TableRow>
-                            <TableHead className="py-4">Lab ID</TableHead>
-                            <TableHead className="py-4">Sample Type</TableHead>
-                            <TableHead className="py-4">Collection Date</TableHead>
-                            <TableHead className="py-4">Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {patientLabs.map((lab) => (
-                            <TableRow key={lab.id} className="hover:bg-gray-50">
-                              <TableCell className="font-medium py-4">{lab.id}</TableCell>
-                              <TableCell className="py-4">{lab.sampleType}</TableCell>
-                              <TableCell className="py-4">{lab.collectionDate}</TableCell>
-                              <TableCell className="py-4">
-                                <span className={`px-3 py-1 rounded-full text-sm ${
-                                  lab.status === "Completed" 
-                                    ? "bg-green-100 text-green-800" 
-                                    : "bg-amber-100 text-amber-800"
-                                }`}>
-                                  {lab.status}
-                                </span>
-                              </TableCell>
+                      <div className="overflow-x-auto w-full">
+                        <Table>
+                          <TableHeader className="bg-gray-50">
+                            <TableRow>
+                              <TableHead className="py-4">Lab ID</TableHead>
+                              <TableHead className="py-4">Sample Type</TableHead>
+                              <TableHead className="py-4">Collection Date</TableHead>
+                              <TableHead className="py-4">Status</TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {patientLabs.map((lab) => (
+                              <TableRow key={lab.id} className="hover:bg-gray-50">
+                                <TableCell className="font-medium py-4">{lab.id}</TableCell>
+                                <TableCell className="py-4">{lab.sampleType}</TableCell>
+                                <TableCell className="py-4">{lab.collectionDate}</TableCell>
+                                <TableCell className="py-4">
+                                  <span className={`px-3 py-1 rounded-full text-sm ${
+                                    lab.status === "Completed" 
+                                      ? "bg-green-100 text-green-800" 
+                                      : "bg-amber-100 text-amber-800"
+                                  }`}>
+                                    {lab.status}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
 
                     {/* Lab Result Input Form */}
