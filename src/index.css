@@ -46,12 +46,36 @@
   
   /* Apple-style focus effect for inputs */
   input:focus {
-    @apply outline-none ring-2 ring-primary ring-opacity-50;
+    @apply outline-none ring-1 ring-gray-400 ring-opacity-50;
   }
 }
 
-/* Apple-style subtle animation for button hover */
+/* Noise texture background */
+.bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+}
+
+/* Subtle animation for button hover */
 @keyframes button-hover {
   0% { background-position: 0% 0%; }
   100% { background-position: 100% 100%; }
+}
+
+/* Input focus animations */
+@keyframes focus-in {
+  0% { border-color: transparent; }
+  100% { border-color: rgba(156, 163, 175, 1); }
+}
+
+input:focus {
+  animation: focus-in 0.2s ease-out forwards;
+}
+
+/* Transition properties */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }

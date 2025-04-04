@@ -35,70 +35,61 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="h-full flex flex-col justify-center px-8 md:px-16 lg:px-24">
-      <div className="space-y-6">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-light tracking-tight">Welcome back</h1>
-          <p className="text-gray-500 text-sm">
-            Enter your details to sign in to your account
-          </p>
+    <div className="w-full">
+      <form onSubmit={handleLogin} className="space-y-6">
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Input
+              type="text"
+              placeholder="Username handle"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="h-12 border border-gray-200 rounded-md px-4 
+                focus:border-gray-400 transition-colors bg-gray-50/50"
+              autoComplete="username"
+            />
+          </div>
+          
+          <div className="space-y-2 relative">
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-12 border border-gray-200 rounded-md px-4
+                focus:border-gray-400 transition-colors bg-gray-50/50"
+              autoComplete="current-password"
+            />
+            <button 
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-3 text-gray-500 hover:text-gray-800 transition-colors"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
         </div>
         
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Input
-                type="text"
-                placeholder="Username handle"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="h-12 border-0 border-b border-gray-200 rounded-none px-0 
-                  focus:ring-0 focus:border-gray-900 transition-colors"
-                autoComplete="username"
-              />
-            </div>
-            
-            <div className="space-y-2 relative">
-              <Input
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-12 border-0 border-b border-gray-200 rounded-none px-0 
-                  focus:ring-0 focus:border-gray-900 transition-colors"
-                autoComplete="current-password"
-              />
-              <button 
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-0 top-3 text-gray-500 hover:text-gray-800"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
-          
-          <div className="pt-4">
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-              className="w-full bg-black hover:bg-gray-800 text-white py-6 rounded-xl 
-                font-normal transition-all"
-            >
-              {isLoading ? "Signing in..." : "Sign in"}
-            </Button>
-          </div>
-          
-          <div className="text-center">
-            <a href="#" className="text-sm text-blue-500 hover:underline">
-              Forgot password?
-            </a>
-          </div>
-        </form>
-      </div>
+        <div className="pt-2">
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            className="w-full bg-gray-900 hover:bg-gray-800 text-white py-6 rounded-md 
+              font-normal transition-all h-12"
+          >
+            {isLoading ? "Signing in..." : "Sign in"}
+          </Button>
+        </div>
+        
+        <div className="text-center">
+          <a href="#" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+            Forgot password?
+          </a>
+        </div>
+      </form>
       
-      <div className="mt-auto py-6 text-center text-gray-500 text-xs">
-        &copy; {new Date().getFullYear()} Serene App. All rights reserved.
+      <div className="mt-12 text-center text-gray-400 text-xs">
+        &copy; {new Date().getFullYear()} TraceMed. All rights reserved.
       </div>
     </div>
   );
