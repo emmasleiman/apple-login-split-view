@@ -20,12 +20,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
   Form,
   FormControl,
   FormField,
@@ -130,7 +124,7 @@ const AdminDashboard = () => {
   const onPatientIdSubmit = (values: z.infer<typeof patientIdSchema>) => {
     // Here you would typically fetch the patient's lab data from the backend
     // -----------------------------------------------------------------
-    // BACKEND INTEGRATION
+    // BACKEND INTEGRATION (REPLACE THIS SECTION)
     // Replace this with an API call to fetch the patient's lab data
     // 
     // API endpoint: GET /api/patients/{patientId}/labs
@@ -147,7 +141,7 @@ const AdminDashboard = () => {
     // }
     // -----------------------------------------------------------------
     
-    // Using mock data for now
+    // Using mock data for now (DELETE WHEN CONNECTING TO BACKEND)
     const patientId = values.patientId;
     const foundLabs = patientLabsData[patientId as keyof typeof patientLabsData] || [];
     
@@ -176,7 +170,7 @@ const AdminDashboard = () => {
   const handleFinalSubmit = () => {
     // Here you would submit the result to the backend
     // -----------------------------------------------------------------
-    // BACKEND INTEGRATION
+    // BACKEND INTEGRATION (REPLACE THIS SECTION)
     // Replace this with an API call to submit the lab result
     // 
     // API endpoint: PUT /api/labs/{labId}/result
@@ -193,7 +187,7 @@ const AdminDashboard = () => {
       description: `Result for lab ${selectedLab.labId} has been recorded as ${selectedLab.result}`,
     });
     
-    // Update local state to reflect the change
+    // Update local state to reflect the change (DELETE WHEN CONNECTING TO BACKEND)
     setPatientLabs(prevLabs => 
       prevLabs.map(lab => 
         lab.id === selectedLab.labId 
@@ -220,20 +214,20 @@ const AdminDashboard = () => {
         variant="ghost"
         size="icon"
         onClick={handleLogout}
-        className="absolute top-4 left-4 text-gray-500 hover:text-gray-700"
+        className="absolute top-6 left-6 text-gray-500 hover:text-gray-700"
         aria-label="Logout"
       >
         <ArrowLeft className="h-6 w-6" />
       </Button>
 
-      <div className="w-full max-w-6xl mx-auto px-4 py-10">
-        <div className="flex flex-col gap-2 mb-10 text-center">
-          <h1 className="text-3xl font-light tracking-tight text-gray-800">Admin Dashboard</h1>
-          <p className="text-base text-gray-500">Monitor critical cases and manage hospital data</p>
+      <div className="w-full max-w-7xl mx-auto px-6 py-12">
+        <div className="flex flex-col gap-4 mb-12 text-center">
+          <h1 className="text-4xl font-light tracking-tight text-gray-800">Admin Dashboard</h1>
+          <p className="text-lg text-gray-500">Monitor critical cases and manage hospital data</p>
         </div>
 
         <Tabs defaultValue="critical" className="w-full">
-          <TabsList className="mb-8 bg-gray-100/80 rounded-xl shadow-sm h-16">
+          <TabsList className="mb-10 bg-gray-100/80 rounded-xl shadow-sm h-16">
             <TabsTrigger 
               value="critical" 
               className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-lg py-3 flex-1"
@@ -261,20 +255,20 @@ const AdminDashboard = () => {
           </TabsList>
 
           {/* Critical Cases Tab */}
-          <TabsContent value="critical" className="w-full space-y-6">
+          <TabsContent value="critical" className="w-full space-y-8">
             <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100 py-6">
                 <CardTitle className="text-2xl font-normal text-gray-700">Critical Cases Management</CardTitle>
               </CardHeader>
-              <CardContent className="pt-6 space-y-6">
+              <CardContent className="pt-8 pb-6 space-y-8">
                 {/* Collapsible Section A - Active Critical Cases */}
                 <Collapsible 
                   open={activeCollapsibleA} 
                   onOpenChange={setActiveCollapsibleA}
                   className="border rounded-lg overflow-hidden"
                 >
-                  <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-red-50 hover:bg-red-100 transition-colors">
-                    <div className="flex items-center gap-2">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full p-5 bg-red-50 hover:bg-red-100 transition-colors">
+                    <div className="flex items-center gap-3">
                       <AlertCircle className="text-red-500 h-5 w-5" />
                       <h3 className="text-lg font-medium text-red-700">
                         Patients with Confirmed Carbapenem Resistance (Not in Isolation)
@@ -282,7 +276,7 @@ const AdminDashboard = () => {
                     </div>
                     {activeCollapsibleA ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="p-4 bg-white">
+                  <CollapsibleContent className="p-5 bg-white">
                     {criticalPatientsData.length > 0 ? (
                       <Table>
                         <TableHeader>
@@ -306,7 +300,7 @@ const AdminDashboard = () => {
                     
                     {/* 
                     // ---------------------------------------------------------
-                    // BACKEND INTEGRATION
+                    // BACKEND INTEGRATION (REPLACE THIS SECTION)
                     // Replace this section with your actual API call when connecting to backend
                     // 
                     // API endpoint: GET /api/patients/critical
@@ -335,8 +329,8 @@ const AdminDashboard = () => {
                   onOpenChange={setActiveCollapsibleB}
                   className="border rounded-lg overflow-hidden"
                 >
-                  <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-amber-50 hover:bg-amber-100 transition-colors">
-                    <div className="flex items-center gap-2">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full p-5 bg-amber-50 hover:bg-amber-100 transition-colors">
+                    <div className="flex items-center gap-3">
                       <AlertCircle className="text-amber-500 h-5 w-5" />
                       <h3 className="text-lg font-medium text-amber-700">
                         Patients Awaiting Carbapenem Lab Results
@@ -344,7 +338,7 @@ const AdminDashboard = () => {
                     </div>
                     {activeCollapsibleB ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="p-4 bg-white">
+                  <CollapsibleContent className="p-5 bg-white">
                     {pendingResultsData.length > 0 ? (
                       <Table>
                         <TableHeader>
@@ -374,7 +368,7 @@ const AdminDashboard = () => {
                     
                     {/* 
                     // ---------------------------------------------------------
-                    // BACKEND INTEGRATION
+                    // BACKEND INTEGRATION (REPLACE THIS SECTION)
                     // Replace this section with your actual API call when connecting to backend
                     // 
                     // API endpoint: GET /api/patients/pending-results
@@ -400,26 +394,26 @@ const AdminDashboard = () => {
           {/* Input Lab Results Tab */}
           <TabsContent value="lab-results">
             <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100 py-6">
                 <CardTitle className="text-2xl font-normal text-gray-700">Input Lab Results</CardTitle>
               </CardHeader>
-              <CardContent className="py-6">
+              <CardContent className="py-8">
                 {/* Patient ID Search Form */}
                 <Form {...patientIdForm}>
-                  <form onSubmit={patientIdForm.handleSubmit(onPatientIdSubmit)} className="space-y-4">
+                  <form onSubmit={patientIdForm.handleSubmit(onPatientIdSubmit)} className="space-y-6">
                     <FormField
                       control={patientIdForm.control}
                       name="patientId"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col w-full md:flex-row md:items-end md:gap-4">
+                        <FormItem className="flex flex-col w-full md:flex-row md:items-end md:gap-6">
                           <div className="flex-1">
-                            <FormLabel htmlFor="patientId" className="text-base">Enter Patient ID</FormLabel>
+                            <FormLabel htmlFor="patientId" className="text-lg mb-2 block">Enter Patient ID</FormLabel>
                             <FormControl>
-                              <Input id="patientId" placeholder="Enter patient ID" {...field} className="mt-1" />
+                              <Input id="patientId" placeholder="Enter patient ID" {...field} className="h-12 text-base" />
                             </FormControl>
                             <FormMessage />
                           </div>
-                          <Button type="submit" className="mt-2 md:mt-0 gap-2">
+                          <Button type="submit" size="lg" className="mt-4 md:mt-0 gap-2 h-12">
                             <Search className="h-4 w-4" />
                             Search
                           </Button>
@@ -431,54 +425,56 @@ const AdminDashboard = () => {
 
                 {/* Display patient labs if available */}
                 {patientLabs.length > 0 && (
-                  <div className="mt-8">
-                    <h3 className="text-lg font-medium mb-4">Pending Lab Cultures</h3>
+                  <div className="mt-10">
+                    <h3 className="text-xl font-medium mb-6">Pending Lab Cultures</h3>
                     
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Lab ID</TableHead>
-                          <TableHead>Sample Type</TableHead>
-                          <TableHead>Collection Date</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {patientLabs.map((lab) => (
-                          <TableRow key={lab.id} className="hover:bg-gray-50">
-                            <TableCell className="font-medium">{lab.id}</TableCell>
-                            <TableCell>{lab.sampleType}</TableCell>
-                            <TableCell>{lab.collectionDate}</TableCell>
-                            <TableCell>
-                              <span className={`px-2 py-1 rounded text-sm ${
-                                lab.status === "Completed" 
-                                  ? "bg-green-100 text-green-800" 
-                                  : "bg-amber-100 text-amber-800"
-                              }`}>
-                                {lab.status}
-                              </span>
-                            </TableCell>
+                    <div className="rounded-lg border overflow-hidden mb-10">
+                      <Table>
+                        <TableHeader className="bg-gray-50">
+                          <TableRow>
+                            <TableHead className="py-4">Lab ID</TableHead>
+                            <TableHead className="py-4">Sample Type</TableHead>
+                            <TableHead className="py-4">Collection Date</TableHead>
+                            <TableHead className="py-4">Status</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {patientLabs.map((lab) => (
+                            <TableRow key={lab.id} className="hover:bg-gray-50">
+                              <TableCell className="font-medium py-4">{lab.id}</TableCell>
+                              <TableCell className="py-4">{lab.sampleType}</TableCell>
+                              <TableCell className="py-4">{lab.collectionDate}</TableCell>
+                              <TableCell className="py-4">
+                                <span className={`px-3 py-1 rounded-full text-sm ${
+                                  lab.status === "Completed" 
+                                    ? "bg-green-100 text-green-800" 
+                                    : "bg-amber-100 text-amber-800"
+                                }`}>
+                                  {lab.status}
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
 
                     {/* Lab Result Input Form */}
-                    <div className="mt-8 border-t pt-6">
-                      <h3 className="text-lg font-medium mb-4">Input Carbapenem Resistance Result</h3>
+                    <div className="mt-10 border-t pt-8">
+                      <h3 className="text-xl font-medium mb-6">Input Carbapenem Resistance Result</h3>
                       
                       <Form {...labResultForm}>
-                        <form onSubmit={labResultForm.handleSubmit(onLabResultSubmit)} className="space-y-6">
+                        <form onSubmit={labResultForm.handleSubmit(onLabResultSubmit)} className="space-y-8 max-w-2xl mx-auto">
                           <FormField
                             control={labResultForm.control}
                             name="labId"
                             render={({ field }) => (
-                              <FormItem className="space-y-2">
-                                <FormLabel>Select Lab ID</FormLabel>
+                              <FormItem className="space-y-3">
+                                <FormLabel className="text-base">Select Lab ID</FormLabel>
                                 <FormControl>
                                   <select
                                     {...field}
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-lg ring-offset-background file:border-0 file:bg-transparent file:text-lg file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="w-full rounded-md border border-input bg-background px-4 py-3 text-base ring-offset-background file:border-0 file:bg-transparent file:text-base file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                   >
                                     <option value="" disabled>Select a lab</option>
                                     {patientLabs
@@ -498,23 +494,23 @@ const AdminDashboard = () => {
                             control={labResultForm.control}
                             name="result"
                             render={({ field }) => (
-                              <FormItem className="space-y-3">
-                                <FormLabel>Carbapenem Resistance Result</FormLabel>
+                              <FormItem className="space-y-4">
+                                <FormLabel className="text-base">Carbapenem Resistance Result</FormLabel>
                                 <FormControl>
                                   <RadioGroup
                                     onValueChange={field.onChange}
                                     defaultValue={field.value}
-                                    className="flex flex-col space-y-1"
+                                    className="flex flex-col space-y-3"
                                   >
-                                    <div className="flex items-center space-x-2">
+                                    <div className="flex items-center space-x-3 bg-white p-4 rounded-lg border border-gray-100 hover:bg-gray-50">
                                       <RadioGroupItem value="positive" id="positive" />
-                                      <label htmlFor="positive" className="text-base font-medium">
+                                      <label htmlFor="positive" className="text-base font-medium cursor-pointer w-full">
                                         Positive (Resistance Detected)
                                       </label>
                                     </div>
-                                    <div className="flex items-center space-x-2">
+                                    <div className="flex items-center space-x-3 bg-white p-4 rounded-lg border border-gray-100 hover:bg-gray-50">
                                       <RadioGroupItem value="negative" id="negative" />
-                                      <label htmlFor="negative" className="text-base font-medium">
+                                      <label htmlFor="negative" className="text-base font-medium cursor-pointer w-full">
                                         Negative (No Resistance Detected)
                                       </label>
                                     </div>
@@ -525,7 +521,7 @@ const AdminDashboard = () => {
                             )}
                           />
                           
-                          <Button type="submit" className="w-full md:w-auto">Submit Result</Button>
+                          <Button type="submit" size="lg" className="w-full md:w-auto px-8">Submit Result</Button>
                         </form>
                       </Form>
                     </div>
@@ -539,7 +535,7 @@ const AdminDashboard = () => {
                       <AlertDialogTitle>Confirm Lab Result Submission</AlertDialogTitle>
                       <AlertDialogDescription>
                         {selectedLab && (
-                          <div className="text-left space-y-2 py-2">
+                          <div className="text-left space-y-3 py-4">
                             <p><strong>Lab ID:</strong> {selectedLab.labId}</p>
                             {selectedLab.labData && (
                               <>
@@ -553,9 +549,11 @@ const AdminDashboard = () => {
                                 {" "}{selectedLab.result === "positive" ? "Positive (Resistance Detected)" : "Negative (No Resistance Detected)"}
                               </span>
                             </p>
-                            <p className="mt-4 font-medium">
-                              Are you sure you want to submit this result? This action cannot be undone.
-                            </p>
+                            <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                              <p className="font-medium text-gray-700">
+                                Are you sure you want to submit this result? This action cannot be undone.
+                              </p>
+                            </div>
                           </div>
                         )}
                       </AlertDialogDescription>
@@ -571,7 +569,7 @@ const AdminDashboard = () => {
                 
                 {/* 
                 // ---------------------------------------------------------
-                // BACKEND INTEGRATION
+                // BACKEND INTEGRATION (REPLACE THIS SECTION)
                 // Replace the static form implementation with your actual API calls when connecting to backend
                 // 
                 // API endpoints:
@@ -590,15 +588,15 @@ const AdminDashboard = () => {
           {/* Full Database Tab */}
           <TabsContent value="database">
             <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100 py-6">
                 <CardTitle className="text-2xl font-normal text-gray-700">Full Database</CardTitle>
               </CardHeader>
-              <CardContent className="py-6">
-                <p className="text-gray-500">Full database view and search functionality will be implemented here.</p>
+              <CardContent className="py-8">
+                <p className="text-gray-500 text-center text-lg py-12">Full database view and search functionality will be implemented here.</p>
                 
                 {/* 
                 // ---------------------------------------------------------
-                // BACKEND INTEGRATION
+                // BACKEND INTEGRATION (REPLACE THIS SECTION)
                 // Replace this section with your actual table and API call when connecting to backend
                 // 
                 // API endpoint: GET /api/patients
@@ -619,15 +617,15 @@ const AdminDashboard = () => {
           {/* Discharge Patients Tab */}
           <TabsContent value="discharge">
             <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100 py-6">
                 <CardTitle className="text-2xl font-normal text-gray-700">Discharge Patients</CardTitle>
               </CardHeader>
-              <CardContent className="py-6">
-                <p className="text-gray-500">Patient discharge functionality will be implemented here.</p>
+              <CardContent className="py-8">
+                <p className="text-gray-500 text-center text-lg py-12">Patient discharge functionality will be implemented here.</p>
                 
                 {/* 
                 // ---------------------------------------------------------
-                // BACKEND INTEGRATION
+                // BACKEND INTEGRATION (REPLACE THIS SECTION)
                 // Replace this section with your actual form and API call when connecting to backend
                 // 
                 // API endpoint: PUT /api/patients/:id/discharge
