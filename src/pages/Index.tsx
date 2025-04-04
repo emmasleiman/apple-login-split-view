@@ -30,8 +30,8 @@ const Index = () => {
       </div>
       
       {/* Login Form Section - Right Side on desktop, Bottom on mobile */}
-      <div className="md:w-1/2 flex-1 bg-white flex flex-col items-center">
-        <div className="w-full max-w-md px-6 pt-16 md:pt-24">
+      <div className="md:w-1/2 flex-1 bg-white flex flex-col items-center justify-center">
+        <div className="w-full max-w-md px-6">
           <h1 className="text-2xl md:text-3xl text-gray-800 font-light mb-2 tracking-tight">TraceMed</h1>
           <p className="text-gray-500 text-sm mb-12">Sign in to your account</p>
           <LoginForm />
