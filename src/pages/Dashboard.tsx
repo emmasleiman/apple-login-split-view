@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import QRCode from "react-qr-code";
 
@@ -132,16 +131,15 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/40">
-      <div className="w-full max-w-6xl mx-auto px-4 py-10">
-        <div className="flex flex-col gap-2 mb-8">
+    <div className="flex items-center justify-center min-h-screen bg-gray-50/40">
+      <div className="w-full max-w-4xl mx-auto px-4 py-10">
+        <div className="flex flex-col gap-2 mb-8 text-center">
           <h1 className="text-2xl font-light tracking-tight text-gray-800">Data Encoder Dashboard</h1>
           <p className="text-sm text-gray-500">Manage patient registrations and discharges</p>
         </div>
-        <Separator className="mb-8" />
 
         <Tabs defaultValue="register" className="w-full">
-          <TabsList className="w-full max-w-md grid grid-cols-2 mb-8 bg-gray-100/80 p-1 rounded-lg">
+          <TabsList className="w-full grid grid-cols-2 mb-8 bg-gray-100/80 p-1 rounded-lg">
             <TabsTrigger value="register" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm">
               Register Patient
             </TabsTrigger>
