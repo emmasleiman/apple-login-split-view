@@ -7,14 +7,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
 
 const Dashboard = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [patientId, setPatientId] = useState("");
   const [cultureRequired, setCultureRequired] = useState<"yes" | "no">("no");
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [dischargePatientId, setDischargePatientId] = useState("");
+
+  const handleLogout = () => {
+    // Here you would typically clear any auth tokens or user session data
+    navigate("/");
+  };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,6 +140,17 @@ const Dashboard = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50/40">
+      {/* Logout button in the top left */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleLogout}
+        className="absolute top-4 left-4 text-gray-500 hover:text-gray-700"
+        aria-label="Logout"
+      >
+        <ArrowLeft className="h-5 w-5" />
+      </Button>
+
       <div className="w-full max-w-4xl mx-auto px-4 py-10">
         <div className="flex flex-col gap-2 mb-8 text-center">
           <h1 className="text-2xl font-light tracking-tight text-gray-800">Data Encoder Dashboard</h1>
