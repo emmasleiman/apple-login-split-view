@@ -26,8 +26,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-// Mock data for demonstration
-// This would normally come from an API call
+// ----------------------------------------------------------------
+// MOCK DATA - DELETE THIS SECTION WHEN CONNECTING TO BACKEND
+// Replace with API calls to fetch real data from your backend
+// ----------------------------------------------------------------
 const criticalPatientsData = [
   { id: "P78945", location: "Ward A", isolationStatus: false },
   { id: "P12367", location: "ICU", isolationStatus: false },
@@ -39,6 +41,9 @@ const pendingResultsData = [
   { id: "P91234", collectionDate: "2025-04-02", status: "Pending" },
   { id: "P56789", collectionDate: "2025-04-03", status: "Pending" },
 ];
+// ----------------------------------------------------------------
+// END OF MOCK DATA SECTION
+// ----------------------------------------------------------------
 
 const AdminDashboard = () => {
   const { toast } = useToast();
@@ -125,9 +130,8 @@ const AdminDashboard = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Patient ID</TableHead>
-                            <TableHead>Current Location</TableHead>
-                            <TableHead>Action</TableHead>
+                            <TableHead className="w-1/2">Patient ID</TableHead>
+                            <TableHead className="w-1/2">Current Location</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -135,15 +139,6 @@ const AdminDashboard = () => {
                             <TableRow key={patient.id} className="bg-red-50/50 hover:bg-red-50">
                               <TableCell className="font-medium">{patient.id}</TableCell>
                               <TableCell>{patient.location}</TableCell>
-                              <TableCell>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  className="text-red-600 border-red-200 hover:bg-red-50"
-                                >
-                                  Mark as Isolated
-                                </Button>
-                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -152,17 +147,13 @@ const AdminDashboard = () => {
                       <p className="text-gray-500 py-4 text-center">No critical cases currently.</p>
                     )}
                     
-                    {/* Backend integration comment */}
                     {/* 
                     // ---------------------------------------------------------
-                    // Backend API integration for critical cases:
-                    // 1. Fetch patients with positive carbapenem-resistant cultures
-                    // 2. Filter for patients who are not marked as in isolation
-                    // 3. Update patient isolation status when "Mark as Isolated" is clicked
-                    // 4. Real-time updates when new results come in
+                    // BACKEND INTEGRATION
+                    // Replace this section with your actual API call when connecting to backend
                     // 
                     // API endpoint: GET /api/patients/critical
-                    // Response format:
+                    // Expected response format:
                     // {
                     //   patients: [
                     //     {
@@ -201,9 +192,9 @@ const AdminDashboard = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Patient ID</TableHead>
-                            <TableHead>Collection Date</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead className="w-1/3">Patient ID</TableHead>
+                            <TableHead className="w-1/3">Collection Date</TableHead>
+                            <TableHead className="w-1/3">Status</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -224,17 +215,13 @@ const AdminDashboard = () => {
                       <p className="text-gray-500 py-4 text-center">No pending test results.</p>
                     )}
                     
-                    {/* Backend integration comment */}
                     {/* 
                     // ---------------------------------------------------------
-                    // Backend API integration for pending lab results:
-                    // 1. Fetch patients with pending carbapenem culture tests
-                    // 2. Sort by collection date (oldest first)
-                    // 3. Enable filtering and searching
-                    // 4. Real-time updates when new tests are ordered
+                    // BACKEND INTEGRATION
+                    // Replace this section with your actual API call when connecting to backend
                     // 
                     // API endpoint: GET /api/patients/pending-results
-                    // Response format:
+                    // Expected response format:
                     // {
                     //   patients: [
                     //     {
@@ -262,15 +249,10 @@ const AdminDashboard = () => {
               <CardContent className="py-6">
                 <p className="text-gray-500">Lab results input functionality will be implemented here.</p>
                 
-                {/* Backend integration comment */}
                 {/* 
                 // ---------------------------------------------------------
-                // Backend API integration for lab results:
-                // 1. Form to input patient ID and lab results
-                // 2. Validation of patient existence
-                // 3. Submit results to API
-                // 4. Update patient status based on results
-                // 5. Trigger notifications for positive results
+                // BACKEND INTEGRATION
+                // Replace this section with your actual form and API call when connecting to backend
                 // 
                 // API endpoint: POST /api/lab-results
                 // Request format:
@@ -296,19 +278,14 @@ const AdminDashboard = () => {
               <CardContent className="py-6">
                 <p className="text-gray-500">Full database view and search functionality will be implemented here.</p>
                 
-                {/* Backend integration comment */}
                 {/* 
                 // ---------------------------------------------------------
-                // Backend API integration for database view:
-                // 1. Paginated list of all patients
-                // 2. Advanced filtering and sorting
-                // 3. Search functionality
-                // 4. Export options (CSV, PDF)
-                // 5. Detailed patient view on click
+                // BACKEND INTEGRATION
+                // Replace this section with your actual table and API call when connecting to backend
                 // 
                 // API endpoint: GET /api/patients
                 // Query parameters: page, limit, search, sort, filters
-                // Response format:
+                // Expected response format:
                 // {
                 //   patients: [...],
                 //   total: number,
@@ -330,15 +307,10 @@ const AdminDashboard = () => {
               <CardContent className="py-6">
                 <p className="text-gray-500">Patient discharge functionality will be implemented here.</p>
                 
-                {/* Backend integration comment */}
                 {/* 
                 // ---------------------------------------------------------
-                // Backend API integration for patient discharge:
-                // 1. Search for patient by ID
-                // 2. View patient details including test results
-                // 3. Form for discharge notes and summary
-                // 4. Update patient status to discharged
-                // 5. Generate discharge summary document
+                // BACKEND INTEGRATION
+                // Replace this section with your actual form and API call when connecting to backend
                 // 
                 // API endpoint: PUT /api/patients/:id/discharge
                 // Request format:
