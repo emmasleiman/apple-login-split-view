@@ -59,7 +59,7 @@ const LoginForm = () => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="h-12 border border-gray-200 rounded-md px-4 
-                focus:border-gray-400 transition-colors bg-gray-50/50"
+                focus:border-gray-400 transition-colors bg-gray-50/50 text-base"
               autoComplete="username"
             />
           </div>
@@ -71,7 +71,7 @@ const LoginForm = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-12 border border-gray-200 rounded-md px-4
-                focus:border-gray-400 transition-colors bg-gray-50/50"
+                focus:border-gray-400 transition-colors bg-gray-50/50 text-base"
               autoComplete="current-password"
             />
             <button 
@@ -79,7 +79,7 @@ const LoginForm = () => {
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-4 top-3 text-gray-500 hover:text-gray-800 transition-colors"
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
             </button>
           </div>
         </div>
@@ -89,20 +89,20 @@ const LoginForm = () => {
             type="submit" 
             disabled={isLoading}
             className="w-full bg-gray-900 hover:bg-gray-800 text-white py-6 rounded-md 
-              font-normal transition-all h-12"
+              font-normal transition-all h-12 text-base"
           >
             {isLoading ? "Signing in..." : "Sign in"}
           </Button>
         </div>
         
         <div className="text-center">
-          <a href="#" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
+          <a href="#" className="text-base text-gray-600 hover:text-gray-900 transition-colors">
             Forgot password?
           </a>
         </div>
       </form>
       
-      <div className="mt-12 text-center text-gray-400 text-xs">
+      <div className="mt-12 text-center text-gray-400 text-sm">
         &copy; {new Date().getFullYear()} TraceMed. All rights reserved.
       </div>
     </div>
