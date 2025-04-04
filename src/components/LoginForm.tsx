@@ -23,9 +23,15 @@ const LoginForm = () => {
       if (username === 'abc' && password === '123') {
         toast({
           title: "Success",
-          description: "You have successfully logged in.",
+          description: "You have successfully logged in as Data Encoder.",
         });
         navigate('/dashboard');
+      } else if (username === 'def' && password === '456') {
+        toast({
+          title: "Success",
+          description: "You have successfully logged in as Admin.",
+        });
+        navigate('/admin-dashboard');
       } else {
         toast({
           variant: "destructive",
@@ -40,9 +46,9 @@ const LoginForm = () => {
     // This is where backend authentication code should go.
     // It should:
     // 1. Send credentials to authentication API endpoint
-    // 2. Validate user exists and has data encoder role
+    // 2. Validate user exists and has appropriate role (admin or data encoder)
     // 3. Check password hash against stored hash
-    // 4. Generate and return JWT token for authenticated user
+    // 4. Generate and return JWT token for authenticated user with role claim
     // 5. Store token in localStorage or secure cookie
     // 6. Implement proper error handling for invalid credentials
     // ---------------------------------------------------------
