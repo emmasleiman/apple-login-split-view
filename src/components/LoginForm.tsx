@@ -2,11 +2,13 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const LoginForm = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,22 +18,34 @@ const LoginForm = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
+    // Simple credential check for demo purposes
     setTimeout(() => {
-      if (username && password) {
+      if (username === 'abc' && password === '123') {
         toast({
           title: "Success",
           description: "You have successfully logged in.",
         });
+        navigate('/dashboard');
       } else {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Please enter both username and password.",
+          description: "Invalid username or password.",
         });
       }
       setIsLoading(false);
     }, 1000);
+
+    // ---------------------------------------------------------
+    // This is where backend authentication code should go.
+    // It should:
+    // 1. Send credentials to authentication API endpoint
+    // 2. Validate user exists and has data encoder role
+    // 3. Check password hash against stored hash
+    // 4. Generate and return JWT token for authenticated user
+    // 5. Store token in localStorage or secure cookie
+    // 6. Implement proper error handling for invalid credentials
+    // ---------------------------------------------------------
   };
 
   return (
