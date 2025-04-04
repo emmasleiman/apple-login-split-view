@@ -25,7 +25,7 @@ const Index = () => {
         {/* Text overlay */}
         <div className="absolute bottom-8 left-8 text-white">
           <h2 className="text-3xl md:text-4xl font-light tracking-tight">TraceMed</h2>
-          <p className="text-base md:text-lg opacity-80">Medical tracking simplified</p>
+          <p className="text-base md:text-lg opacity-80">Precision Tracking for Safer Care</p>
         </div>
       </div>
       
