@@ -132,37 +132,45 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      <div className="w-full max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-light tracking-tight mb-6">Data Encoder Dashboard</h1>
-        <Separator className="mb-6" />
+    <div className="min-h-screen bg-gray-50/40">
+      <div className="w-full max-w-6xl mx-auto px-4 py-10">
+        <div className="flex flex-col gap-2 mb-8">
+          <h1 className="text-2xl font-light tracking-tight text-gray-800">Data Encoder Dashboard</h1>
+          <p className="text-sm text-gray-500">Manage patient registrations and discharges</p>
+        </div>
+        <Separator className="mb-8" />
 
         <Tabs defaultValue="register" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 mb-8">
-            <TabsTrigger value="register">Register Patient</TabsTrigger>
-            <TabsTrigger value="discharge">Discharge Patient</TabsTrigger>
+          <TabsList className="w-full max-w-md grid grid-cols-2 mb-8 bg-gray-100/80 p-1 rounded-lg">
+            <TabsTrigger value="register" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm">
+              Register Patient
+            </TabsTrigger>
+            <TabsTrigger value="discharge" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm">
+              Discharge Patient
+            </TabsTrigger>
           </TabsList>
 
           {/* Register Patient Tab */}
-          <TabsContent value="register" className="w-full">
-            <Card className="border-gray-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl font-light">Register Patient</CardTitle>
+          <TabsContent value="register" className="w-full space-y-6">
+            <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+                <CardTitle className="text-xl font-normal text-gray-700">Register New Patient</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <form onSubmit={handleRegisterSubmit} className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="patientId">Enter Patient ID</Label>
+                    <Label htmlFor="patientId" className="text-gray-700">Enter Patient ID</Label>
                     <Input
                       id="patientId"
                       value={patientId}
                       onChange={(e) => setPatientId(e.target.value)}
-                      className="h-12 border border-gray-200 bg-gray-50/50"
+                      className="h-11 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30"
+                      placeholder="e.g. P12345"
                     />
                   </div>
 
                   <div className="space-y-3">
-                    <Label>Carbapenem Culture Required</Label>
+                    <Label className="text-gray-700">Carbapenem Culture Required</Label>
                     <RadioGroup 
                       value={cultureRequired} 
                       onValueChange={(value) => setCultureRequired(value as "yes" | "no")}
@@ -170,33 +178,33 @@ const Dashboard = () => {
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="yes" id="yes" />
-                        <Label htmlFor="yes" className="font-normal text-sm">Yes</Label>
+                        <Label htmlFor="yes" className="font-normal text-sm text-gray-600">Yes</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="no" id="no" />
-                        <Label htmlFor="no" className="font-normal text-sm">No</Label>
+                        <Label htmlFor="no" className="font-normal text-sm text-gray-600">No</Label>
                       </div>
                     </RadioGroup>
                   </div>
 
                   <Button 
                     type="submit" 
-                    className="w-full bg-gray-900 hover:bg-gray-800 h-12 mt-4"
+                    className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    Submit
+                    Register Patient
                   </Button>
                 </form>
 
                 {qrCodeData && (
-                  <div className="mt-8 flex flex-col items-center space-y-4">
-                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                  <div className="mt-8 flex flex-col items-center space-y-4 pt-6 border-t border-gray-100">
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
                       <QRCode value={qrCodeData} size={180} />
                     </div>
                     <p className="text-sm text-gray-500">Patient ID: {patientId}</p>
                     <Button 
                       onClick={handlePrint}
                       variant="outline" 
-                      className="mt-2"
+                      className="mt-2 border-gray-200 text-gray-700 hover:bg-gray-50"
                     >
                       Print QR Code
                     </Button>
@@ -208,25 +216,26 @@ const Dashboard = () => {
 
           {/* Discharge Patient Tab */}
           <TabsContent value="discharge">
-            <Card className="border-gray-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl font-light">Discharge Patient</CardTitle>
+            <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+                <CardTitle className="text-xl font-normal text-gray-700">Discharge Patient</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <form onSubmit={handleDischargeSubmit} className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="dischargePatientId">Enter Patient ID to Discharge</Label>
+                    <Label htmlFor="dischargePatientId" className="text-gray-700">Enter Patient ID to Discharge</Label>
                     <Input
                       id="dischargePatientId"
                       value={dischargePatientId}
                       onChange={(e) => setDischargePatientId(e.target.value)}
-                      className="h-12 border border-gray-200 bg-gray-50/50"
+                      className="h-11 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30"
+                      placeholder="e.g. P12345"
                     />
                   </div>
 
                   <Button 
                     type="submit" 
-                    className="w-full bg-gray-900 hover:bg-gray-800 h-12 mt-4"
+                    className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     Discharge Patient
                   </Button>
