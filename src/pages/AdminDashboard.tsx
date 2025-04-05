@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ChevronDown, ChevronRight, AlertCircle, Search, X, ChevronLeft, User } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, AlertCircle, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { 
   Table, 
@@ -38,7 +39,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -77,105 +77,6 @@ const patientLabsData = {
     { id: "L4002", sampleType: "Sputum Culture", collectionDate: "2025-04-03", status: "Pending" }
   ]
 };
-
-// MOCK FULL DATABASE PATIENTS - DELETE WHEN CONNECTING TO BACKEND
-const allPatientsData = [
-  { 
-    id: "P78945",
-    wardInfo: "Ward A", 
-    admissionDate: "2025-03-25", 
-    status: "Critical",
-    discharged: false,
-    history: [
-      { date: "2025-03-25", event: "Admitted to Ward A" },
-      { date: "2025-03-27", event: "Lab Test Requested" },
-      { date: "2025-03-29", event: "Carbapenem Resistance: Positive" },
-    ]
-  },
-  { 
-    id: "P12367",
-    wardInfo: "ICU", 
-    admissionDate: "2025-03-29", 
-    status: "Critical",
-    discharged: false,
-    history: [
-      { date: "2025-03-29", event: "Admitted to ICU" },
-      { date: "2025-03-30", event: "Lab Test Requested" },
-      { date: "2025-04-01", event: "Carbapenem Resistance: Positive" },
-    ]
-  },
-  { 
-    id: "P45678",
-    wardInfo: "Ward B", 
-    admissionDate: "2025-03-30", 
-    status: "Pending",
-    discharged: false,
-    history: [
-      { date: "2025-03-30", event: "Admitted to Ward B" },
-      { date: "2025-04-01", event: "Lab Test Requested" },
-    ]
-  },
-  { 
-    id: "P91234",
-    wardInfo: "Ward D", 
-    admissionDate: "2025-04-01", 
-    status: "Pending",
-    discharged: false,
-    history: [
-      { date: "2025-04-01", event: "Admitted to Ward D" },
-      { date: "2025-04-02", event: "Lab Test Requested" },
-    ]
-  },
-  { 
-    id: "P56789",
-    wardInfo: "Ward C", 
-    admissionDate: "2025-04-01", 
-    status: "Pending",
-    discharged: false,
-    history: [
-      { date: "2025-04-01", event: "Admitted to Ward C" },
-      { date: "2025-04-03", event: "Lab Test Requested" },
-    ]
-  },
-  { 
-    id: "P34589",
-    wardInfo: "Ward C", 
-    admissionDate: "2025-03-28", 
-    status: "Critical",
-    discharged: false,
-    history: [
-      { date: "2025-03-28", event: "Admitted to Ward C" },
-      { date: "2025-03-29", event: "Lab Test Requested" },
-      { date: "2025-03-31", event: "Carbapenem Resistance: Positive" },
-    ]
-  },
-  { 
-    id: "P23456",
-    wardInfo: "Ward B", 
-    admissionDate: "2025-03-25", 
-    status: "Clear",
-    discharged: true,
-    history: [
-      { date: "2025-03-25", event: "Admitted to Ward B" },
-      { date: "2025-03-26", event: "Lab Test Requested" },
-      { date: "2025-03-28", event: "Carbapenem Resistance: Negative" },
-      { date: "2025-04-02", event: "Discharged" },
-    ]
-  },
-  { 
-    id: "P67890",
-    wardInfo: "Ward A", 
-    admissionDate: "2025-03-27", 
-    status: "Clear",
-    discharged: true,
-    history: [
-      { date: "2025-03-27", event: "Admitted to Ward A" },
-      { date: "2025-03-28", event: "Lab Test Requested" },
-      { date: "2025-03-30", event: "Carbapenem Resistance: Negative" },
-      { date: "2025-04-03", event: "Discharged" },
-    ]
-  },
-];
 // ----------------------------------------------------------------
 // END OF MOCK DATA SECTION
 // ----------------------------------------------------------------
@@ -201,25 +102,6 @@ const AdminDashboard = () => {
   const [patientLabs, setPatientLabs] = useState<any[]>([]);
   const [selectedLab, setSelectedLab] = useState<any>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filteredPatients, setFilteredPatients] = useState(allPatientsData);
-  const [selectedPatient, setSelectedPatient] = useState<any>(null);
-  const [showPatientHistory, setShowPatientHistory] = useState(false);
-
-  // Effect to filter patients based on search query
-  useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setFilteredPatients(allPatientsData);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = allPatientsData.filter(patient => 
-        patient.id.toLowerCase().includes(query) || 
-        patient.wardInfo.toLowerCase().includes(query) ||
-        patient.status.toLowerCase().includes(query)
-      );
-      setFilteredPatients(filtered);
-    }
-  }, [searchQuery]);
 
   // Form for patient ID input
   const patientIdForm = useForm<z.infer<typeof patientIdSchema>>({
@@ -320,53 +202,9 @@ const AdminDashboard = () => {
     labResultForm.reset();
   };
 
-  // Handle patient selection for detailed view
-  const handlePatientSelect = (patient: any) => {
-    setSelectedPatient(patient);
-    setShowPatientHistory(true);
-    
-    // -----------------------------------------------------------------
-    // BACKEND INTEGRATION (REPLACE THIS SECTION)
-    // Replace this with an API call to fetch the patient's detailed history
-    // 
-    // API endpoint: GET /api/patients/{patientId}/history
-    // Expected response format:
-    // {
-    //   history: [
-    //     {
-    //       date: string,
-    //       event: string
-    //     }
-    //   ]
-    // }
-    // -----------------------------------------------------------------
-  };
-
-  // Return to patient list
-  const handleBackToList = () => {
-    setShowPatientHistory(false);
-    setSelectedPatient(null);
-  };
-
   const handleLogout = () => {
     // Here you would typically clear any auth tokens or user session data
     navigate("/");
-  };
-
-  // Get status badge color based on patient status
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'critical':
-        return 'destructive';
-      case 'pending':
-        return 'secondary';
-      case 'clear':
-        return 'default';
-      case 'discharged':
-        return 'outline';
-      default:
-        return 'default';
-    }
   };
 
   return (
@@ -422,7 +260,7 @@ const AdminDashboard = () => {
               <CardHeader className="bg-gray-50/60 border-b border-gray-100 py-6">
                 <CardTitle className="text-2xl font-normal text-gray-700">Critical Cases Management</CardTitle>
               </CardHeader>
-              <CardContent className="pt-8 pb-6 space-y-8 max-h-[70vh] overflow-y-auto">
+              <CardContent className="pt-8 pb-6 space-y-8">
                 {/* Collapsible Section A - Active Critical Cases */}
                 <Collapsible 
                   open={activeCollapsibleA} 
@@ -563,7 +401,7 @@ const AdminDashboard = () => {
               <CardHeader className="bg-gray-50/60 border-b border-gray-100 py-6">
                 <CardTitle className="text-2xl font-normal text-gray-700">Input Lab Results</CardTitle>
               </CardHeader>
-              <CardContent className="py-8 max-h-[70vh] overflow-y-auto">
+              <CardContent className="py-8">
                 {/* Patient ID Search Form */}
                 <Form {...patientIdForm}>
                   <form onSubmit={patientIdForm.handleSubmit(onPatientIdSubmit)} className="space-y-6 max-w-2xl mx-auto">
@@ -759,179 +597,25 @@ const AdminDashboard = () => {
               <CardHeader className="bg-gray-50/60 border-b border-gray-100 py-6">
                 <CardTitle className="text-2xl font-normal text-gray-700">Full Database</CardTitle>
               </CardHeader>
-              <CardContent className="py-8 max-h-[70vh] overflow-y-auto">
-                {!showPatientHistory ? (
-                  <div className="space-y-6">
-                    {/* Search Bar */}
-                    <div className="relative max-w-3xl mx-auto mb-8">
-                      <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
-                        <div className="px-4 text-gray-500">
-                          <Search className="h-5 w-5" />
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="Search patients by ID, ward or status..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="flex-1 py-3 px-2 outline-none bg-transparent text-base"
-                        />
-                        {searchQuery && (
-                          <button
-                            onClick={() => setSearchQuery("")}
-                            className="px-4 hover:bg-gray-100"
-                            aria-label="Clear search"
-                          >
-                            <X className="h-4 w-4 text-gray-400" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Patient List Table */}
-                    <div className="overflow-x-auto w-full">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Patient ID</TableHead>
-                            <TableHead>Ward</TableHead>
-                            <TableHead>Admission Date</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Action</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredPatients.length > 0 ? (
-                            filteredPatients.map((patient) => (
-                              <TableRow key={patient.id} className="hover:bg-gray-50">
-                                <TableCell className="font-medium">
-                                  {patient.id}
-                                </TableCell>
-                                <TableCell>{patient.wardInfo}</TableCell>
-                                <TableCell>{patient.admissionDate}</TableCell>
-                                <TableCell>
-                                  {patient.discharged ? (
-                                    <Badge variant="outline" className="bg-gray-100 text-gray-600">
-                                      Discharged
-                                    </Badge>
-                                  ) : (
-                                    <Badge 
-                                      variant={getStatusBadgeVariant(patient.status)}
-                                      className={`
-                                        ${patient.status.toLowerCase() === 'critical' ? 'bg-red-500 hover:bg-red-600' : ''}
-                                        ${patient.status.toLowerCase() === 'pending' ? 'bg-amber-500 hover:bg-amber-600' : ''}
-                                        ${patient.status.toLowerCase() === 'clear' ? 'bg-green-500 hover:bg-green-600' : ''}
-                                      `}
-                                    >
-                                      {patient.status}
-                                    </Badge>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                                    onClick={() => handlePatientSelect(patient)}
-                                  >
-                                    View History
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          ) : (
-                            <TableRow>
-                              <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                                No patients found matching your search criteria.
-                              </TableCell>
-                            </TableRow>
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                    
-                    {/* 
-                    // ---------------------------------------------------------
-                    // BACKEND INTEGRATION (REPLACE THIS SECTION)
-                    // Replace this section with your actual API call when connecting to backend
-                    // 
-                    // API endpoint: GET /api/patients
-                    // Query parameters: page, limit, search, sort, filters
-                    // Expected response format:
-                    // {
-                    //   patients: [...],
-                    //   total: number,
-                    //   pages: number,
-                    //   currentPage: number
-                    // }
-                    // ---------------------------------------------------------
-                    */}
-                  </div>
-                ) : (
-                  /* Patient History View */
-                  <div className="space-y-6">
-                    <div className="flex items-center mb-8">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleBackToList}
-                        className="mr-4"
-                      >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Back to Patient List
-                      </Button>
-                      
-                      <h2 className="text-xl font-medium">
-                        Patient History: {selectedPatient?.id}
-                      </h2>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-                        <h3 className="text-gray-500 text-sm font-medium mb-2">Patient ID</h3>
-                        <p className="text-lg font-medium">{selectedPatient?.id}</p>
-                      </div>
-                      
-                      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-                        <h3 className="text-gray-500 text-sm font-medium mb-2">Ward</h3>
-                        <p className="text-lg font-medium">{selectedPatient?.wardInfo}</p>
-                      </div>
-                      
-                      <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-                        <h3 className="text-gray-500 text-sm font-medium mb-2">Status</h3>
-                        <div className="flex items-center gap-2">
-                          {selectedPatient?.discharged ? (
-                            <Badge variant="outline" className="bg-gray-100 text-gray-600">
-                              Discharged
-                            </Badge>
-                          ) : (
-                            <Badge 
-                              variant={getStatusBadgeVariant(selectedPatient?.status || "")}
-                              className={`
-                                ${selectedPatient?.status?.toLowerCase() === 'critical' ? 'bg-red-500 hover:bg-red-600' : ''}
-                                ${selectedPatient?.status?.toLowerCase() === 'pending' ? 'bg-amber-500 hover:bg-amber-600' : ''}
-                                ${selectedPatient?.status?.toLowerCase() === 'clear' ? 'bg-green-500 hover:bg-green-600' : ''}
-                              `}
-                            >
-                              {selectedPatient?.status}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="relative pl-6 border-l-2 border-gray-200 space-y-8">
-                      {selectedPatient?.history.map((event: any, index: number) => (
-                        <div key={index} className="relative pb-8">
-                          <div className="absolute -left-[25px] mt-1.5 h-4 w-4 rounded-full bg-blue-600 border-4 border-white"></div>
-                          <div className="mb-2 text-sm text-gray-500">{event.date}</div>
-                          <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm">
-                            <p className="text-gray-700">{event.event}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <CardContent className="py-8">
+                <p className="text-gray-500 text-center text-lg py-12">Full database view and search functionality will be implemented here.</p>
+                
+                {/* 
+                // ---------------------------------------------------------
+                // BACKEND INTEGRATION (REPLACE THIS SECTION)
+                // Replace this section with your actual table and API call when connecting to backend
+                // 
+                // API endpoint: GET /api/patients
+                // Query parameters: page, limit, search, sort, filters
+                // Expected response format:
+                // {
+                //   patients: [...],
+                //   total: number,
+                //   pages: number,
+                //   currentPage: number
+                // }
+                // ---------------------------------------------------------
+                */}
               </CardContent>
             </Card>
           </TabsContent>
