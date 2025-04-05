@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -34,9 +35,10 @@ import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle, Search, User, UserCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle, LogOut, Search, User, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 type PatientLabResult = {
   patient_uuid: string;
@@ -69,6 +71,7 @@ type PatientData = {
 
 const LabDashboard = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedPatientId, setSelectedPatientId] = useState("");
   const [patientData, setPatientData] = useState<PatientData | null>(null);
@@ -81,6 +84,25 @@ const LabDashboard = () => {
       patientId: "",
     }
   });
+
+  // Function to handle logout
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error("Error logging out:", error);
+      toast({
+        variant: "destructive",
+        title: "Error logging out",
+        description: "An error occurred while logging out",
+      });
+    }
+  };
 
   // Query for fetching a patient's lab results
   const fetchPatientLabResults = async (patientId: string) => {
@@ -221,9 +243,19 @@ const LabDashboard = () => {
           <h1 className="text-2xl md:text-3xl font-light text-gray-800 tracking-tight">TraceMed Lab Dashboard</h1>
           <p className="text-gray-500 mt-1">Record carbapenem resistance test results</p>
         </div>
-        <div className="flex items-center mt-4 md:mt-0 gap-2 bg-white p-2 rounded-md shadow-sm">
-          <User className="h-5 w-5 text-gray-500" />
-          <span className="text-lg font-medium">Lab Technician</span>
+        <div className="flex items-center mt-4 md:mt-0 gap-4">
+          <div className="flex items-center gap-2 bg-white p-2 rounded-md shadow-sm">
+            <User className="h-5 w-5 text-gray-500" />
+            <span className="text-lg font-medium">Lab Technician</span>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={handleLogout} 
+            className="flex items-center gap-2 bg-white"
+          >
+            <LogOut className="h-5 w-5" />
+            <span>Logout</span>
+          </Button>
         </div>
       </header>
 
