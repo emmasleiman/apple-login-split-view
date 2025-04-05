@@ -16,6 +16,11 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-red-500 text-white hover:bg-red-600",
         outline: "text-foreground bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200",
+        // Adding new variants that match patient status types
+        clear: "border-transparent bg-green-500 text-white hover:bg-green-600",
+        pending: "border-transparent bg-amber-500 text-white hover:bg-amber-600",
+        critical: "border-transparent bg-red-500 text-white hover:bg-red-600",
+        discharged: "text-foreground bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200",
       },
     },
     defaultVariants: {

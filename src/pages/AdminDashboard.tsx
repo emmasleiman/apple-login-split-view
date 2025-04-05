@@ -3,7 +3,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ChevronDown, ChevronRight, AlertCircle, Search, X, ChevronLeft, User } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, AlertCircle, Search, X, ChevronLeft, User, Check, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { 
   Table, 
@@ -43,10 +43,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
-// ----------------------------------------------------------------
-// MOCK DATA - DELETE THIS SECTION WHEN CONNECTING TO BACKEND
-// Replace with API calls to fetch real data from your backend
-// ----------------------------------------------------------------
 const criticalPatientsData = [
   { id: "P78945", location: "Ward A", isolationStatus: false },
   { id: "P12367", location: "ICU", isolationStatus: false },
@@ -59,7 +55,6 @@ const pendingResultsData = [
   { id: "P56789", collectionDate: "2025-04-03", status: "Pending" },
 ];
 
-// MOCK LAB RESULTS DATA - DELETE WHEN CONNECTING TO BACKEND
 const patientLabsData = {
   "P45678": [
     { id: "L1001", sampleType: "Blood Culture", collectionDate: "2025-04-01", status: "Pending" },
@@ -78,7 +73,6 @@ const patientLabsData = {
   ]
 };
 
-// MOCK FULL DATABASE PATIENTS - DELETE WHEN CONNECTING TO BACKEND
 const allPatientsData = [
   { 
     id: "P78945",
@@ -176,21 +170,20 @@ const allPatientsData = [
     ]
   },
 ];
-// ----------------------------------------------------------------
-// END OF MOCK DATA SECTION
-// ----------------------------------------------------------------
 
-// Form schema for patient ID input
 const patientIdSchema = z.object({
   patientId: z.string().min(1, { message: "Patient ID is required" })
 });
 
-// Form schema for lab result input
 const labResultSchema = z.object({
   labId: z.string(),
   result: z.enum(["positive", "negative"], {
     required_error: "Please select a result option",
   }),
+});
+
+const dischargePatientSchema = z.object({
+  patientId: z.string().min(1, { message: "Patient ID is required" }),
 });
 
 const AdminDashboard = () => {
@@ -205,8 +198,10 @@ const AdminDashboard = () => {
   const [filteredPatients, setFilteredPatients] = useState(allPatientsData);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [showPatientHistory, setShowPatientHistory] = useState(false);
+  const [showDischargeConfirmDialog, setShowDischargeConfirmDialog] = useState(false);
+  const [patientToDischarge, setPatientToDischarge] = useState<string | null>(null);
+  const [patientDischargeDetails, setPatientDischargeDetails] = useState<any>(null);
 
-  // Effect to filter patients based on search query
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredPatients(allPatientsData);
@@ -221,7 +216,6 @@ const AdminDashboard = () => {
     }
   }, [searchQuery]);
 
-  // Form for patient ID input
   const patientIdForm = useForm<z.infer<typeof patientIdSchema>>({
     resolver: zodResolver(patientIdSchema),
     defaultValues: {
@@ -229,7 +223,6 @@ const AdminDashboard = () => {
     },
   });
 
-  // Form for lab result input
   const labResultForm = useForm<z.infer<typeof labResultSchema>>({
     resolver: zodResolver(labResultSchema),
     defaultValues: {
@@ -238,28 +231,14 @@ const AdminDashboard = () => {
     },
   });
 
-  // Handle patient ID form submission
+  const dischargeForm = useForm<z.infer<typeof dischargePatientSchema>>({
+    resolver: zodResolver(dischargePatientSchema),
+    defaultValues: {
+      patientId: "",
+    },
+  });
+
   const onPatientIdSubmit = (values: z.infer<typeof patientIdSchema>) => {
-    // Here you would typically fetch the patient's lab data from the backend
-    // -----------------------------------------------------------------
-    // BACKEND INTEGRATION (REPLACE THIS SECTION)
-    // Replace this with an API call to fetch the patient's lab data
-    // 
-    // API endpoint: GET /api/patients/{patientId}/labs
-    // Expected response format:
-    // {
-    //   labs: [
-    //     {
-    //       id: string,
-    //       sampleType: string,
-    //       collectionDate: string,
-    //       status: string
-    //     }
-    //   ]
-    // }
-    // -----------------------------------------------------------------
-    
-    // Using mock data for now (DELETE WHEN CONNECTING TO BACKEND)
     const patientId = values.patientId;
     const foundLabs = patientLabsData[patientId as keyof typeof patientLabsData] || [];
     
@@ -274,9 +253,7 @@ const AdminDashboard = () => {
     setPatientLabs(foundLabs);
   };
 
-  // Handle lab result form submission
   const onLabResultSubmit = (values: z.infer<typeof labResultSchema>) => {
-    // Store the values and show confirmation dialog
     setSelectedLab({
       ...values,
       labData: patientLabs.find(lab => lab.id === values.labId)
@@ -284,28 +261,12 @@ const AdminDashboard = () => {
     setShowConfirmDialog(true);
   };
 
-  // Handle final submission after confirmation
   const handleFinalSubmit = () => {
-    // Here you would submit the result to the backend
-    // -----------------------------------------------------------------
-    // BACKEND INTEGRATION (REPLACE THIS SECTION)
-    // Replace this with an API call to submit the lab result
-    // 
-    // API endpoint: PUT /api/labs/{labId}/result
-    // Request body:
-    // {
-    //   result: "positive" | "negative",
-    //   submittedBy: string, // User ID or name
-    //   submittedAt: Date
-    // }
-    // -----------------------------------------------------------------
-    
     toast({
       title: "Lab result submitted",
       description: `Result for lab ${selectedLab.labId} has been recorded as ${selectedLab.result}`,
     });
     
-    // Update local state to reflect the change (DELETE WHEN CONNECTING TO BACKEND)
     setPatientLabs(prevLabs => 
       prevLabs.map(lab => 
         lab.id === selectedLab.labId 
@@ -314,64 +275,102 @@ const AdminDashboard = () => {
       )
     );
     
-    // Reset forms and state
     setShowConfirmDialog(false);
     setSelectedLab(null);
     labResultForm.reset();
   };
 
-  // Handle patient selection for detailed view
   const handlePatientSelect = (patient: any) => {
     setSelectedPatient(patient);
     setShowPatientHistory(true);
-    
-    // -----------------------------------------------------------------
-    // BACKEND INTEGRATION (REPLACE THIS SECTION)
-    // Replace this with an API call to fetch the patient's detailed history
-    // 
-    // API endpoint: GET /api/patients/{patientId}/history
-    // Expected response format:
-    // {
-    //   history: [
-    //     {
-    //       date: string,
-    //       event: string
-    //     }
-    //   ]
-    // }
-    // -----------------------------------------------------------------
   };
 
-  // Return to patient list
   const handleBackToList = () => {
     setShowPatientHistory(false);
     setSelectedPatient(null);
   };
 
   const handleLogout = () => {
-    // Here you would typically clear any auth tokens or user session data
     navigate("/");
   };
 
-  // Get status badge color based on patient status
   const getStatusBadgeVariant = (status: string) => {
     switch (status.toLowerCase()) {
       case 'critical':
-        return 'destructive';
+        return 'critical';
       case 'pending':
-        return 'secondary';
+        return 'pending';
       case 'clear':
-        return 'default';
+        return 'clear';
       case 'discharged':
-        return 'outline';
+        return 'discharged';
       default:
         return 'default';
     }
   };
 
+  const onDischargeSubmit = (values: z.infer<typeof dischargePatientSchema>) => {
+    const patientId = values.patientId;
+    
+    const foundPatient = allPatientsData.find(p => p.id === patientId);
+    
+    if (!foundPatient) {
+      toast({
+        title: "Patient not found",
+        description: `No patient found with ID ${patientId}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (foundPatient.discharged) {
+      toast({
+        title: "Already discharged",
+        description: `Patient ${patientId} has already been discharged`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setPatientToDischarge(patientId);
+    setPatientDischargeDetails(foundPatient);
+    setShowDischargeConfirmDialog(true);
+  };
+
+  const handleDischargeConfirm = () => {
+    if (!patientToDischarge) return;
+    
+    toast({
+      title: "Patient discharged",
+      description: `Patient ${patientToDischarge} has been discharged successfully`,
+    });
+    
+    dischargeForm.reset();
+    setShowDischargeConfirmDialog(false);
+    setPatientToDischarge(null);
+    setPatientDischargeDetails(null);
+    
+    const currentDate = new Date().toISOString().split('T')[0];
+    const updatedPatientsData = allPatientsData.map(patient => {
+      if (patient.id === patientToDischarge) {
+        return {
+          ...patient, 
+          discharged: true,
+          status: "Clear",
+          history: [
+            ...patient.history, 
+            { date: currentDate, event: "Discharged" }
+          ]
+        };
+      }
+      return patient;
+    });
+    
+    setFilteredPatients(updatedPatientsData);
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50/40">
-      {/* Logout button in the top left */}
       <Button
         variant="ghost"
         size="icon"
@@ -416,14 +415,12 @@ const AdminDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Critical Cases Tab */}
           <TabsContent value="critical" className="w-full space-y-8">
             <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100 py-6">
                 <CardTitle className="text-2xl font-normal text-gray-700">Critical Cases Management</CardTitle>
               </CardHeader>
               <CardContent className="pt-8 pb-6 space-y-8 max-h-[70vh] overflow-y-auto">
-                {/* Collapsible Section A - Active Critical Cases */}
                 <Collapsible 
                   open={activeCollapsibleA} 
                   onOpenChange={setActiveCollapsibleA}
@@ -461,33 +458,9 @@ const AdminDashboard = () => {
                         <p className="text-gray-500 py-4 text-center">No critical cases currently.</p>
                       )}
                     </div>
-                    
-                    {/* 
-                    // ---------------------------------------------------------
-                    // BACKEND INTEGRATION (REPLACE THIS SECTION)
-                    // Replace this section with your actual API call when connecting to backend
-                    // 
-                    // API endpoint: GET /api/patients/critical
-                    // Expected response format:
-                    // {
-                    //   patients: [
-                    //     {
-                    //       id: string,
-                    //       location: string,
-                    //       isolationStatus: boolean,
-                    //       cultureResults: {
-                    //         positive: boolean,
-                    //         date: string
-                    //       }
-                    //     }
-                    //   ]
-                    // }
-                    // ---------------------------------------------------------
-                    */}
                   </CollapsibleContent>
                 </Collapsible>
                 
-                {/* Collapsible Section B - Pending Results */}
                 <Collapsible 
                   open={activeCollapsibleB} 
                   onOpenChange={setActiveCollapsibleB}
@@ -531,40 +504,18 @@ const AdminDashboard = () => {
                         <p className="text-gray-500 py-4 text-center">No pending test results.</p>
                       )}
                     </div>
-                    
-                    {/* 
-                    // ---------------------------------------------------------
-                    // BACKEND INTEGRATION (REPLACE THIS SECTION)
-                    // Replace this section with your actual API call when connecting to backend
-                    // 
-                    // API endpoint: GET /api/patients/pending-results
-                    // Expected response format:
-                    // {
-                    //   patients: [
-                    //     {
-                    //       id: string,
-                    //       collectionDate: string,
-                    //       status: string,
-                    //       priority: number
-                    //     }
-                    //   ]
-                    // }
-                    // ---------------------------------------------------------
-                    */}
                   </CollapsibleContent>
                 </Collapsible>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Input Lab Results Tab */}
           <TabsContent value="lab-results">
             <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100 py-6">
                 <CardTitle className="text-2xl font-normal text-gray-700">Input Lab Results</CardTitle>
               </CardHeader>
               <CardContent className="py-8 max-h-[70vh] overflow-y-auto">
-                {/* Patient ID Search Form */}
                 <Form {...patientIdForm}>
                   <form onSubmit={patientIdForm.handleSubmit(onPatientIdSubmit)} className="space-y-6 max-w-2xl mx-auto">
                     <FormField
@@ -589,7 +540,6 @@ const AdminDashboard = () => {
                   </form>
                 </Form>
 
-                {/* Display patient labs if available */}
                 {patientLabs.length > 0 && (
                   <div className="mt-10 max-w-4xl mx-auto">
                     <h3 className="text-xl font-medium mb-6">Pending Lab Cultures</h3>
@@ -627,7 +577,6 @@ const AdminDashboard = () => {
                       </div>
                     </div>
 
-                    {/* Lab Result Input Form */}
                     <div className="mt-10 border-t pt-8">
                       <h3 className="text-xl font-medium mb-6">Input Carbapenem Resistance Result</h3>
                       
@@ -696,7 +645,6 @@ const AdminDashboard = () => {
                   </div>
                 )}
 
-                {/* Confirmation Dialog */}
                 <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
                   <AlertDialogContent>
                     <AlertDialogHeader>
@@ -734,26 +682,10 @@ const AdminDashboard = () => {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-                
-                {/* 
-                // ---------------------------------------------------------
-                // BACKEND INTEGRATION (REPLACE THIS SECTION)
-                // Replace the static form implementation with your actual API calls when connecting to backend
-                // 
-                // API endpoints:
-                // 1. GET /api/patients/{patientId} - Get patient info
-                // 2. GET /api/patients/{patientId}/labs - Get patient lab tests
-                // 3. PUT /api/labs/{labId}/result - Submit lab result
-                // 
-                // The forms and state management can remain similar, but the data fetching and submission
-                // should be replaced with actual API calls
-                // ---------------------------------------------------------
-                */}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Full Database Tab */}
           <TabsContent value="database">
             <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100 py-6">
@@ -762,7 +694,6 @@ const AdminDashboard = () => {
               <CardContent className="py-8 max-h-[70vh] overflow-y-auto">
                 {!showPatientHistory ? (
                   <div className="space-y-6">
-                    {/* Search Bar */}
                     <div className="relative max-w-3xl mx-auto mb-8">
                       <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
                         <div className="px-4 text-gray-500">
@@ -787,7 +718,6 @@ const AdminDashboard = () => {
                       </div>
                     </div>
 
-                    {/* Patient List Table */}
                     <div className="overflow-x-auto w-full">
                       <Table>
                         <TableHeader>
@@ -848,26 +778,8 @@ const AdminDashboard = () => {
                         </TableBody>
                       </Table>
                     </div>
-                    
-                    {/* 
-                    // ---------------------------------------------------------
-                    // BACKEND INTEGRATION (REPLACE THIS SECTION)
-                    // Replace this section with your actual API call when connecting to backend
-                    // 
-                    // API endpoint: GET /api/patients
-                    // Query parameters: page, limit, search, sort, filters
-                    // Expected response format:
-                    // {
-                    //   patients: [...],
-                    //   total: number,
-                    //   pages: number,
-                    //   currentPage: number
-                    // }
-                    // ---------------------------------------------------------
-                    */}
                   </div>
                 ) : (
-                  /* Patient History View */
                   <div className="space-y-6">
                     <div className="flex items-center mb-8">
                       <Button 
@@ -936,31 +848,107 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* Discharge Patients Tab */}
           <TabsContent value="discharge">
             <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100 py-6">
                 <CardTitle className="text-2xl font-normal text-gray-700">Discharge Patients</CardTitle>
               </CardHeader>
-              <CardContent className="py-8">
-                <p className="text-gray-500 text-center text-lg py-12">Patient discharge functionality will be implemented here.</p>
+              <CardContent className="py-8 space-y-8">
+                <div className="max-w-2xl mx-auto">
+                  <Form {...dischargeForm}>
+                    <form onSubmit={dischargeForm.handleSubmit(onDischargeSubmit)} className="space-y-6">
+                      <FormField
+                        control={dischargeForm.control}
+                        name="patientId"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <FormLabel className="text-lg">Enter Patient ID to Discharge</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Enter patient ID" 
+                                {...field} 
+                                className="h-12 text-base"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <Button type="submit" className="w-full h-12 text-base gap-2">
+                        Check Eligibility
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </form>
+                  </Form>
+                  
+                  <div className="mt-12 pt-8 border-t border-dashed border-gray-300">
+                    <div className="bg-gray-50 p-4 rounded-lg text-gray-700 text-sm">
+                      <h4 className="font-medium mb-2">Backend Integration Notes:</h4>
+                      <ul className="list-disc pl-5 space-y-2">
+                        <li>
+                          <strong>Patient Lookup Endpoint:</strong> Implement GET /api/patients/{'{patientId}'} to verify 
+                          if the patient exists and is eligible for discharge. Return patient details including current status.
+                        </li>
+                        <li>
+                          <strong>Discharge Process Endpoint:</strong> Implement PUT /api/patients/{'{patientId}'}/discharge to 
+                          update the patient's status to discharged. The endpoint should:
+                          <ul className="list-circle pl-5 mt-1 space-y-1">
+                            <li>Verify the patient is not already discharged</li>
+                            <li>Record discharge date (current date)</li>
+                            <li>Record admin who performed the discharge</li>
+                            <li>Update patient history with discharge event</li>
+                            <li>Return updated patient data</li>
+                          </ul>
+                        </li>
+                        <li>
+                          <strong>Authentication:</strong> Ensure endpoints are protected and only accessible by 
+                          authenticated admin users with proper permissions.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                </div>
                 
-                {/* 
-                // ---------------------------------------------------------
-                // BACKEND INTEGRATION (REPLACE THIS SECTION)
-                // Replace this section with your actual form and API call when connecting to backend
-                // 
-                // API endpoint: PUT /api/patients/:id/discharge
-                // Request format:
-                // {
-                //   dischargeDate: string,
-                //   dischargeSummary: string,
-                //   followUpRequired: boolean,
-                //   followUpNotes: string,
-                //   dischargedBy: string
-                // }
-                // ---------------------------------------------------------
-                */}
+                <AlertDialog open={showDischargeConfirmDialog} onOpenChange={setShowDischargeConfirmDialog}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirm Patient Discharge</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {patientDischargeDetails && (
+                          <div className="text-left space-y-3 py-4">
+                            <p><strong>Patient ID:</strong> {patientDischargeDetails.id}</p>
+                            <p><strong>Current Ward:</strong> {patientDischargeDetails.wardInfo}</p>
+                            <p><strong>Admission Date:</strong> {patientDischargeDetails.admissionDate}</p>
+                            <p>
+                              <strong>Current Status:</strong> 
+                              <Badge 
+                                variant={getStatusBadgeVariant(patientDischargeDetails.status)}
+                                className="ml-2"
+                              >
+                                {patientDischargeDetails.status}
+                              </Badge>
+                            </p>
+                            
+                            <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                              <p className="font-medium text-gray-700">
+                                Are you sure you want to discharge this patient? This action cannot be undone.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDischargeConfirm} className="bg-green-500 hover:bg-green-600">
+                        <Check className="h-4 w-4 mr-2" />
+                        Confirm Discharge
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardContent>
             </Card>
           </TabsContent>
