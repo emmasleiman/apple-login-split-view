@@ -9,10 +9,119 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      lab_results: {
+        Row: {
+          collection_date: string
+          id: string
+          notes: string | null
+          patient_id: string | null
+          processed_by: string | null
+          processed_date: string | null
+          result: string | null
+          sample_id: string
+        }
+        Insert: {
+          collection_date?: string
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          processed_by?: string | null
+          processed_date?: string | null
+          result?: string | null
+          sample_id: string
+        }
+        Update: {
+          collection_date?: string
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          processed_by?: string | null
+          processed_date?: string | null
+          result?: string | null
+          sample_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_results_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patient_lab_results"
+            referencedColumns: ["patient_uuid"]
+          },
+          {
+            foreignKeyName: "lab_results_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients: {
+        Row: {
+          culture_required: boolean
+          discharge_date: string | null
+          id: string
+          patient_id: string
+          registration_date: string
+          status: string
+        }
+        Insert: {
+          culture_required?: boolean
+          discharge_date?: string | null
+          id?: string
+          patient_id: string
+          registration_date?: string
+          status: string
+        }
+        Update: {
+          culture_required?: boolean
+          discharge_date?: string | null
+          id?: string
+          patient_id?: string
+          registration_date?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      sample_types: {
+        Row: {
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      patient_lab_results: {
+        Row: {
+          collection_date: string | null
+          culture_required: boolean | null
+          discharge_date: string | null
+          lab_result_id: string | null
+          notes: string | null
+          patient_id: string | null
+          patient_uuid: string | null
+          processed_by: string | null
+          processed_date: string | null
+          registration_date: string | null
+          result: string | null
+          sample_id: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

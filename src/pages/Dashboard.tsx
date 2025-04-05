@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
+import { supabase } from "@/integrations/supabase/client";
+import { useMutation } from "@tanstack/react-query";
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -20,9 +21,93 @@ const Dashboard = () => {
   const [dischargePatientId, setDischargePatientId] = useState("");
 
   const handleLogout = () => {
-    // Here you would typically clear any auth tokens or user session data
     navigate("/");
   };
+
+  const { mutate: registerPatient } = useMutation({
+    mutationFn: async ({ patientId, cultureRequired }: { patientId: string, cultureRequired: boolean }) => {
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .insert([
+          {
+            patient_id: patientId,
+            culture_required: cultureRequired,
+            status: 'admitted'
+          }
+        ])
+        .select();
+
+      if (patientError) throw patientError;
+      
+      if (cultureRequired) {
+        const { error: labError } = await supabase
+          .from('lab_results')
+          .insert([
+            {
+              patient_id: patientData[0].id,
+              sample_id: `${patientId}-${Date.now()}`,
+              result: null
+            }
+          ]);
+        
+        if (labError) throw labError;
+      }
+      
+      return patientData[0];
+    },
+    onSuccess: (data) => {
+      const qrData = JSON.stringify({
+        patientId: patientId,
+        cultureRequired: cultureRequired === "yes",
+        timestamp: new Date().toISOString(),
+      });
+      setQrCodeData(qrData);
+
+      toast({
+        title: "Patient Registered",
+        description: `Patient ${patientId} registered successfully`,
+      });
+    },
+    onError: (error) => {
+      console.error("Error registering patient:", error);
+      toast({
+        title: "Registration Error",
+        description: "Failed to register patient. Patient ID may already exist.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const { mutate: dischargePatient } = useMutation({
+    mutationFn: async (patientId: string) => {
+      const { data, error } = await supabase
+        .from('patients')
+        .update({
+          status: 'discharged',
+          discharge_date: new Date().toISOString()
+        })
+        .eq('patient_id', patientId)
+        .select();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: `Patient ${dischargePatientId} discharged successfully`,
+      });
+      setDischargePatientId("");
+    },
+    onError: (error) => {
+      console.error("Error discharging patient:", error);
+      toast({
+        title: "Discharge Error",
+        description: "Failed to discharge patient. Patient may not exist.",
+        variant: "destructive",
+      });
+    }
+  });
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,37 +120,13 @@ const Dashboard = () => {
       return;
     }
 
-    // Generate QR code with patient data
-    const qrData = JSON.stringify({
+    registerPatient({
       patientId: patientId,
-      cultureRequired: cultureRequired,
-      timestamp: new Date().toISOString(),
+      cultureRequired: cultureRequired === "yes"
     });
-    setQrCodeData(qrData);
-
-    toast({
-      title: "Patient Registered",
-      description: `Patient ${patientId} registered successfully`,
-    });
-
-    // ---------------------------------------------------------
-    // This is where backend code for registering a patient should go.
-    // It should:
-    // 1. Validate the patientId format
-    // 2. Check if patient already exists in database
-    // 3. Create a new patient record with the following data:
-    //    - patientId (string)
-    //    - registrationDate (timestamp)
-    //    - cultureRequired (boolean)
-    //    - status (string) = "admitted"
-    // 4. Generate unique QR code identifier and associate with patient
-    // 5. Return success/failure status to frontend
-    // 6. Log the registration event for auditing
-    // ---------------------------------------------------------
   };
 
   const handlePrint = () => {
-    // Open print dialog
     const printWindow = window.open("", "_blank");
     if (printWindow) {
       printWindow.document.write(`
@@ -109,38 +170,11 @@ const Dashboard = () => {
       return;
     }
 
-    toast({
-      title: "Processing",
-      description: `Discharging patient ${dischargePatientId}...`,
-    });
-
-    // ---------------------------------------------------------
-    // This is where backend code for discharging a patient should go.
-    // It should:
-    // 1. Validate the patient ID exists in the database
-    // 2. Check current patient status (cannot discharge if already discharged)
-    // 3. Update patient record with:
-    //    - status = "discharged"
-    //    - dischargeDate (timestamp)
-    // 4. Generate discharge summary document (optional)
-    // 5. Update any related records (e.g., room availability)
-    // 6. Return success/failure status to frontend
-    // 7. Log discharge event for auditing
-    // ---------------------------------------------------------
-
-    // Simulate successful discharge
-    setTimeout(() => {
-      toast({
-        title: "Success",
-        description: `Patient ${dischargePatientId} discharged successfully`,
-      });
-      setDischargePatientId("");
-    }, 1000);
+    dischargePatient(dischargePatientId);
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50/40">
-      {/* Logout button in the top left */}
       <Button
         variant="ghost"
         size="icon"
@@ -167,7 +201,6 @@ const Dashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Register Patient Tab */}
           <TabsContent value="register" className="w-full space-y-6">
             <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
@@ -231,7 +264,6 @@ const Dashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* Discharge Patient Tab */}
           <TabsContent value="discharge">
             <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">

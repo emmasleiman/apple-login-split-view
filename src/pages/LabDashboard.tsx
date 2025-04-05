@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Card, 
   CardContent, 
@@ -36,30 +36,17 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle, CheckCircle, Search, User, UserCheck } from "lucide-react";
-
-// Sample lab culture data
-const sampleLabData = {
-  "PT001": [
-    { id: 1, type: "Blood Culture", requestedOn: "2024-04-01", status: "pending" },
-    { id: 2, type: "Urine Culture", requestedOn: "2024-04-02", status: "pending" },
-    { id: 3, type: "Wound Culture", requestedOn: "2024-03-29", status: "completed" }
-  ],
-  "PT002": [
-    { id: 4, type: "Sputum Culture", requestedOn: "2024-04-03", status: "pending" },
-    { id: 5, type: "Blood Culture", requestedOn: "2024-03-28", status: "completed" }
-  ],
-  "PT003": [
-    { id: 6, type: "CSF Culture", requestedOn: "2024-04-04", status: "pending" }
-  ]
-};
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const LabDashboard = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedPatientId, setSelectedPatientId] = useState("");
   const [patientData, setPatientData] = useState<any>(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedLabTest, setSelectedLabTest] = useState<any>(null);
-  const [resistance, setResistance] = useState<"resistant" | "susceptible" | null>(null);
+  const [resistance, setResistance] = useState<"positive" | "negative" | null>(null);
   
   const form = useForm({
     defaultValues: {
@@ -67,75 +54,135 @@ const LabDashboard = () => {
     }
   });
 
-  const handleSearch = (values: { patientId: string }) => {
-    const patientId = values.patientId.trim();
-    setSelectedPatientId(patientId);
+  // Query for fetching a patient's lab results
+  const fetchPatientLabResults = async (patientId: string) => {
+    const { data, error } = await supabase
+      .from('patient_lab_results')
+      .select('*')
+      .eq('patient_id', patientId);
     
-    // This would be an API call in a real application
-    // GET /api/patients/{patientId}/lab-cultures
-    const patientLabs = sampleLabData[patientId as keyof typeof sampleLabData];
-    
-    if (patientLabs) {
-      setPatientData({
-        id: patientId,
-        labs: patientLabs
-      });
-      toast({
-        title: "Patient Found",
-        description: `Found ${patientLabs.length} lab cultures for patient ${patientId}`,
-      });
-    } else {
-      setPatientData(null);
-      toast({
-        variant: "destructive",
-        title: "Patient Not Found",
-        description: "No lab cultures found for the provided patient ID",
-      });
-    }
+    if (error) throw error;
+    return data;
   };
 
-  const handleSelectLabTest = (lab: any, resistanceStatus: "resistant" | "susceptible") => {
+  const { mutate: searchPatient } = useMutation({
+    mutationFn: async (values: { patientId: string }) => {
+      const patientId = values.patientId.trim();
+      if (!patientId) {
+        throw new Error('Patient ID is required');
+      }
+
+      return await fetchPatientLabResults(patientId);
+    },
+    onSuccess: (data) => {
+      if (data.length > 0) {
+        setSelectedPatientId(form.getValues().patientId);
+        
+        // Transform data into the expected structure
+        const labTests = data.map(item => ({
+          id: item.lab_result_id,
+          type: item.sample_id ? item.sample_id.split('-')[0] : 'Unknown',
+          requestedOn: new Date(item.collection_date).toISOString().split('T')[0],
+          status: item.result === null ? 'pending' : 'completed',
+          resistanceResult: item.result
+        }));
+        
+        setPatientData({
+          id: form.getValues().patientId,
+          labs: labTests
+        });
+        
+        toast({
+          title: "Patient Found",
+          description: `Found ${data.length} lab cultures for patient ${form.getValues().patientId}`,
+        });
+      } else {
+        setPatientData(null);
+        toast({
+          variant: "destructive",
+          title: "Patient Not Found",
+          description: "No lab cultures found for the provided patient ID",
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Error searching for patient:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to search for patient",
+      });
+    }
+  });
+
+  const handleSearch = (values: { patientId: string }) => {
+    searchPatient(values);
+  };
+
+  const { mutate: submitLabResult } = useMutation({
+    mutationFn: async ({ labId, result }: { labId: string, result: string }) => {
+      const { data, error } = await supabase
+        .from('lab_results')
+        .update({
+          result: result,
+          processed_by: 'Lab Technician',
+          processed_date: new Date().toISOString()
+        })
+        .eq('id', labId);
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Lab Result Submitted",
+        description: `Recorded ${resistance} result for ${selectedLabTest?.type}`,
+      });
+      
+      // Update local state to reflect the change
+      if (patientData) {
+        const updatedLabs = patientData.labs.map((lab: any) => 
+          lab.id === selectedLabTest.id 
+            ? { ...lab, status: "completed", resistanceResult: resistance } 
+            : lab
+        );
+        
+        setPatientData({
+          ...patientData,
+          labs: updatedLabs
+        });
+      }
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['patientLabResults', selectedPatientId] });
+      
+      setConfirmDialogOpen(false);
+      setSelectedLabTest(null);
+      setResistance(null);
+    },
+    onError: (error) => {
+      console.error("Error submitting lab result:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to submit lab result",
+      });
+    }
+  });
+
+  const handleSelectLabTest = (lab: any, resistanceStatus: "positive" | "negative") => {
     setSelectedLabTest(lab);
     setResistance(resistanceStatus);
     setConfirmDialogOpen(true);
   };
 
   const handleConfirmSubmit = () => {
-    // This would be an API call in a real application
-    // PUT /api/lab-cultures/{labId}/results
-    /*
-      Backend integration:
-      1. Validate that the lab test exists and is pending
-      2. Update the lab test status to completed
-      3. Record the carbapenem resistance status
-      4. Record the technician who performed the test
-      5. Record the date/time the result was submitted
-      6. Update patient record with new lab result
-      7. Notify relevant healthcare providers of critical results if needed
-    */
-    
-    toast({
-      title: "Lab Result Submitted",
-      description: `Recorded ${resistance} result for ${selectedLabTest.type}`,
-    });
-    
-    // Update local state to reflect the change
-    if (patientData) {
-      const updatedLabs = patientData.labs.map((lab: any) => 
-        lab.id === selectedLabTest.id 
-          ? { ...lab, status: "completed", resistanceResult: resistance } 
-          : lab
-      );
-      
-      setPatientData({
-        ...patientData,
-        labs: updatedLabs
+    if (selectedLabTest && resistance) {
+      submitLabResult({
+        labId: selectedLabTest.id,
+        result: resistance
       });
     }
-    
-    setConfirmDialogOpen(false);
-    setSelectedLabTest(null);
-    setResistance(null);
   };
 
   return (
@@ -212,47 +259,55 @@ const LabDashboard = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {patientData.labs.map((lab: any) => (
-                            <TableRow key={lab.id}>
-                              <TableCell className="font-medium text-lg">{lab.type}</TableCell>
-                              <TableCell className="text-lg">{lab.requestedOn}</TableCell>
-                              <TableCell>
-                                <Badge variant={lab.status === "completed" ? "default" : "secondary"} className="text-md">
-                                  {lab.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {lab.status === "pending" ? (
-                                  <div className="flex justify-end gap-2">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      onClick={() => handleSelectLabTest(lab, "susceptible")}
-                                      className="border-green-200 text-green-700 hover:bg-green-50 text-lg"
-                                    >
-                                      <CheckCircle className="h-5 w-5 mr-1" />
-                                      Susceptible
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      onClick={() => handleSelectLabTest(lab, "resistant")}
-                                      className="border-amber-200 text-amber-700 hover:bg-amber-50 text-lg"
-                                    >
-                                      <AlertTriangle className="h-5 w-5 mr-1" />
-                                      Resistant
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span className="text-lg text-gray-500">
-                                    {lab.resistanceResult === "resistant" 
-                                      ? "Carbapenem Resistant"
-                                      : "Carbapenem Susceptible"}
-                                  </span>
-                                )}
+                          {patientData.labs.length > 0 ? (
+                            patientData.labs.map((lab: any) => (
+                              <TableRow key={lab.id}>
+                                <TableCell className="font-medium text-lg">{lab.type}</TableCell>
+                                <TableCell className="text-lg">{lab.requestedOn}</TableCell>
+                                <TableCell>
+                                  <Badge variant={lab.status === "completed" ? "default" : "secondary"} className="text-md">
+                                    {lab.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {lab.status === "pending" ? (
+                                    <div className="flex justify-end gap-2">
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => handleSelectLabTest(lab, "negative")}
+                                        className="border-green-200 text-green-700 hover:bg-green-50 text-lg"
+                                      >
+                                        <CheckCircle className="h-5 w-5 mr-1" />
+                                        Susceptible
+                                      </Button>
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => handleSelectLabTest(lab, "positive")}
+                                        className="border-amber-200 text-amber-700 hover:bg-amber-50 text-lg"
+                                      >
+                                        <AlertTriangle className="h-5 w-5 mr-1" />
+                                        Resistant
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <span className="text-lg text-gray-500">
+                                      {lab.resistanceResult === "positive" 
+                                        ? "Carbapenem Resistant"
+                                        : "Carbapenem Susceptible"}
+                                    </span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center py-4 text-gray-500">
+                                No lab tests found for this patient
                               </TableCell>
                             </TableRow>
-                          ))}
+                          )}
                         </TableBody>
                       </Table>
                     </div>
@@ -290,8 +345,8 @@ const LabDashboard = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500 text-lg">Result:</span>
-                  <span className={`font-medium text-lg ${resistance === "resistant" ? "text-amber-600" : "text-green-600"}`}>
-                    Carbapenem {resistance === "resistant" ? "Resistant" : "Susceptible"}
+                  <span className={`font-medium text-lg ${resistance === "positive" ? "text-amber-600" : "text-green-600"}`}>
+                    Carbapenem {resistance === "positive" ? "Resistant" : "Susceptible"}
                   </span>
                 </div>
               </div>
