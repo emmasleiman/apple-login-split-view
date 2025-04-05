@@ -32,6 +32,12 @@ const LoginForm = () => {
           description: "You have successfully logged in as Admin.",
         });
         navigate('/admin-dashboard');
+      } else if (username === 'ghi' && password === '789') {
+        toast({
+          title: "Success",
+          description: "You have successfully logged in as Lab Technician.",
+        });
+        navigate('/lab-dashboard');
       } else {
         toast({
           variant: "destructive",
