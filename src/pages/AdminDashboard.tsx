@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,15 @@ const patientData = [
   { id: "P12349", ward: "Oncology", admittedOn: "2025-04-01 08:20", status: "discharged", cultureRequired: "Yes", result: "Negative" },
 ];
 
+// Helper function to ensure status is a valid variant
+const getStatusVariant = (status: string): "critical" | "pending" | "clear" | "discharged" => {
+  if (status === "critical") return "critical";
+  if (status === "pending") return "pending";
+  if (status === "clear") return "clear";
+  if (status === "discharged") return "discharged";
+  return "clear"; // Default fallback
+};
+
 // Component for displaying patient history modal
 const PatientHistory = ({ patient, onClose }: { patient: any, onClose: () => void }) => (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -34,7 +44,7 @@ const PatientHistory = ({ patient, onClose }: { patient: any, onClose: () => voi
           
           <div className="text-gray-500">Status:</div>
           <div>
-            <Badge variant={patient.status}>{patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}</Badge>
+            <Badge variant={getStatusVariant(patient.status)}>{patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}</Badge>
           </div>
           
           <div className="text-gray-500">Culture Required:</div>
@@ -286,7 +296,7 @@ const AdminDashboard = () => {
                             <TableCell>{patient.ward}</TableCell>
                             <TableCell>{patient.admittedOn}</TableCell>
                             <TableCell>
-                              <Badge variant={patient.status}>
+                              <Badge variant={getStatusVariant(patient.status)}>
                                 {patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}
                               </Badge>
                             </TableCell>
