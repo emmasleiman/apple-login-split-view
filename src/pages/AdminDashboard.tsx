@@ -876,39 +876,11 @@ const AdminDashboard = () => {
                       />
                       
                       <Button type="submit" className="w-full h-12 text-base gap-2">
-                        Check Eligibility
-                        <ArrowRight className="h-4 w-4" />
+                        <Search className="h-4 w-4" />
+                        Search
                       </Button>
                     </form>
                   </Form>
-                  
-                  <div className="mt-12 pt-8 border-t border-dashed border-gray-300">
-                    <div className="bg-gray-50 p-4 rounded-lg text-gray-700 text-sm">
-                      <h4 className="font-medium mb-2">Backend Integration Notes:</h4>
-                      <ul className="list-disc pl-5 space-y-2">
-                        <li>
-                          <strong>Patient Lookup Endpoint:</strong> Implement GET /api/patients/{'{patientId}'} to verify 
-                          if the patient exists and is eligible for discharge. Return patient details including current status.
-                        </li>
-                        <li>
-                          <strong>Discharge Process Endpoint:</strong> Implement PUT /api/patients/{'{patientId}'}/discharge to 
-                          update the patient's status to discharged. The endpoint should:
-                          <ul className="list-circle pl-5 mt-1 space-y-1">
-                            <li>Verify the patient is not already discharged</li>
-                            <li>Record discharge date (current date)</li>
-                            <li>Record admin who performed the discharge</li>
-                            <li>Update patient history with discharge event</li>
-                            <li>Return updated patient data</li>
-                          </ul>
-                        </li>
-                        <li>
-                          <strong>Authentication:</strong> Ensure endpoints are protected and only accessible by 
-                          authenticated admin users with proper permissions.
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                  
                 </div>
                 
                 <AlertDialog open={showDischargeConfirmDialog} onOpenChange={setShowDischargeConfirmDialog}>
