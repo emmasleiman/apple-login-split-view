@@ -12,6 +12,15 @@ import QRCode from "react-qr-code";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation } from "@tanstack/react-query";
 
+type Patient = {
+  id: string;
+  patient_id: string;
+  culture_required: boolean;
+  status: string;
+  registration_date: string;
+  discharge_date: string | null;
+};
+
 const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -35,11 +44,11 @@ const Dashboard = () => {
             status: 'admitted'
           }
         ])
-        .select();
+        .select() as { data: Patient[] | null, error: any };
 
       if (patientError) throw patientError;
       
-      if (cultureRequired) {
+      if (cultureRequired && patientData && patientData.length > 0) {
         const { error: labError } = await supabase
           .from('lab_results')
           .insert([
@@ -53,7 +62,7 @@ const Dashboard = () => {
         if (labError) throw labError;
       }
       
-      return patientData[0];
+      return patientData ? patientData[0] : null;
     },
     onSuccess: (data) => {
       const qrData = JSON.stringify({
@@ -87,7 +96,7 @@ const Dashboard = () => {
           discharge_date: new Date().toISOString()
         })
         .eq('patient_id', patientId)
-        .select();
+        .select() as { data: Patient[] | null, error: any };
       
       if (error) throw error;
       return data;

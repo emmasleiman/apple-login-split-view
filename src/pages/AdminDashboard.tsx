@@ -13,6 +13,42 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
+// Define types for our data based on the database structure
+type PatientLabResult = {
+  patient_uuid: string;
+  patient_id: string;
+  culture_required: boolean;
+  status: string;
+  registration_date: string;
+  discharge_date: string | null;
+  lab_result_id: string | null;
+  sample_id: string | null;
+  result: string | null;
+  collection_date: string | null;
+  processed_by: string | null;
+  processed_date: string | null;
+  notes: string | null;
+};
+
+type Patient = {
+  id: string;
+  patientId: string;
+  registrationDate: string;
+  status: string;
+  dischargeDate: string;
+  cultureRequired: boolean;
+  labResults: LabResult[];
+};
+
+type LabResult = {
+  id: string;
+  sampleId: string;
+  result: string | null;
+  collectionDate: string;
+  processedBy: string;
+  processedDate: string;
+};
+
 const AdminDashboard = () => {
   const { toast } = useToast();
   
@@ -23,37 +59,42 @@ const AdminDashboard = () => {
       const { data, error } = await supabase
         .from('patient_lab_results')
         .select('*')
-        .order('registration_date', { ascending: false });
+        .order('registration_date', { ascending: false }) as { data: PatientLabResult[] | null, error: any };
       
       if (error) throw error;
       
       // Process and group data by patient
-      const patientMap = new Map();
-      data.forEach(item => {
-        if (!patientMap.has(item.patient_id)) {
-          patientMap.set(item.patient_id, {
-            id: item.patient_uuid,
-            patientId: item.patient_id,
-            registrationDate: new Date(item.registration_date).toLocaleDateString(),
-            status: item.status,
-            dischargeDate: item.discharge_date ? new Date(item.discharge_date).toLocaleDateString() : '-',
-            cultureRequired: item.culture_required,
-            labResults: []
-          });
-        }
-        
-        if (item.lab_result_id) {
-          const patient = patientMap.get(item.patient_id);
-          patient.labResults.push({
-            id: item.lab_result_id,
-            sampleId: item.sample_id,
-            result: item.result,
-            collectionDate: new Date(item.collection_date).toLocaleDateString(),
-            processedBy: item.processed_by || '-',
-            processedDate: item.processed_date ? new Date(item.processed_date).toLocaleDateString() : '-'
-          });
-        }
-      });
+      const patientMap = new Map<string, Patient>();
+      
+      if (data) {
+        data.forEach(item => {
+          if (!patientMap.has(item.patient_id)) {
+            patientMap.set(item.patient_id, {
+              id: item.patient_uuid,
+              patientId: item.patient_id,
+              registrationDate: new Date(item.registration_date).toLocaleDateString(),
+              status: item.status,
+              dischargeDate: item.discharge_date ? new Date(item.discharge_date).toLocaleDateString() : '-',
+              cultureRequired: item.culture_required,
+              labResults: []
+            });
+          }
+          
+          if (item.lab_result_id) {
+            const patient = patientMap.get(item.patient_id);
+            if (patient) {
+              patient.labResults.push({
+                id: item.lab_result_id,
+                sampleId: item.sample_id || '',
+                result: item.result,
+                collectionDate: item.collection_date ? new Date(item.collection_date).toLocaleDateString() : '-',
+                processedBy: item.processed_by || '-',
+                processedDate: item.processed_date ? new Date(item.processed_date).toLocaleDateString() : '-'
+              });
+            }
+          }
+        });
+      }
       
       return Array.from(patientMap.values());
     }

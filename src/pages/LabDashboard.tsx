@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -39,13 +38,42 @@ import { AlertTriangle, CheckCircle, Search, User, UserCheck } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+type PatientLabResult = {
+  patient_uuid: string;
+  patient_id: string;
+  culture_required: boolean;
+  status: string;
+  registration_date: string;
+  discharge_date: string | null;
+  lab_result_id: string | null;
+  sample_id: string | null;
+  result: string | null;
+  collection_date: string | null;
+  processed_by: string | null;
+  processed_date: string | null;
+  notes: string | null;
+};
+
+type LabTest = {
+  id: string;
+  type: string;
+  requestedOn: string;
+  status: string;
+  resistanceResult: string | null;
+};
+
+type PatientData = {
+  id: string;
+  labs: LabTest[];
+};
+
 const LabDashboard = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedPatientId, setSelectedPatientId] = useState("");
-  const [patientData, setPatientData] = useState<any>(null);
+  const [patientData, setPatientData] = useState<PatientData | null>(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [selectedLabTest, setSelectedLabTest] = useState<any>(null);
+  const [selectedLabTest, setSelectedLabTest] = useState<LabTest | null>(null);
   const [resistance, setResistance] = useState<"positive" | "negative" | null>(null);
   
   const form = useForm({
@@ -59,10 +87,10 @@ const LabDashboard = () => {
     const { data, error } = await supabase
       .from('patient_lab_results')
       .select('*')
-      .eq('patient_id', patientId);
+      .eq('patient_id', patientId) as { data: PatientLabResult[] | null, error: any };
     
     if (error) throw error;
-    return data;
+    return data || [];
   };
 
   const { mutate: searchPatient } = useMutation({
@@ -80,12 +108,12 @@ const LabDashboard = () => {
         
         // Transform data into the expected structure
         const labTests = data.map(item => ({
-          id: item.lab_result_id,
+          id: item.lab_result_id || '',
           type: item.sample_id ? item.sample_id.split('-')[0] : 'Unknown',
-          requestedOn: new Date(item.collection_date).toISOString().split('T')[0],
+          requestedOn: item.collection_date ? new Date(item.collection_date).toISOString().split('T')[0] : '',
           status: item.result === null ? 'pending' : 'completed',
           resistanceResult: item.result
-        }));
+        })).filter(lab => lab.id); // Filter out any null lab results
         
         setPatientData({
           id: form.getValues().patientId,
@@ -94,7 +122,7 @@ const LabDashboard = () => {
         
         toast({
           title: "Patient Found",
-          description: `Found ${data.length} lab cultures for patient ${form.getValues().patientId}`,
+          description: `Found ${labTests.length} lab cultures for patient ${form.getValues().patientId}`,
         });
       } else {
         setPatientData(null);
@@ -128,7 +156,8 @@ const LabDashboard = () => {
           processed_by: 'Lab Technician',
           processed_date: new Date().toISOString()
         })
-        .eq('id', labId);
+        .eq('id', labId)
+        .select() as { data: any, error: any };
       
       if (error) throw error;
       return data;
@@ -141,8 +170,8 @@ const LabDashboard = () => {
       
       // Update local state to reflect the change
       if (patientData) {
-        const updatedLabs = patientData.labs.map((lab: any) => 
-          lab.id === selectedLabTest.id 
+        const updatedLabs = patientData.labs.map((lab: LabTest) => 
+          lab.id === selectedLabTest?.id 
             ? { ...lab, status: "completed", resistanceResult: resistance } 
             : lab
         );
@@ -170,7 +199,7 @@ const LabDashboard = () => {
     }
   });
 
-  const handleSelectLabTest = (lab: any, resistanceStatus: "positive" | "negative") => {
+  const handleSelectLabTest = (lab: LabTest, resistanceStatus: "positive" | "negative") => {
     setSelectedLabTest(lab);
     setResistance(resistanceStatus);
     setConfirmDialogOpen(true);
@@ -260,7 +289,7 @@ const LabDashboard = () => {
                         </TableHeader>
                         <TableBody>
                           {patientData.labs.length > 0 ? (
-                            patientData.labs.map((lab: any) => (
+                            patientData.labs.map((lab: LabTest) => (
                               <TableRow key={lab.id}>
                                 <TableCell className="font-medium text-lg">{lab.type}</TableCell>
                                 <TableCell className="text-lg">{lab.requestedOn}</TableCell>
