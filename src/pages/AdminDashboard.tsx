@@ -111,7 +111,7 @@ const allPatientsData = [
     id: "P45678", 
     name: "Michael Brown", 
     admissionDate: "2025-03-30", 
-    status: "Awaiting Results",
+    status: "Pending",
     discharged: false,
     department: "Ward B",
     history: [
@@ -123,7 +123,7 @@ const allPatientsData = [
     id: "P91234", 
     name: "Sarah Wilson", 
     admissionDate: "2025-04-01", 
-    status: "Awaiting Results",
+    status: "Pending",
     discharged: false,
     department: "Ward D",
     history: [
@@ -135,7 +135,7 @@ const allPatientsData = [
     id: "P56789", 
     name: "David Lee", 
     admissionDate: "2025-04-01", 
-    status: "Awaiting Results",
+    status: "Pending",
     discharged: false,
     department: "Ward C",
     history: [
@@ -160,7 +160,7 @@ const allPatientsData = [
     id: "P23456", 
     name: "James Taylor", 
     admissionDate: "2025-03-25", 
-    status: "Discharged",
+    status: "Clear",
     discharged: true,
     department: "Ward B",
     history: [
@@ -174,7 +174,7 @@ const allPatientsData = [
     id: "P67890", 
     name: "Robert Garcia", 
     admissionDate: "2025-03-27", 
-    status: "Discharged",
+    status: "Clear",
     discharged: true,
     department: "Ward A",
     history: [
@@ -373,8 +373,10 @@ const AdminDashboard = () => {
     switch (status.toLowerCase()) {
       case 'critical':
         return 'destructive';
-      case 'awaiting results':
+      case 'pending':
         return 'secondary';
+      case 'clear':
+        return 'default';
       case 'discharged':
         return 'outline';
       default:
@@ -824,16 +826,22 @@ const AdminDashboard = () => {
                                 <TableCell>{patient.department}</TableCell>
                                 <TableCell>{patient.admissionDate}</TableCell>
                                 <TableCell>
-                                  <div className="flex gap-2">
-                                    <Badge variant={getStatusBadgeVariant(patient.status)}>
+                                  {patient.discharged ? (
+                                    <Badge variant="outline" className="bg-gray-100 text-gray-600">
+                                      Discharged
+                                    </Badge>
+                                  ) : (
+                                    <Badge 
+                                      variant={getStatusBadgeVariant(patient.status)}
+                                      className={`
+                                        ${patient.status.toLowerCase() === 'critical' ? 'bg-red-500 hover:bg-red-600' : ''}
+                                        ${patient.status.toLowerCase() === 'pending' ? 'bg-amber-500 hover:bg-amber-600' : ''}
+                                        ${patient.status.toLowerCase() === 'clear' ? 'bg-green-500 hover:bg-green-600' : ''}
+                                      `}
+                                    >
                                       {patient.status}
                                     </Badge>
-                                    {patient.discharged && (
-                                      <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
-                                        Discharged
-                                      </Badge>
-                                    )}
-                                  </div>
+                                  )}
                                 </TableCell>
                                 <TableCell>
                                   <Button
@@ -908,12 +916,20 @@ const AdminDashboard = () => {
                       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
                         <h3 className="text-gray-500 text-sm font-medium mb-2">Status</h3>
                         <div className="flex items-center gap-2">
-                          <Badge variant={getStatusBadgeVariant(selectedPatient?.status || "")}>
-                            {selectedPatient?.status}
-                          </Badge>
-                          {selectedPatient?.discharged && (
-                            <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
+                          {selectedPatient?.discharged ? (
+                            <Badge variant="outline" className="bg-gray-100 text-gray-600">
                               Discharged
+                            </Badge>
+                          ) : (
+                            <Badge 
+                              variant={getStatusBadgeVariant(selectedPatient?.status || "")}
+                              className={`
+                                ${selectedPatient?.status.toLowerCase() === 'critical' ? 'bg-red-500 hover:bg-red-600' : ''}
+                                ${selectedPatient?.status.toLowerCase() === 'pending' ? 'bg-amber-500 hover:bg-amber-600' : ''}
+                                ${selectedPatient?.status.toLowerCase() === 'clear' ? 'bg-green-500 hover:bg-green-600' : ''}
+                              `}
+                            >
+                              {selectedPatient?.status}
                             </Badge>
                           )}
                         </div>
