@@ -22,17 +22,31 @@ const Index = () => {
         {/* Dark gradient overlay to improve text visibility */}
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900/40 to-transparent"></div>
         
-        {/* Text overlay */}
-        <div className="absolute bottom-8 left-8 text-white">
-          <h2 className="text-3xl md:text-4xl font-light tracking-tight">TraceMed</h2>
-          <p className="text-base md:text-lg opacity-80">Precision Tracking for Safer Care</p>
+        {/* Logo and text overlay */}
+        <div className="absolute bottom-8 left-8 text-white flex items-center gap-3">
+          <img 
+            src="/lovable-uploads/bdfc7e8a-c7ba-4e2a-9fc4-2f8199f2eedb.png"
+            alt="TraceMed Logo" 
+            className="w-12 h-12"
+          />
+          <div>
+            <h2 className="text-3xl md:text-4xl font-light tracking-tight">TraceMed</h2>
+            <p className="text-base md:text-lg opacity-80">Precision Tracking for Safer Care</p>
+          </div>
         </div>
       </div>
       
       {/* Login Form Section - Right Side on desktop, Bottom on mobile */}
       <div className="md:w-1/2 flex-1 bg-white flex flex-col items-center justify-center">
         <div className="w-full max-w-md px-6">
-          <h1 className="text-3xl md:text-4xl text-gray-800 font-light mb-2 tracking-tight">TraceMed</h1>
+          <div className="flex items-center gap-3 mb-8">
+            <img 
+              src="/lovable-uploads/bdfc7e8a-c7ba-4e2a-9fc4-2f8199f2eedb.png"
+              alt="TraceMed Logo" 
+              className="w-10 h-10"
+            />
+            <h1 className="text-3xl md:text-4xl text-gray-800 font-light tracking-tight">TraceMed</h1>
+          </div>
           <p className="text-lg md:text-xl text-gray-500 mb-12">Sign in to your account</p>
           <LoginForm />
         </div>
