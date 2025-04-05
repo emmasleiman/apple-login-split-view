@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,106 +81,98 @@ const patientLabsData = {
 // MOCK FULL DATABASE PATIENTS - DELETE WHEN CONNECTING TO BACKEND
 const allPatientsData = [
   { 
-    id: "P78945", 
-    name: "John Smith", 
+    id: "P78945",
+    wardInfo: "Ward A", 
     admissionDate: "2025-03-25", 
     status: "Critical",
     discharged: false,
-    department: "Ward A",
     history: [
-      { date: "2025-03-25", event: "Admitted to Ward A", details: "Initial diagnosis: Sepsis" },
-      { date: "2025-03-27", event: "Lab Test", details: "Blood Culture requested" },
-      { date: "2025-03-29", event: "Lab Result", details: "Carbapenem Resistance: Positive" },
+      { date: "2025-03-25", event: "Admitted to Ward A" },
+      { date: "2025-03-27", event: "Lab Test Requested" },
+      { date: "2025-03-29", event: "Carbapenem Resistance: Positive" },
     ]
   },
   { 
-    id: "P12367", 
-    name: "Emma Johnson", 
+    id: "P12367",
+    wardInfo: "ICU", 
     admissionDate: "2025-03-29", 
     status: "Critical",
     discharged: false,
-    department: "ICU",
     history: [
-      { date: "2025-03-29", event: "Admitted to ICU", details: "Initial diagnosis: Pneumonia" },
-      { date: "2025-03-30", event: "Lab Test", details: "Blood Culture requested" },
-      { date: "2025-04-01", event: "Lab Result", details: "Carbapenem Resistance: Positive" },
+      { date: "2025-03-29", event: "Admitted to ICU" },
+      { date: "2025-03-30", event: "Lab Test Requested" },
+      { date: "2025-04-01", event: "Carbapenem Resistance: Positive" },
     ]
   },
   { 
-    id: "P45678", 
-    name: "Michael Brown", 
+    id: "P45678",
+    wardInfo: "Ward B", 
     admissionDate: "2025-03-30", 
     status: "Pending",
     discharged: false,
-    department: "Ward B",
     history: [
-      { date: "2025-03-30", event: "Admitted to Ward B", details: "Initial diagnosis: UTI" },
-      { date: "2025-04-01", event: "Lab Test", details: "Urine Culture requested" },
+      { date: "2025-03-30", event: "Admitted to Ward B" },
+      { date: "2025-04-01", event: "Lab Test Requested" },
     ]
   },
   { 
-    id: "P91234", 
-    name: "Sarah Wilson", 
+    id: "P91234",
+    wardInfo: "Ward D", 
     admissionDate: "2025-04-01", 
     status: "Pending",
     discharged: false,
-    department: "Ward D",
     history: [
-      { date: "2025-04-01", event: "Admitted to Ward D", details: "Initial diagnosis: Wound Infection" },
-      { date: "2025-04-02", event: "Lab Test", details: "Wound Culture requested" },
+      { date: "2025-04-01", event: "Admitted to Ward D" },
+      { date: "2025-04-02", event: "Lab Test Requested" },
     ]
   },
   { 
-    id: "P56789", 
-    name: "David Lee", 
+    id: "P56789",
+    wardInfo: "Ward C", 
     admissionDate: "2025-04-01", 
     status: "Pending",
     discharged: false,
-    department: "Ward C",
     history: [
-      { date: "2025-04-01", event: "Admitted to Ward C", details: "Initial diagnosis: Fever of Unknown Origin" },
-      { date: "2025-04-03", event: "Lab Test", details: "Blood Culture requested" },
+      { date: "2025-04-01", event: "Admitted to Ward C" },
+      { date: "2025-04-03", event: "Lab Test Requested" },
     ]
   },
   { 
-    id: "P34589", 
-    name: "Lisa Zhang", 
+    id: "P34589",
+    wardInfo: "Ward C", 
     admissionDate: "2025-03-28", 
     status: "Critical",
     discharged: false,
-    department: "Ward C",
     history: [
-      { date: "2025-03-28", event: "Admitted to Ward C", details: "Initial diagnosis: Lower Respiratory Infection" },
-      { date: "2025-03-29", event: "Lab Test", details: "Sputum Culture requested" },
-      { date: "2025-03-31", event: "Lab Result", details: "Carbapenem Resistance: Positive" },
+      { date: "2025-03-28", event: "Admitted to Ward C" },
+      { date: "2025-03-29", event: "Lab Test Requested" },
+      { date: "2025-03-31", event: "Carbapenem Resistance: Positive" },
     ]
   },
   { 
-    id: "P23456", 
-    name: "James Taylor", 
+    id: "P23456",
+    wardInfo: "Ward B", 
     admissionDate: "2025-03-25", 
     status: "Clear",
     discharged: true,
-    department: "Ward B",
     history: [
-      { date: "2025-03-25", event: "Admitted to Ward B", details: "Initial diagnosis: Cellulitis" },
-      { date: "2025-03-26", event: "Lab Test", details: "Blood Culture requested" },
-      { date: "2025-03-28", event: "Lab Result", details: "Carbapenem Resistance: Negative" },
-      { date: "2025-04-02", event: "Discharged", details: "Completed antibiotic course" },
+      { date: "2025-03-25", event: "Admitted to Ward B" },
+      { date: "2025-03-26", event: "Lab Test Requested" },
+      { date: "2025-03-28", event: "Carbapenem Resistance: Negative" },
+      { date: "2025-04-02", event: "Discharged" },
     ]
   },
   { 
-    id: "P67890", 
-    name: "Robert Garcia", 
+    id: "P67890",
+    wardInfo: "Ward A", 
     admissionDate: "2025-03-27", 
     status: "Clear",
     discharged: true,
-    department: "Ward A",
     history: [
-      { date: "2025-03-27", event: "Admitted to Ward A", details: "Initial diagnosis: Pyelonephritis" },
-      { date: "2025-03-28", event: "Lab Test", details: "Urine Culture requested" },
-      { date: "2025-03-30", event: "Lab Result", details: "Carbapenem Resistance: Negative" },
-      { date: "2025-04-03", event: "Discharged", details: "Symptoms resolved" },
+      { date: "2025-03-27", event: "Admitted to Ward A" },
+      { date: "2025-03-28", event: "Lab Test Requested" },
+      { date: "2025-03-30", event: "Carbapenem Resistance: Negative" },
+      { date: "2025-04-03", event: "Discharged" },
     ]
   },
 ];
@@ -223,8 +214,7 @@ const AdminDashboard = () => {
       const query = searchQuery.toLowerCase();
       const filtered = allPatientsData.filter(patient => 
         patient.id.toLowerCase().includes(query) || 
-        patient.name.toLowerCase().includes(query) ||
-        patient.department.toLowerCase().includes(query) ||
+        patient.wardInfo.toLowerCase().includes(query) ||
         patient.status.toLowerCase().includes(query)
       );
       setFilteredPatients(filtered);
@@ -345,12 +335,7 @@ const AdminDashboard = () => {
     //   history: [
     //     {
     //       date: string,
-    //       event: string,
-    //       details: string,
-    //       departmentId?: string,
-    //       labId?: string,
-    //       resultId?: string,
-    //       dischargeId?: string
+    //       event: string
     //     }
     //   ]
     // }
@@ -785,7 +770,7 @@ const AdminDashboard = () => {
                         </div>
                         <input
                           type="text"
-                          placeholder="Search patients by ID, name, department or status..."
+                          placeholder="Search patients by ID, ward or status..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           className="flex-1 py-3 px-2 outline-none bg-transparent text-base"
@@ -808,8 +793,7 @@ const AdminDashboard = () => {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Patient ID</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Department</TableHead>
+                            <TableHead>Ward</TableHead>
                             <TableHead>Admission Date</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Action</TableHead>
@@ -822,8 +806,7 @@ const AdminDashboard = () => {
                                 <TableCell className="font-medium">
                                   {patient.id}
                                 </TableCell>
-                                <TableCell>{patient.name}</TableCell>
-                                <TableCell>{patient.department}</TableCell>
+                                <TableCell>{patient.wardInfo}</TableCell>
                                 <TableCell>{patient.admissionDate}</TableCell>
                                 <TableCell>
                                   {patient.discharged ? (
@@ -857,7 +840,7 @@ const AdminDashboard = () => {
                             ))
                           ) : (
                             <TableRow>
-                              <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                              <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                                 No patients found matching your search criteria.
                               </TableCell>
                             </TableRow>
@@ -898,7 +881,7 @@ const AdminDashboard = () => {
                       </Button>
                       
                       <h2 className="text-xl font-medium">
-                        Patient History: {selectedPatient?.name} ({selectedPatient?.id})
+                        Patient History: {selectedPatient?.id}
                       </h2>
                     </div>
                     
@@ -909,8 +892,8 @@ const AdminDashboard = () => {
                       </div>
                       
                       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-                        <h3 className="text-gray-500 text-sm font-medium mb-2">Department</h3>
-                        <p className="text-lg font-medium">{selectedPatient?.department}</p>
+                        <h3 className="text-gray-500 text-sm font-medium mb-2">Ward</h3>
+                        <p className="text-lg font-medium">{selectedPatient?.wardInfo}</p>
                       </div>
                       
                       <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
@@ -924,9 +907,9 @@ const AdminDashboard = () => {
                             <Badge 
                               variant={getStatusBadgeVariant(selectedPatient?.status || "")}
                               className={`
-                                ${selectedPatient?.status.toLowerCase() === 'critical' ? 'bg-red-500 hover:bg-red-600' : ''}
-                                ${selectedPatient?.status.toLowerCase() === 'pending' ? 'bg-amber-500 hover:bg-amber-600' : ''}
-                                ${selectedPatient?.status.toLowerCase() === 'clear' ? 'bg-green-500 hover:bg-green-600' : ''}
+                                ${selectedPatient?.status?.toLowerCase() === 'critical' ? 'bg-red-500 hover:bg-red-600' : ''}
+                                ${selectedPatient?.status?.toLowerCase() === 'pending' ? 'bg-amber-500 hover:bg-amber-600' : ''}
+                                ${selectedPatient?.status?.toLowerCase() === 'clear' ? 'bg-green-500 hover:bg-green-600' : ''}
                               `}
                             >
                               {selectedPatient?.status}
@@ -942,8 +925,7 @@ const AdminDashboard = () => {
                           <div className="absolute -left-[25px] mt-1.5 h-4 w-4 rounded-full bg-blue-600 border-4 border-white"></div>
                           <div className="mb-2 text-sm text-gray-500">{event.date}</div>
                           <div className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm">
-                            <h4 className="text-lg font-medium mb-2">{event.event}</h4>
-                            <p className="text-gray-700">{event.details}</p>
+                            <p className="text-gray-700">{event.event}</p>
                           </div>
                         </div>
                       ))}
