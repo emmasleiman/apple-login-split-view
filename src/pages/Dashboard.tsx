@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
+import { Badge } from "@/components/ui/badge";
 
 const Dashboard = () => {
   const { toast } = useToast();
