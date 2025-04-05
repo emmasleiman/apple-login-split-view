@@ -139,7 +139,7 @@ const LabDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50/40 p-4 md:p-8">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-light text-gray-800 tracking-tight">TraceMed Lab Dashboard</h1>
@@ -147,20 +147,22 @@ const LabDashboard = () => {
         </div>
         <div className="flex items-center mt-4 md:mt-0 gap-2 bg-white p-2 rounded-md shadow-sm">
           <User className="h-5 w-5 text-gray-500" />
-          <span className="text-sm font-medium">Lab Technician</span>
+          <span className="text-lg font-medium">Lab Technician</span>
         </div>
       </header>
 
       <Tabs defaultValue="input-results" className="w-full">
         <TabsList className="mb-8">
-          <TabsTrigger value="input-results">Input Lab Results</TabsTrigger>
+          <TabsTrigger value="input-results" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-xl py-3 flex-1">
+            Input Lab Results
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="input-results">
           <div className="grid grid-cols-1 gap-6">
             <Card className="shadow-md">
-              <CardHeader>
-                <CardTitle className="text-xl font-medium">Input Lab Results</CardTitle>
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+                <CardTitle className="text-xl font-medium text-left">Input Lab Results</CardTitle>
                 <CardDescription>
                   Enter patient ID to view and update requested lab cultures
                 </CardDescription>
@@ -178,10 +180,10 @@ const LabDashboard = () => {
                               <Input 
                                 {...field} 
                                 placeholder="Enter Patient ID" 
-                                className="h-12 text-lg"
+                                className="h-16 text-xl"
                               />
-                              <Button type="submit" className="h-12 px-5">
-                                <Search className="h-4 w-4 mr-2" />
+                              <Button type="submit" className="h-16 px-6 text-xl">
+                                <Search className="h-5 w-5 mr-2" />
                                 Search
                               </Button>
                             </div>
@@ -194,7 +196,7 @@ const LabDashboard = () => {
 
                 {patientData && (
                   <div className="mt-6">
-                    <h3 className="text-lg font-medium mb-3 flex items-center gap-2">
+                    <h3 className="text-xl font-medium mb-3 flex items-center gap-2">
                       <UserCheck className="h-5 w-5 text-green-500" />
                       Lab Cultures for Patient {patientData.id}
                     </h3>
@@ -203,19 +205,19 @@ const LabDashboard = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Test Type</TableHead>
-                            <TableHead>Requested On</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead className="text-lg">Test Type</TableHead>
+                            <TableHead className="text-lg">Requested On</TableHead>
+                            <TableHead className="text-lg">Status</TableHead>
+                            <TableHead className="text-right text-lg">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {patientData.labs.map((lab: any) => (
                             <TableRow key={lab.id}>
-                              <TableCell className="font-medium">{lab.type}</TableCell>
-                              <TableCell>{lab.requestedOn}</TableCell>
+                              <TableCell className="font-medium text-lg">{lab.type}</TableCell>
+                              <TableCell className="text-lg">{lab.requestedOn}</TableCell>
                               <TableCell>
-                                <Badge variant={lab.status === "completed" ? "default" : "secondary"}>
+                                <Badge variant={lab.status === "completed" ? "default" : "secondary"} className="text-md">
                                   {lab.status}
                                 </Badge>
                               </TableCell>
@@ -226,23 +228,23 @@ const LabDashboard = () => {
                                       variant="outline" 
                                       size="sm" 
                                       onClick={() => handleSelectLabTest(lab, "susceptible")}
-                                      className="border-green-200 text-green-700 hover:bg-green-50"
+                                      className="border-green-200 text-green-700 hover:bg-green-50 text-lg"
                                     >
-                                      <CheckCircle className="h-4 w-4 mr-1" />
+                                      <CheckCircle className="h-5 w-5 mr-1" />
                                       Susceptible
                                     </Button>
                                     <Button 
                                       variant="outline" 
                                       size="sm" 
                                       onClick={() => handleSelectLabTest(lab, "resistant")}
-                                      className="border-amber-200 text-amber-700 hover:bg-amber-50"
+                                      className="border-amber-200 text-amber-700 hover:bg-amber-50 text-lg"
                                     >
-                                      <AlertTriangle className="h-4 w-4 mr-1" />
+                                      <AlertTriangle className="h-5 w-5 mr-1" />
                                       Resistant
                                     </Button>
                                   </div>
                                 ) : (
-                                  <span className="text-sm text-gray-500">
+                                  <span className="text-lg text-gray-500">
                                     {lab.resistanceResult === "resistant" 
                                       ? "Carbapenem Resistant"
                                       : "Carbapenem Susceptible"}
@@ -265,8 +267,8 @@ const LabDashboard = () => {
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Test Result</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl">Confirm Test Result</DialogTitle>
+            <DialogDescription className="text-lg">
               You are about to submit a carbapenem resistance test result for:
             </DialogDescription>
           </DialogHeader>
@@ -275,20 +277,20 @@ const LabDashboard = () => {
             <div className="py-4">
               <div className="space-y-3">
                 <div className="flex justify-between border-b pb-2">
-                  <span className="text-gray-500">Patient ID:</span>
-                  <span className="font-medium">{selectedPatientId}</span>
+                  <span className="text-gray-500 text-lg">Patient ID:</span>
+                  <span className="font-medium text-lg">{selectedPatientId}</span>
                 </div>
                 <div className="flex justify-between border-b pb-2">
-                  <span className="text-gray-500">Test Type:</span>
-                  <span className="font-medium">{selectedLabTest.type}</span>
+                  <span className="text-gray-500 text-lg">Test Type:</span>
+                  <span className="font-medium text-lg">{selectedLabTest.type}</span>
                 </div>
                 <div className="flex justify-between border-b pb-2">
-                  <span className="text-gray-500">Requested On:</span>
-                  <span className="font-medium">{selectedLabTest.requestedOn}</span>
+                  <span className="text-gray-500 text-lg">Requested On:</span>
+                  <span className="font-medium text-lg">{selectedLabTest.requestedOn}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Result:</span>
-                  <span className={`font-medium ${resistance === "resistant" ? "text-amber-600" : "text-green-600"}`}>
+                  <span className="text-gray-500 text-lg">Result:</span>
+                  <span className={`font-medium text-lg ${resistance === "resistant" ? "text-amber-600" : "text-green-600"}`}>
                     Carbapenem {resistance === "resistant" ? "Resistant" : "Susceptible"}
                   </span>
                 </div>
@@ -297,8 +299,8 @@ const LabDashboard = () => {
           )}
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleConfirmSubmit}>
+            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)} className="text-lg">Cancel</Button>
+            <Button onClick={handleConfirmSubmit} className="text-lg">
               Confirm Submission
             </Button>
           </DialogFooter>
