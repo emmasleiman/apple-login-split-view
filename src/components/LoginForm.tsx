@@ -70,7 +70,7 @@ const LoginForm = () => {
               placeholder="Username handle"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="h-14 text-lg border border-gray-200 rounded-md px-5 
+              className="h-16 text-xl border border-gray-200 rounded-md px-6 
                 focus:border-gray-400 transition-colors bg-gray-50/50"
               autoComplete="username"
             />
@@ -82,16 +82,16 @@ const LoginForm = () => {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-14 text-lg border border-gray-200 rounded-md px-5
+              className="h-16 text-xl border border-gray-200 rounded-md px-6
                 focus:border-gray-400 transition-colors bg-gray-50/50"
               autoComplete="current-password"
             />
             <button 
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-4 text-gray-500 hover:text-gray-800 transition-colors"
+              className="absolute right-5 top-5 text-gray-500 hover:text-gray-800 transition-colors"
             >
-              {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
+              {showPassword ? <EyeOff size={26} /> : <Eye size={26} />}
             </button>
           </div>
         </div>
@@ -101,20 +101,20 @@ const LoginForm = () => {
             type="submit" 
             disabled={isLoading}
             className="w-full bg-gray-900 hover:bg-gray-800 text-white py-7 rounded-md 
-              font-normal transition-all h-14 text-lg"
+              font-normal transition-all h-16 text-xl"
           >
             {isLoading ? "Signing in..." : "Sign in"}
           </Button>
         </div>
         
         <div className="text-center">
-          <a href="#" className="text-lg text-gray-600 hover:text-gray-900 transition-colors">
+          <a href="#" className="text-xl text-gray-600 hover:text-gray-900 transition-colors">
             Forgot password?
           </a>
         </div>
       </form>
       
-      <div className="mt-12 text-center text-gray-400 text-base">
+      <div className="mt-14 text-center text-gray-400 text-lg">
         &copy; {new Date().getFullYear()} TraceMed. All rights reserved.
       </div>
     </div>

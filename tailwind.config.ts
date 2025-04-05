@@ -20,7 +20,16 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				'sfpro': ['"SF Pro Display"', 'Inter', 'Helvetica', 'system-ui', 'sans-serif']
+				'sfpro': ['"SF Pro Display"', 'Inter', 'Helvetica', 'system-ui', 'sans-serif'],
+				'sans': ['Inter', 'system-ui', 'sans-serif']
+			},
+			fontSize: {
+				'base': '1.05rem',
+				'lg': '1.15rem',
+				'xl': '1.25rem',
+				'2xl': '1.5rem',
+				'3xl': '1.875rem',
+				'4xl': '2.25rem',
 			},
 			colors: {
 				border: 'hsl(var(--border))',
