@@ -7,6 +7,20 @@ import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
+// Define an Employee type to match our database schema
+type Employee = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  username: string;
+  password: string;
+  role: string;
+  gender: string;
+  employee_id: string;
+  contact_number?: string | null;
+  created_at?: string;
+}
+
 const LoginForm = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -42,22 +56,25 @@ const LoginForm = () => {
         return;
       }
 
-      // Store employee data in localStorage with type assertion
+      // Cast the data to our Employee type for safe access
+      const employee = data as unknown as Employee;
+
+      // Store employee data in localStorage with proper typing
       localStorage.setItem('employeeData', JSON.stringify({
-        id: data.id,
-        firstName: (data as any).first_name,
-        lastName: (data as any).last_name,
-        role: (data as any).role,
-        employeeId: (data as any).employee_id
+        id: employee.id,
+        firstName: employee.first_name,
+        lastName: employee.last_name,
+        role: employee.role,
+        employeeId: employee.employee_id
       }));
 
       toast({
         title: "Success",
-        description: `You have successfully logged in as ${(data as any).role.replace('_', ' ')}.`,
+        description: `You have successfully logged in as ${employee.role.replace('_', ' ')}.`,
       });
 
       // Navigate based on role
-      switch ((data as any).role) {
+      switch (employee.role) {
         case 'admin':
           navigate('/admin-dashboard');
           break;
