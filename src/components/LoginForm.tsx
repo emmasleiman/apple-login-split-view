@@ -102,6 +102,14 @@ const LoginForm = () => {
     }
   };
 
+  const handleDirectAccess = () => {
+    toast({
+      title: "Direct Access",
+      description: "Accessing IT Dashboard directly (for initial setup only)."
+    });
+    navigate('/it-dashboard');
+  };
+
   return (
     <div className="w-full">
       <form onSubmit={handleLogin} className="space-y-6">
@@ -155,6 +163,16 @@ const LoginForm = () => {
           </a>
         </div>
       </form>
+      
+      <div className="mt-6 text-center">
+        <Button 
+          variant="outline" 
+          className="text-sm text-gray-500"
+          onClick={handleDirectAccess}
+        >
+          First-time setup: Access IT Dashboard directly
+        </Button>
+      </div>
       
       <div className="mt-14 text-center text-gray-400 text-lg">
         &copy; {new Date().getFullYear()} TraceMed. All rights reserved.
