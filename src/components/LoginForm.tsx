@@ -38,6 +38,12 @@ const LoginForm = () => {
           description: "You have successfully logged in as Lab Technician.",
         });
         navigate('/lab-dashboard');
+      } else if (username === 'jkl' && password === '101112') {
+        toast({
+          title: "Success",
+          description: "You have successfully logged in as IT Personnel.",
+        });
+        navigate('/it-dashboard');
       } else {
         toast({
           variant: "destructive",
