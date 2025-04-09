@@ -1,18 +1,20 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, AlertTriangle, Users, FileText, LogOut } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, AlertTriangle, Users, FileText, LogOut, Search, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 // Define types based on your database schema
 type Patient = {
@@ -34,15 +36,56 @@ type LabResult = {
   processed_date: string | null;
 };
 
+type PatientLabResult = {
+  patient_uuid: string;
+  patient_id: string;
+  culture_required: boolean;
+  status: string;
+  registration_date: string;
+  discharge_date: string | null;
+  lab_result_id: string | null;
+  sample_id: string | null;
+  result: string | null;
+  collection_date: string | null;
+  processed_by: string | null;
+  processed_date: string | null;
+  notes: string | null;
+};
+
+type LabTest = {
+  id: string;
+  type: string;
+  requestedOn: string;
+  status: string;
+  resistanceResult: string | null;
+};
+
+type PatientData = {
+  id: string;
+  labs: LabTest[];
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [patientIdFilter, setPatientIdFilter] = useState("");
   const [dischargePatientId, setDischargePatientId] = useState("");
   const [labResult, setLabResult] = useState("");
   const [labTechName, setLabTechName] = useState("");
   const [sampleId, setSampleId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState("");
+  const [patientData, setPatientData] = useState<PatientData | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedLabTest, setSelectedLabTest] = useState<LabTest | null>(null);
+  const [resistance, setResistance] = useState<"positive" | "negative" | null>(null);
+
+  const form = useForm({
+    defaultValues: {
+      patientId: "",
+    }
+  });
 
   // Fetch patients data
   const {
@@ -87,6 +130,136 @@ const AdminDashboard = () => {
         patient.patient_id.toLowerCase().includes(patientIdFilter.toLowerCase())
       )
     : patients;
+
+  // Function to fetch patient lab results
+  const fetchPatientLabResults = async (patientId: string) => {
+    const { data, error } = await supabase
+      .from('patient_lab_results')
+      .select('*')
+      .eq('patient_id', patientId) as { data: PatientLabResult[] | null, error: any };
+    
+    if (error) throw error;
+    return data || [];
+  };
+
+  // Mutation for searching patient
+  const { mutate: searchPatient } = useMutation({
+    mutationFn: async (values: { patientId: string }) => {
+      const patientId = values.patientId.trim();
+      if (!patientId) {
+        throw new Error('Patient ID is required');
+      }
+
+      return await fetchPatientLabResults(patientId);
+    },
+    onSuccess: (data) => {
+      if (data.length > 0) {
+        setSelectedPatientId(form.getValues().patientId);
+        
+        // Transform data into the expected structure
+        const labTests = data.map(item => ({
+          id: item.lab_result_id || '',
+          type: item.sample_id ? item.sample_id.split('-')[0] : 'Unknown',
+          requestedOn: item.collection_date ? new Date(item.collection_date).toISOString().split('T')[0] : '',
+          status: item.result === null ? 'pending' : 'completed',
+          resistanceResult: item.result
+        })).filter(lab => lab.id); // Filter out any null lab results
+        
+        setPatientData({
+          id: form.getValues().patientId,
+          labs: labTests
+        });
+        
+        toast({
+          title: "Patient Found",
+          description: `Found ${labTests.length} lab cultures for patient ${form.getValues().patientId}`,
+        });
+      } else {
+        setPatientData(null);
+        toast({
+          variant: "destructive",
+          title: "Patient Not Found",
+          description: "No lab cultures found for the provided patient ID",
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Error searching for patient:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to search for patient",
+      });
+    }
+  });
+
+  const handleSearch = (values: { patientId: string }) => {
+    searchPatient(values);
+  };
+
+  // Mutation for submitting lab result
+  const { mutate: submitLabResult } = useMutation({
+    mutationFn: async ({ labId, result }: { labId: string, result: string }) => {
+      const { data, error } = await supabase
+        .from('lab_results')
+        .update({
+          result: result,
+          processed_by: 'Admin',
+          processed_date: new Date().toISOString()
+        })
+        .eq('id', labId)
+        .select() as { data: any, error: any };
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Lab Result Submitted",
+        description: `Recorded ${resistance} result for sample`,
+      });
+      
+      // Update local state to reflect the change
+      if (patientData) {
+        const updatedLabs = patientData.labs.map((lab: LabTest) => 
+          lab.id === selectedLabTest?.id 
+            ? { ...lab, status: "completed", resistanceResult: resistance } 
+            : lab
+        );
+        
+        setPatientData({
+          ...patientData,
+          labs: updatedLabs
+        });
+      }
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['patientLabResults', selectedPatientId] });
+      queryClient.invalidateQueries({ queryKey: ['lab_results'] });
+      
+      setSelectedLabTest(null);
+      setResistance(null);
+    },
+    onError: (error) => {
+      console.error("Error submitting lab result:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to submit lab result",
+      });
+    }
+  });
+
+  const handleSelectLabTest = (lab: LabTest, resistanceStatus: "positive" | "negative") => {
+    setSelectedLabTest(lab);
+    setResistance(resistanceStatus);
+    
+    // Submit immediately without confirmation dialog
+    submitLabResult({
+      labId: lab.id,
+      result: resistanceStatus
+    });
+  };
 
   const handleLabResultSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -320,62 +493,165 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* Input Lab Results Tab */}
+          {/* Input Lab Results Tab - New Implementation Based on Lab Dashboard */}
           <TabsContent value="inputLabResults">
             <Card className="border-gray-100 shadow-sm">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
-                <CardTitle className="text-2xl font-normal text-gray-700">Input Lab Results</CardTitle>
+                <CardTitle className="text-xl font-medium text-left">Input Lab Results</CardTitle>
+                <CardDescription>
+                  Enter patient ID to view and update requested lab cultures
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-6">
-                <form onSubmit={handleLabResultSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="sampleId" className="text-base text-gray-700">Sample ID</Label>
-                    <Input
-                      id="sampleId"
-                      value={sampleId}
-                      onChange={(e) => setSampleId(e.target.value)}
-                      className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base"
-                      placeholder="Enter sample ID"
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleSearch)} className="space-y-4 mb-8">
+                    <FormField
+                      control={form.control}
+                      name="patientId"
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormControl>
+                            <div className="flex gap-3">
+                              <Input 
+                                {...field} 
+                                placeholder="Enter Patient ID" 
+                                className="h-16 text-xl"
+                              />
+                              <Button type="submit" className="h-16 px-6 text-xl">
+                                <Search className="h-5 w-5 mr-2" />
+                                Search
+                              </Button>
+                            </div>
+                          </FormControl>
+                        </FormItem>
+                      )}
                     />
-                  </div>
+                  </form>
+                </Form>
 
-                  <div className="space-y-3">
-                    <Label className="text-base text-gray-700">Result</Label>
-                    <RadioGroup 
-                      value={labResult} 
-                      onValueChange={setLabResult}
-                      className="flex space-x-4"
+                {patientData && (
+                  <div className="mt-6">
+                    <h3 className="text-xl font-medium mb-3 flex items-center gap-2">
+                      Lab Cultures for Patient {patientData.id}
+                    </h3>
+                    
+                    <div className="rounded-md border overflow-hidden">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Test Type</th>
+                            <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Requested On</th>
+                            <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" className="px-6 py-3 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {patientData.labs.length > 0 ? (
+                            patientData.labs.map((lab: LabTest) => (
+                              <tr key={lab.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{lab.type}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lab.requestedOn}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <Badge variant={lab.status === "completed" ? "default" : "secondary"} className="px-3 py-1">
+                                    {lab.status}
+                                  </Badge>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right">
+                                  {lab.status === "pending" ? (
+                                    <div className="flex justify-end gap-2">
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => handleSelectLabTest(lab, "negative")}
+                                        className="border-green-200 text-green-700 hover:bg-green-50"
+                                      >
+                                        Susceptible
+                                      </Button>
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={() => handleSelectLabTest(lab, "positive")}
+                                        className="border-amber-200 text-amber-700 hover:bg-amber-50"
+                                      >
+                                        Resistant
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-500">
+                                      {lab.resistanceResult === "positive" 
+                                        ? "Carbapenem Resistant"
+                                        : "Carbapenem Susceptible"}
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={4} className="text-center py-4 text-gray-500">
+                                No lab tests found for this patient
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Original Lab Input Form - Kept as a fallback option */}
+                <div className="mt-8 pt-8 border-t border-gray-200">
+                  <h3 className="text-xl font-medium mb-4">Alternative Input Method</h3>
+                  <form onSubmit={handleLabResultSubmit} className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="sampleId" className="text-base text-gray-700">Sample ID</Label>
+                      <Input
+                        id="sampleId"
+                        value={sampleId}
+                        onChange={(e) => setSampleId(e.target.value)}
+                        className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base"
+                        placeholder="Enter sample ID"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label className="text-base text-gray-700">Result</Label>
+                      <RadioGroup 
+                        value={labResult} 
+                        onValueChange={setLabResult}
+                        className="flex space-x-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="positive" id="positive" />
+                          <Label htmlFor="positive" className="font-normal text-base text-gray-600">Positive</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="negative" id="negative" />
+                          <Label htmlFor="negative" className="font-normal text-base text-gray-600">Negative</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="labTechName" className="text-base text-gray-700">Lab Technician Name</Label>
+                      <Input
+                        id="labTechName"
+                        value={labTechName}
+                        onChange={(e) => setLabTechName(e.target.value)}
+                        className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base"
+                        placeholder="Enter name"
+                      />
+                    </div>
+
+                    <Button 
+                      type="submit" 
+                      disabled={isSubmitting}
+                      className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
                     >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="positive" id="positive" />
-                        <Label htmlFor="positive" className="font-normal text-base text-gray-600">Positive</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="negative" id="negative" />
-                        <Label htmlFor="negative" className="font-normal text-base text-gray-600">Negative</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="labTechName" className="text-base text-gray-700">Lab Technician Name</Label>
-                    <Input
-                      id="labTechName"
-                      value={labTechName}
-                      onChange={(e) => setLabTechName(e.target.value)}
-                      className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base"
-                      placeholder="Enter name"
-                    />
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    disabled={isSubmitting}
-                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
-                  >
-                    {isSubmitting ? "Processing..." : "Submit Lab Result"}
-                  </Button>
-                </form>
+                      {isSubmitting ? "Processing..." : "Submit Lab Result"}
+                    </Button>
+                  </form>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
