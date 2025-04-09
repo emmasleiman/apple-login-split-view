@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, AlertTriangle, Users, FileText, LogOut, Search, Loader2 } from "lucide-react";
@@ -16,7 +15,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 
-// Define types based on your database schema
 type Patient = {
   id: string;
   patient_id: string;
@@ -87,7 +85,6 @@ const AdminDashboard = () => {
     }
   });
 
-  // Fetch patients data
   const {
     data: patients = [],
     isLoading: isLoadingPatients,
@@ -104,7 +101,6 @@ const AdminDashboard = () => {
     },
   });
 
-  // Fetch lab results
   const {
     data: labResults = [],
     isLoading: isLoadingLabResults,
@@ -121,17 +117,14 @@ const AdminDashboard = () => {
     },
   });
 
-  // Filter critical cases (positive results)
   const criticalCases = labResults.filter(result => result.result === "positive");
 
-  // Filter patients based on search input
   const filteredPatients = patientIdFilter
     ? patients.filter(patient => 
         patient.patient_id.toLowerCase().includes(patientIdFilter.toLowerCase())
       )
     : patients;
 
-  // Function to fetch patient lab results
   const fetchPatientLabResults = async (patientId: string) => {
     const { data, error } = await supabase
       .from('patient_lab_results')
@@ -142,7 +135,6 @@ const AdminDashboard = () => {
     return data || [];
   };
 
-  // Mutation for searching patient
   const { mutate: searchPatient } = useMutation({
     mutationFn: async (values: { patientId: string }) => {
       const patientId = values.patientId.trim();
@@ -156,14 +148,13 @@ const AdminDashboard = () => {
       if (data.length > 0) {
         setSelectedPatientId(form.getValues().patientId);
         
-        // Transform data into the expected structure
         const labTests = data.map(item => ({
           id: item.lab_result_id || '',
           type: item.sample_id ? item.sample_id.split('-')[0] : 'Unknown',
           requestedOn: item.collection_date ? new Date(item.collection_date).toISOString().split('T')[0] : '',
           status: item.result === null ? 'pending' : 'completed',
           resistanceResult: item.result
-        })).filter(lab => lab.id); // Filter out any null lab results
+        })).filter(lab => lab.id);
         
         setPatientData({
           id: form.getValues().patientId,
@@ -197,7 +188,6 @@ const AdminDashboard = () => {
     searchPatient(values);
   };
 
-  // Mutation for submitting lab result
   const { mutate: submitLabResult } = useMutation({
     mutationFn: async ({ labId, result }: { labId: string, result: string }) => {
       const { data, error } = await supabase
@@ -219,7 +209,6 @@ const AdminDashboard = () => {
         description: `Recorded ${resistance} result for sample`,
       });
       
-      // Update local state to reflect the change
       if (patientData) {
         const updatedLabs = patientData.labs.map((lab: LabTest) => 
           lab.id === selectedLabTest?.id 
@@ -233,7 +222,6 @@ const AdminDashboard = () => {
         });
       }
       
-      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['patientLabResults', selectedPatientId] });
       queryClient.invalidateQueries({ queryKey: ['lab_results'] });
       
@@ -254,7 +242,6 @@ const AdminDashboard = () => {
     setSelectedLabTest(lab);
     setResistance(resistanceStatus);
     
-    // Submit immediately without confirmation dialog
     submitLabResult({
       labId: lab.id,
       result: resistanceStatus
@@ -285,7 +272,6 @@ const AdminDashboard = () => {
     try {
       setIsSubmitting(true);
       
-      // First check if the sample ID exists
       const { data: sampleExists, error: sampleCheckError } = await supabase
         .from("lab_results")
         .select("id, sample_id")
@@ -304,7 +290,6 @@ const AdminDashboard = () => {
         return;
       }
       
-      // If sample exists, update it
       const { data, error } = await supabase
         .from("lab_results")
         .update({
@@ -440,7 +425,6 @@ const AdminDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Critical Cases Tab */}
           <TabsContent value="criticalCases">
             <Card className="border-gray-100 shadow-sm">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
@@ -493,7 +477,6 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* Input Lab Results Tab - New Implementation Based on Lab Dashboard */}
           <TabsContent value="inputLabResults">
             <Card className="border-gray-100 shadow-sm">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
@@ -598,65 +581,10 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                 )}
-
-                {/* Original Lab Input Form - Kept as a fallback option */}
-                <div className="mt-8 pt-8 border-t border-gray-200">
-                  <h3 className="text-xl font-medium mb-4">Alternative Input Method</h3>
-                  <form onSubmit={handleLabResultSubmit} className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="sampleId" className="text-base text-gray-700">Sample ID</Label>
-                      <Input
-                        id="sampleId"
-                        value={sampleId}
-                        onChange={(e) => setSampleId(e.target.value)}
-                        className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base"
-                        placeholder="Enter sample ID"
-                      />
-                    </div>
-
-                    <div className="space-y-3">
-                      <Label className="text-base text-gray-700">Result</Label>
-                      <RadioGroup 
-                        value={labResult} 
-                        onValueChange={setLabResult}
-                        className="flex space-x-4"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="positive" id="positive" />
-                          <Label htmlFor="positive" className="font-normal text-base text-gray-600">Positive</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="negative" id="negative" />
-                          <Label htmlFor="negative" className="font-normal text-base text-gray-600">Negative</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="labTechName" className="text-base text-gray-700">Lab Technician Name</Label>
-                      <Input
-                        id="labTechName"
-                        value={labTechName}
-                        onChange={(e) => setLabTechName(e.target.value)}
-                        className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base"
-                        placeholder="Enter name"
-                      />
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      disabled={isSubmitting}
-                      className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
-                    >
-                      {isSubmitting ? "Processing..." : "Submit Lab Result"}
-                    </Button>
-                  </form>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* All Patients Tab */}
           <TabsContent value="allPatients">
             <Card className="border-gray-100 shadow-sm">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
@@ -721,7 +649,6 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          {/* Discharge Patient Tab */}
           <TabsContent value="dischargePatient">
             <Card className="border-gray-100 shadow-sm">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
