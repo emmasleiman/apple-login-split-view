@@ -41,6 +41,8 @@ const AdminDashboard = () => {
   const [dischargePatientId, setDischargePatientId] = useState("");
   const [labResult, setLabResult] = useState("");
   const [labTechName, setLabTechName] = useState("");
+  const [sampleId, setSampleId] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch patients data
   const {
@@ -98,9 +100,7 @@ const AdminDashboard = () => {
       return;
     }
     
-    const sampleIdInput = (document.getElementById("sampleId") as HTMLInputElement).value;
-    
-    if (!sampleIdInput) {
+    if (!sampleId) {
       toast({
         title: "Error",
         description: "Please enter a sample ID",
@@ -110,6 +110,28 @@ const AdminDashboard = () => {
     }
     
     try {
+      setIsSubmitting(true);
+      
+      // First check if the sample ID exists
+      const { data: sampleExists, error: sampleCheckError } = await supabase
+        .from("lab_results")
+        .select("id, sample_id")
+        .eq("sample_id", sampleId)
+        .maybeSingle();
+      
+      if (sampleCheckError) throw sampleCheckError;
+      
+      if (!sampleExists) {
+        toast({
+          title: "Error",
+          description: "No sample found with the provided ID",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // If sample exists, update it
       const { data, error } = await supabase
         .from("lab_results")
         .update({
@@ -117,28 +139,20 @@ const AdminDashboard = () => {
           processed_by: labTechName,
           processed_date: new Date().toISOString(),
         })
-        .eq("sample_id", sampleIdInput)
-        .select() as { data: LabResult[] | null, error: any };
+        .eq("sample_id", sampleId)
+        .select();
       
       if (error) throw error;
       
-      if (data && data.length > 0) {
-        toast({
-          title: "Success",
-          description: `Lab result updated successfully for sample ${sampleIdInput}`,
-        });
-        
-        setLabResult("");
-        setLabTechName("");
-        (document.getElementById("sampleId") as HTMLInputElement).value = "";
-        refetchLabResults();
-      } else {
-        toast({
-          title: "Error",
-          description: "No sample found with the provided ID",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Success",
+        description: `Lab result updated successfully for sample ${sampleId}`,
+      });
+      
+      setSampleId("");
+      setLabResult("");
+      setLabTechName("");
+      refetchLabResults();
     } catch (error) {
       console.error("Error updating lab result:", error);
       toast({
@@ -146,6 +160,8 @@ const AdminDashboard = () => {
         description: "Failed to update lab result",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -316,6 +332,8 @@ const AdminDashboard = () => {
                     <Label htmlFor="sampleId" className="text-base text-gray-700">Sample ID</Label>
                     <Input
                       id="sampleId"
+                      value={sampleId}
+                      onChange={(e) => setSampleId(e.target.value)}
                       className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base"
                       placeholder="Enter sample ID"
                     />
@@ -352,9 +370,10 @@ const AdminDashboard = () => {
 
                   <Button 
                     type="submit" 
+                    disabled={isSubmitting}
                     className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
                   >
-                    Submit Lab Result
+                    {isSubmitting ? "Processing..." : "Submit Lab Result"}
                   </Button>
                 </form>
               </CardContent>
