@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,7 @@ type Patient = {
   status: string;
   registration_date: string;
   discharge_date: string | null;
+  qr_code_url: string | null;
 };
 
 const Dashboard = () => {
@@ -35,13 +37,20 @@ const Dashboard = () => {
 
   const { mutate: registerPatient } = useMutation({
     mutationFn: async ({ patientId, cultureRequired }: { patientId: string, cultureRequired: boolean }) => {
+      const qrData = JSON.stringify({
+        patientId: patientId,
+        cultureRequired: cultureRequired,
+        timestamp: new Date().toISOString(),
+      });
+      
       const { data: patientData, error: patientError } = await supabase
         .from('patients')
         .insert([
           {
             patient_id: patientId,
             culture_required: cultureRequired,
-            status: 'admitted'
+            status: 'admitted',
+            qr_code_url: qrData // Store the QR data as a string in the database
           }
         ])
         .select() as { data: Patient[] | null, error: any };

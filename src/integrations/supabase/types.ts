@@ -63,6 +63,7 @@ export type Database = {
           discharge_date: string | null
           id: string
           patient_id: string
+          qr_code_url: string | null
           registration_date: string
           status: string
         }
@@ -71,6 +72,7 @@ export type Database = {
           discharge_date?: string | null
           id?: string
           patient_id: string
+          qr_code_url?: string | null
           registration_date?: string
           status: string
         }
@@ -79,6 +81,7 @@ export type Database = {
           discharge_date?: string | null
           id?: string
           patient_id?: string
+          qr_code_url?: string | null
           registration_date?: string
           status?: string
         }

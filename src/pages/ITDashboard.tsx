@@ -3,9 +3,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
-import { LogOut, UserPlus, QrCode, Save } from "lucide-react";
+import { LogOut, UserPlus, QrCode, Save, Loader2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +14,8 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
   firstName: z.string().min(2, {
@@ -44,6 +46,11 @@ const ITDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("register");
+  const [qrScanner, setQrScanner] = useState<MediaStream | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannedPatientId, setScannedPatientId] = useState("");
+  const [patientInfo, setPatientInfo] = useState<any>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -74,6 +81,90 @@ const ITDashboard = () => {
       description: `${data.firstName} ${data.lastName} has been registered as a ${data.role.replace('_', ' ')}.`,
     });
     form.reset();
+  };
+
+  const { mutate: fetchPatientInfo, isLoading } = useMutation({
+    mutationFn: async (patientId: string) => {
+      setIsSearching(true);
+      const { data, error } = await supabase
+        .from("patients")
+        .select("*")
+        .eq("patient_id", patientId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data) {
+        setPatientInfo(data);
+        toast({
+          title: "Patient found",
+          description: `Patient ${data.patient_id} information retrieved.`,
+        });
+      } else {
+        setPatientInfo(null);
+        toast({
+          title: "Patient not found",
+          description: "No patient found with that ID.",
+          variant: "destructive",
+        });
+      }
+      setIsSearching(false);
+    },
+    onError: (error) => {
+      console.error("Error fetching patient:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch patient information.",
+        variant: "destructive",
+      });
+      setIsSearching(false);
+    }
+  });
+
+  const handleScanQR = async () => {
+    try {
+      if (!isScanning) {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        setQrScanner(stream);
+        setIsScanning(true);
+        
+        // This is a simplified implementation. In a real app, you'd use a library like
+        // jsQR or a React QR scanner component to detect QR codes from the video stream
+        toast({
+          title: "QR Scanner activated",
+          description: "Please scan a patient QR code.",
+        });
+      } else {
+        // Stop scanning
+        if (qrScanner) {
+          qrScanner.getTracks().forEach(track => track.stop());
+        }
+        setQrScanner(null);
+        setIsScanning(false);
+      }
+    } catch (error) {
+      console.error("Error accessing camera:", error);
+      toast({
+        title: "Camera Error",
+        description: "Failed to access camera. Please ensure you've granted camera permissions.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePatientSearch = () => {
+    if (!scannedPatientId.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a patient ID",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    fetchPatientInfo(scannedPatientId);
   };
 
   return (
@@ -276,9 +367,97 @@ const ITDashboard = () => {
           
           <TabsContent value="qrcode" className="p-6 bg-white rounded-lg shadow mt-6">
             <h2 className="text-xl font-medium mb-4">QR Code Scanner</h2>
-            <p className="text-gray-500">
-              This section will contain the QR code scanner functionality.
-            </p>
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col space-y-4">
+                  <div className="flex flex-col md:flex-row gap-4 items-center">
+                    <div className="flex-1 w-full">
+                      <Label htmlFor="patientId">Patient ID</Label>
+                      <div className="flex mt-2">
+                        <Input 
+                          id="patientId" 
+                          placeholder="Enter patient ID" 
+                          value={scannedPatientId}
+                          onChange={(e) => setScannedPatientId(e.target.value)}
+                          className="rounded-r-none"
+                        />
+                        <Button 
+                          type="button" 
+                          onClick={handlePatientSearch}
+                          disabled={isLoading || isSearching}
+                          className="rounded-l-none"
+                        >
+                          {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                    <Button 
+                      variant={isScanning ? "destructive" : "default"}
+                      className="mt-4 md:mt-0"
+                      onClick={handleScanQR}
+                    >
+                      <QrCode className="mr-2 h-4 w-4" />
+                      {isScanning ? "Stop Scanning" : "Scan QR Code"}
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isScanning && (
+                  <div className="aspect-video bg-black rounded-md overflow-hidden relative">
+                    <video autoPlay playsInline className="w-full h-full object-cover"></video>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="border-2 border-white w-64 h-64 rounded-lg opacity-70"></div>
+                    </div>
+                  </div>
+                )}
+
+                {patientInfo && (
+                  <div className="mt-6 bg-gray-50 p-6 rounded-lg border">
+                    <h3 className="text-lg font-medium mb-4">Patient Information</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Patient ID</p>
+                        <p className="font-medium">{patientInfo.patient_id}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Status</p>
+                        <p className="font-medium capitalize">{patientInfo.status}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Registration Date</p>
+                        <p className="font-medium">{new Date(patientInfo.registration_date).toLocaleDateString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Culture Required</p>
+                        <p className="font-medium">{patientInfo.culture_required ? "Yes" : "No"}</p>
+                      </div>
+                      {patientInfo.discharge_date && (
+                        <div>
+                          <p className="text-sm text-gray-500">Discharge Date</p>
+                          <p className="font-medium">{new Date(patientInfo.discharge_date).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                      {patientInfo.qr_code_url && (
+                        <div className="col-span-2">
+                          <p className="text-sm text-gray-500 mb-2">QR Code Data</p>
+                          <div className="bg-white p-3 rounded border overflow-x-auto">
+                            <code className="text-xs">{patientInfo.qr_code_url}</code>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {!isScanning && !patientInfo && (
+                  <div className="flex flex-col items-center justify-center py-8 text-center text-gray-500">
+                    <QrCode size={48} className="mb-2 opacity-50" />
+                    <p>Scan a QR code or enter a patient ID to view information</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
