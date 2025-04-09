@@ -83,7 +83,7 @@ const ITDashboard = () => {
     form.reset();
   };
 
-  const { mutate: fetchPatientInfo, isLoading } = useMutation({
+  const { mutate: fetchPatientInfo, isPending } = useMutation({
     mutationFn: async (patientId: string) => {
       setIsSearching(true);
       const { data, error } = await supabase
@@ -384,7 +384,7 @@ const ITDashboard = () => {
                         <Button 
                           type="button" 
                           onClick={handlePatientSearch}
-                          disabled={isLoading || isSearching}
+                          disabled={isPending || isSearching}
                           className="rounded-l-none"
                         >
                           {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
