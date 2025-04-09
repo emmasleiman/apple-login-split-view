@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const LoginForm = () => {
   const { toast } = useToast();
@@ -18,52 +19,69 @@ const LoginForm = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simple credential check for demo purposes
-    setTimeout(() => {
-      if (username === 'abc' && password === '123') {
-        toast({
-          title: "Success",
-          description: "You have successfully logged in as Data Encoder.",
-        });
-        navigate('/dashboard');
-      } else if (username === 'def' && password === '456') {
-        toast({
-          title: "Success",
-          description: "You have successfully logged in as Admin.",
-        });
-        navigate('/admin-dashboard');
-      } else if (username === 'ghi' && password === '789') {
-        toast({
-          title: "Success",
-          description: "You have successfully logged in as Lab Technician.",
-        });
-        navigate('/lab-dashboard');
-      } else if (username === 'jkl' && password === '101112') {
-        toast({
-          title: "Success",
-          description: "You have successfully logged in as IT Personnel.",
-        });
-        navigate('/it-dashboard');
-      } else {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('username', username)
+        .eq('password', password)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
         toast({
           variant: "destructive",
           title: "Error",
           description: "Invalid username or password.",
         });
+        setIsLoading(false);
+        return;
       }
-      setIsLoading(false);
-    }, 1000);
 
-    // ---------------------------------------------------------
-    // This is where backend authentication code should go.
-    // It should:
-    // 1. Send credentials to authentication API endpoint
-    // 2. Validate user exists and has appropriate role (admin or data encoder)
-    // 3. Check password hash against stored hash
-    // 4. Generate and return JWT token for authenticated user with role claim
-    // 5. Store token in localStorage or secure cookie
-    // 6. Implement proper error handling for invalid credentials
-    // ---------------------------------------------------------
+      // Store employee data in localStorage
+      localStorage.setItem('employeeData', JSON.stringify({
+        id: data.id,
+        firstName: data.first_name,
+        lastName: data.last_name,
+        role: data.role,
+        employeeId: data.employee_id
+      }));
+
+      toast({
+        title: "Success",
+        description: `You have successfully logged in as ${data.role.replace('_', ' ')}.`,
+      });
+
+      // Navigate based on role
+      switch (data.role) {
+        case 'admin':
+          navigate('/admin-dashboard');
+          break;
+        case 'data_encoder':
+          navigate('/dashboard');
+          break;
+        case 'lab_technician':
+          navigate('/lab-dashboard');
+          break;
+        case 'it_personnel': // For backward compatibility
+          navigate('/it-dashboard');
+          break;
+        default:
+          navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred while trying to log in.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

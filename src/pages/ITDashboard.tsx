@@ -74,13 +74,65 @@ const ITDashboard = () => {
     navigate("/");
   };
 
+  const { mutate: registerEmployee, isPending: isRegistering } = useMutation({
+    mutationFn: async (data: z.infer<typeof formSchema>) => {
+      // Check if username already exists
+      const { data: existingUsername } = await supabase
+        .from("employees")
+        .select("username")
+        .eq("username", data.username)
+        .maybeSingle();
+
+      if (existingUsername) {
+        throw new Error("Username already exists. Please choose another username.");
+      }
+
+      // Check if employee ID already exists
+      const { data: existingEmployeeId } = await supabase
+        .from("employees")
+        .select("employee_id")
+        .eq("employee_id", data.employeeId)
+        .maybeSingle();
+
+      if (existingEmployeeId) {
+        throw new Error("Employee ID already exists. Please use a different ID.");
+      }
+
+      // Insert new employee
+      const { data: newEmployee, error } = await supabase.from("employees").insert([
+        {
+          first_name: data.firstName,
+          last_name: data.lastName,
+          username: data.username,
+          password: data.password, // In production, you should hash this password
+          role: data.role,
+          gender: data.gender,
+          employee_id: data.employeeId,
+          contact_number: data.contactNumber || null,
+        },
+      ]);
+
+      if (error) throw error;
+      return newEmployee;
+    },
+    onSuccess: (_, variables) => {
+      toast({
+        title: "Employee registered successfully",
+        description: `${variables.firstName} ${variables.lastName} has been registered as a ${variables.role.replace('_', ' ')}.`,
+      });
+      form.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "Registration failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: z.infer<typeof formSchema>) => {
-    console.log(data);
-    toast({
-      title: "Employee registered",
-      description: `${data.firstName} ${data.lastName} has been registered as a ${data.role.replace('_', ' ')}.`,
-    });
-    form.reset();
+    registerEmployee(data);
   };
 
   const { mutate: fetchPatientInfo, isPending } = useMutation({
@@ -354,9 +406,22 @@ const ITDashboard = () => {
                     </div>
 
                     <div className="flex justify-end">
-                      <Button type="submit" className="gap-2">
-                        <Save size={18} />
-                        Register Employee
+                      <Button 
+                        type="submit" 
+                        className="gap-2"
+                        disabled={isRegistering}
+                      >
+                        {isRegistering ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            Registering...
+                          </>
+                        ) : (
+                          <>
+                            <Save size={18} />
+                            Register Employee
+                          </>
+                        )}
                       </Button>
                     </div>
                   </form>

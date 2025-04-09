@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      employees: {
+        Row: {
+          contact_number: string | null
+          created_at: string
+          employee_id: string
+          first_name: string
+          gender: string
+          id: string
+          last_name: string
+          password: string
+          role: Database["public"]["Enums"]["employee_role"]
+          username: string
+        }
+        Insert: {
+          contact_number?: string | null
+          created_at?: string
+          employee_id: string
+          first_name: string
+          gender: string
+          id?: string
+          last_name: string
+          password: string
+          role: Database["public"]["Enums"]["employee_role"]
+          username: string
+        }
+        Update: {
+          contact_number?: string | null
+          created_at?: string
+          employee_id?: string
+          first_name?: string
+          gender?: string
+          id?: string
+          last_name?: string
+          password?: string
+          role?: Database["public"]["Enums"]["employee_role"]
+          username?: string
+        }
+        Relationships: []
+      }
       lab_results: {
         Row: {
           collection_date: string
@@ -130,7 +169,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      employee_role: "admin" | "data_encoder" | "lab_technician"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -245,6 +284,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      employee_role: ["admin", "data_encoder", "lab_technician"],
+    },
   },
 } as const
