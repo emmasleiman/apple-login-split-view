@@ -17,6 +17,18 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation } from "@tanstack/react-query";
 
+// Define a type for our employee data to help with TypeScript
+type Employee = {
+  first_name: string;
+  last_name: string;
+  username: string;
+  password: string;
+  role: "admin" | "data_encoder" | "lab_technician";
+  gender: "male" | "female" | "other";
+  employee_id: string;
+  contact_number?: string;
+}
+
 const formSchema = z.object({
   firstName: z.string().min(2, {
     message: "First name must be at least 2 characters.",
@@ -78,7 +90,7 @@ const ITDashboard = () => {
     mutationFn: async (data: z.infer<typeof formSchema>) => {
       // Check if username already exists
       const { data: existingUsername } = await supabase
-        .from("employees")
+        .from('employees' as any)
         .select("username")
         .eq("username", data.username)
         .maybeSingle();
@@ -89,7 +101,7 @@ const ITDashboard = () => {
 
       // Check if employee ID already exists
       const { data: existingEmployeeId } = await supabase
-        .from("employees")
+        .from('employees' as any)
         .select("employee_id")
         .eq("employee_id", data.employeeId)
         .maybeSingle();
@@ -98,19 +110,22 @@ const ITDashboard = () => {
         throw new Error("Employee ID already exists. Please use a different ID.");
       }
 
+      // Prepare employee data
+      const employeeData: Employee = {
+        first_name: data.firstName,
+        last_name: data.lastName,
+        username: data.username,
+        password: data.password,
+        role: data.role,
+        gender: data.gender,
+        employee_id: data.employeeId,
+        contact_number: data.contactNumber || null,
+      };
+
       // Insert new employee
-      const { data: newEmployee, error } = await supabase.from("employees").insert([
-        {
-          first_name: data.firstName,
-          last_name: data.lastName,
-          username: data.username,
-          password: data.password, // In production, you should hash this password
-          role: data.role,
-          gender: data.gender,
-          employee_id: data.employeeId,
-          contact_number: data.contactNumber || null,
-        },
-      ]);
+      const { data: newEmployee, error } = await supabase
+        .from('employees' as any)
+        .insert([employeeData]);
 
       if (error) throw error;
       return newEmployee;

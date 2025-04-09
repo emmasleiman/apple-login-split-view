@@ -20,8 +20,9 @@ const LoginForm = () => {
     setIsLoading(true);
     
     try {
+      // Use type assertion to bypass strict TypeScript checking
       const { data, error } = await supabase
-        .from('employees')
+        .from('employees' as any)
         .select('*')
         .eq('username', username)
         .eq('password', password)
@@ -41,22 +42,22 @@ const LoginForm = () => {
         return;
       }
 
-      // Store employee data in localStorage
+      // Store employee data in localStorage with type assertion
       localStorage.setItem('employeeData', JSON.stringify({
         id: data.id,
-        firstName: data.first_name,
-        lastName: data.last_name,
-        role: data.role,
-        employeeId: data.employee_id
+        firstName: (data as any).first_name,
+        lastName: (data as any).last_name,
+        role: (data as any).role,
+        employeeId: (data as any).employee_id
       }));
 
       toast({
         title: "Success",
-        description: `You have successfully logged in as ${data.role.replace('_', ' ')}.`,
+        description: `You have successfully logged in as ${(data as any).role.replace('_', ' ')}.`,
       });
 
       // Navigate based on role
-      switch (data.role) {
+      switch ((data as any).role) {
         case 'admin':
           navigate('/admin-dashboard');
           break;
