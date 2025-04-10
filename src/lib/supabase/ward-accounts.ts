@@ -16,7 +16,7 @@ export type WardAccount = {
  */
 export async function createWardAccount(wardAccount: WardAccount): Promise<{ data: WardAccount | null; error: Error | null }> {
   try {
-    // Need to use 'rpc' to call a stored procedure or use 'rest' API since the table is not in the TypeScript definition
+    // Using a direct API call with type assertions since the ward_accounts table is not in the TypeScript definition
     const { data, error } = await supabase
       .from('ward_accounts')
       .insert([
@@ -49,10 +49,10 @@ export async function createWardAccount(wardAccount: WardAccount): Promise<{ dat
  */
 export async function getWardAccounts(): Promise<{ data: WardAccount[] | null; error: Error | null }> {
   try {
-    // Need to use type assertion since the table is not in the TypeScript definition
+    // Using a direct API call with type assertions since the ward_accounts table is not in the TypeScript definition
     const { data, error } = await supabase
       .from('ward_accounts')
-      .select('*');
+      .select('*') as { data: WardAccount[] | null; error: any };
 
     if (error) {
       return { data: null, error: new Error(error.message) };
