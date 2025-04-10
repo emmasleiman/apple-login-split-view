@@ -10,7 +10,7 @@ import { Scan, LogOut, Clock, CheckCircle2, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import QrScanner from 'react-qr-scanner';
 
-// Define the WardScanLog type to match our database schema
+// Define the WardScanLog type manually since it's not in the generated types
 type WardScanLog = {
   id: string;
   patient_id: string;
@@ -58,8 +58,9 @@ const WardDashboard = () => {
   // Fetch recent scans for this ward
   const fetchRecentScans = async (ward: string) => {
     try {
+      // Use type assertion to bypass TypeScript restrictions
       const { data, error } = await supabase
-        .from('ward_scan_logs')
+        .from('ward_scan_logs' as any)
         .select('*')
         .eq('ward', ward)
         .order('scanned_at', { ascending: false })
@@ -70,8 +71,9 @@ const WardDashboard = () => {
         return;
       }
       
-      setRecentScans(data as WardScanLog[]);
-      setScanCount(data.length);
+      // Cast the data to our WardScanLog type
+      setRecentScans(data as unknown as WardScanLog[]);
+      setScanCount(data ? data.length : 0);
     } catch (error) {
       console.error('Error fetching scan logs:', error);
     }
@@ -85,14 +87,14 @@ const WardDashboard = () => {
       try {
         const patientId = data.text;
         
-        // Insert scan log into database
+        // Insert scan log into database with type assertion
         const { error } = await supabase
-          .from('ward_scan_logs')
+          .from('ward_scan_logs' as any)
           .insert({
             patient_id: patientId,
             ward: wardName,
             scanned_by: wardUsername,
-          });
+          } as any);
         
         if (error) {
           console.error('Error logging scan:', error);
