@@ -7,7 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-// Define an Employee type to match our database schema
+// Define the Employee type to match our database schema
 type Employee = {
   id: string;
   first_name: string;
@@ -18,6 +18,15 @@ type Employee = {
   gender: string;
   employee_id: string;
   contact_number?: string | null;
+  created_at?: string;
+}
+
+// Define the WardAccount type
+type WardAccount = {
+  id: string;
+  ward: string;
+  username: string;
+  password: string;
   created_at?: string;
 }
 
@@ -45,62 +54,97 @@ const LoginForm = () => {
     }
     
     try {
-      // Use type assertion to bypass strict TypeScript checking
-      const { data, error } = await supabase
-        .from('employees' as any)
+      // First, check employee accounts
+      const { data: employeeData, error: employeeError } = await supabase
+        .from('employees')
         .select('*')
         .eq('username', username)
         .eq('password', password)
         .maybeSingle();
 
-      if (error) {
-        throw error;
+      if (employeeError) {
+        console.error('Employee login error:', employeeError);
       }
 
-      if (!data) {
+      if (employeeData) {
+        // Cast the data to our Employee type for safe access
+        const employee = employeeData as unknown as Employee;
+
+        // Store employee data in localStorage with proper typing
+        localStorage.setItem('employeeData', JSON.stringify({
+          id: employee.id,
+          firstName: employee.first_name,
+          lastName: employee.last_name,
+          role: employee.role,
+          employeeId: employee.employee_id
+        }));
+
         toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Invalid username or password.",
+          title: "Success",
+          description: `You have successfully logged in as ${employee.role.replace('_', ' ')}.`,
         });
+
+        // Navigate based on role
+        switch (employee.role) {
+          case 'admin':
+            navigate('/admin-dashboard');
+            break;
+          case 'data_encoder':
+            navigate('/dashboard');
+            break;
+          case 'lab_technician':
+            navigate('/lab-dashboard');
+            break;
+          case 'it_personnel': // For backward compatibility
+            navigate('/it-dashboard');
+            break;
+          default:
+            navigate('/dashboard');
+        }
         setIsLoading(false);
         return;
       }
 
-      // Cast the data to our Employee type for safe access
-      const employee = data as unknown as Employee;
+      // If not found in employees, check ward accounts
+      const { data: wardData, error: wardError } = await supabase
+        .from('ward_accounts')
+        .select('*')
+        .eq('username', username)
+        .eq('password', password)
+        .maybeSingle();
 
-      // Store employee data in localStorage with proper typing
-      localStorage.setItem('employeeData', JSON.stringify({
-        id: employee.id,
-        firstName: employee.first_name,
-        lastName: employee.last_name,
-        role: employee.role,
-        employeeId: employee.employee_id
-      }));
-
-      toast({
-        title: "Success",
-        description: `You have successfully logged in as ${employee.role.replace('_', ' ')}.`,
-      });
-
-      // Navigate based on role
-      switch (employee.role) {
-        case 'admin':
-          navigate('/admin-dashboard');
-          break;
-        case 'data_encoder':
-          navigate('/dashboard');
-          break;
-        case 'lab_technician':
-          navigate('/lab-dashboard');
-          break;
-        case 'it_personnel': // For backward compatibility
-          navigate('/it-dashboard');
-          break;
-        default:
-          navigate('/dashboard');
+      if (wardError) {
+        console.error('Ward account login error:', wardError);
       }
+
+      if (wardData) {
+        // Cast the data to our WardAccount type for safe access
+        const wardAccount = wardData as unknown as WardAccount;
+
+        // Store ward account data in localStorage
+        localStorage.setItem('wardData', JSON.stringify({
+          id: wardAccount.id,
+          ward: wardAccount.ward,
+          username: wardAccount.username
+        }));
+
+        toast({
+          title: "Success",
+          description: `You have successfully logged in to ward ${wardAccount.ward}.`,
+        });
+
+        // For ward accounts, navigate to the dashboard
+        navigate('/dashboard');
+        setIsLoading(false);
+        return;
+      }
+
+      // If we get here, no valid login was found
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Invalid username or password.",
+      });
     } catch (error) {
       console.error('Login error:', error);
       toast({
@@ -112,8 +156,6 @@ const LoginForm = () => {
       setIsLoading(false);
     }
   };
-
-  // We're removing the direct access button since we now have a hardcoded login
 
   return (
     <div className="w-full">
