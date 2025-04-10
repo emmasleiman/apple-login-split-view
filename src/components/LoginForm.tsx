@@ -33,6 +33,17 @@ const LoginForm = () => {
     e.preventDefault();
     setIsLoading(true);
     
+    // Special case for IT dashboard direct access
+    if (username === 'jlk' && password === '101112') {
+      toast({
+        title: "Success",
+        description: "Accessing IT Dashboard with special credentials.",
+      });
+      navigate('/it-dashboard');
+      setIsLoading(false);
+      return;
+    }
+    
     try {
       // Use type assertion to bypass strict TypeScript checking
       const { data, error } = await supabase
@@ -102,13 +113,7 @@ const LoginForm = () => {
     }
   };
 
-  const handleDirectAccess = () => {
-    toast({
-      title: "Direct Access",
-      description: "Accessing IT Dashboard directly (for initial setup only)."
-    });
-    navigate('/it-dashboard');
-  };
+  // We're removing the direct access button since we now have a hardcoded login
 
   return (
     <div className="w-full">
@@ -163,16 +168,6 @@ const LoginForm = () => {
           </a>
         </div>
       </form>
-      
-      <div className="mt-6 text-center">
-        <Button 
-          variant="outline" 
-          className="text-sm text-gray-500"
-          onClick={handleDirectAccess}
-        >
-          First-time setup: Access IT Dashboard directly
-        </Button>
-      </div>
       
       <div className="mt-14 text-center text-gray-400 text-lg">
         &copy; {new Date().getFullYear()} TraceMed. All rights reserved.
