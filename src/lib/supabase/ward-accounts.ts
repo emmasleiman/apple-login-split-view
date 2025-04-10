@@ -16,9 +16,9 @@ export type WardAccount = {
  */
 export async function createWardAccount(wardAccount: WardAccount): Promise<{ data: WardAccount | null; error: Error | null }> {
   try {
-    // Using a direct API call with type assertions since the ward_accounts table is not in the TypeScript definition
+    // Now the ward_accounts table exists in the database and has the proper RLS policies
     const { data, error } = await supabase
-      .from('ward_accounts' as any)
+      .from('ward_accounts')
       .insert([
         {
           ward: wardAccount.ward,
@@ -26,7 +26,7 @@ export async function createWardAccount(wardAccount: WardAccount): Promise<{ dat
           password: wardAccount.password,
         },
       ])
-      .select() as { data: WardAccount[] | null; error: any };
+      .select();
 
     if (error) {
       // Check if the error is a unique constraint violation
@@ -49,10 +49,10 @@ export async function createWardAccount(wardAccount: WardAccount): Promise<{ dat
  */
 export async function getWardAccounts(): Promise<{ data: WardAccount[] | null; error: Error | null }> {
   try {
-    // Using a direct API call with type assertions since the ward_accounts table is not in the TypeScript definition
+    // Now the ward_accounts table exists in the database
     const { data, error } = await supabase
-      .from('ward_accounts' as any)
-      .select('*') as { data: WardAccount[] | null; error: any };
+      .from('ward_accounts')
+      .select('*');
 
     if (error) {
       return { data: null, error: new Error(error.message) };
