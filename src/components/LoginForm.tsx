@@ -133,8 +133,8 @@ const LoginForm = () => {
           description: `You have successfully logged in to ward ${wardAccount.ward}.`,
         });
 
-        // For ward accounts, navigate to the dashboard
-        navigate('/dashboard');
+        // For ward accounts, navigate to the ward dashboard
+        navigate('/ward-dashboard');
         setIsLoading(false);
         return;
       }

@@ -168,6 +168,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ward_scan_logs: {
+        Row: {
+          id: string
+          patient_id: string
+          scanned_at: string
+          scanned_by: string
+          ward: string
+        }
+        Insert: {
+          id?: string
+          patient_id: string
+          scanned_at?: string
+          scanned_by: string
+          ward: string
+        }
+        Update: {
+          id?: string
+          patient_id?: string
+          scanned_at?: string
+          scanned_by?: string
+          ward?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       patient_lab_results: {
