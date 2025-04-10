@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +14,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { createWardAccount, getWardAccounts, type WardAccount } from "@/lib/supabase/ward-accounts";
 
 type Employee = {
   first_name: string;
@@ -74,12 +75,34 @@ const ITDashboard = () => {
   const [patientInfo, setPatientInfo] = useState<any>(null);
   const [isSearching, setIsSearching] = useState(false);
   
+  const { 
+    data: wardAccountsData, 
+    isLoading: isLoadingWardAccounts, 
+    refetch: refetchWardAccounts 
+  } = useQuery({
+    queryKey: ['wardAccounts'],
+    queryFn: async () => {
+      const { data, error } = await getWardAccounts();
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        return [];
+      }
+      return data || [];
+    },
+  });
+
   const [wardAccounts, setWardAccounts] = useState<WardAccount[]>([]);
-  const [isCreatingWardAccount, setIsCreatingWardAccount] = useState(false);
-  const [selectedWard, setSelectedWard] = useState("");
-  const [wardUsername, setWardUsername] = useState("");
-  const [wardPassword, setWardPassword] = useState("");
-  
+
+  useEffect(() => {
+    if (wardAccountsData) {
+      setWardAccounts(wardAccountsData);
+    }
+  }, [wardAccountsData]);
+
   const availableWards = [
     { id: "ward_a", label: "Ward A" },
     { id: "ward_b", label: "Ward B" },
@@ -117,29 +140,49 @@ const ITDashboard = () => {
     navigate("/");
   };
 
-  const handleCreateWardAccount = (data: z.infer<typeof wardAccountSchema>) => {
-    setIsCreatingWardAccount(true);
-    
-    setTimeout(() => {
-      const newAccount: WardAccount = {
+  const { mutate: submitWardAccount, isPending: isCreatingWardAccount } = useMutation({
+    mutationFn: async (data: z.infer<typeof wardAccountSchema>) => {
+      return await createWardAccount({
         ward: data.ward,
-        username: data.username,
+        username: data.username, 
         password: data.password,
-      };
-      
-      setWardAccounts([...wardAccounts, newAccount]);
+      });
+    },
+    onSuccess: (result) => {
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error.message,
+          variant: "destructive",
+        });
+        return;
+      }
       
       toast({
         title: "Ward Account Created",
-        description: `Account for ${availableWards.find(w => w.id === data.ward)?.label} has been created successfully.`,
+        description: `Account for ${availableWards.find(w => w.id === result.data?.ward)?.label} has been created successfully.`,
       });
       
+      setWardAccounts(prev => [...prev, result.data!]);
+      
       wardForm.reset();
-      setIsCreatingWardAccount(false);
-    }, 1000);
+
+      refetchWardAccounts();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error creating ward account",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleCreateWardAccount = (data: z.infer<typeof wardAccountSchema>) => {
+    submitWardAccount(data);
   };
 
-  const { mutate: registerEmployee, isPending: isRegistering } = useMutation({
+  const registerEmployee = useMutation({
     mutationFn: async (data: z.infer<typeof formSchema>) => {
       const { data: existingUsername } = await supabase
         .from('employees' as any)
@@ -676,7 +719,11 @@ const ITDashboard = () => {
                   </form>
                 </Form>
 
-                {wardAccounts.length > 0 && (
+                {isLoadingWardAccounts ? (
+                  <div className="mt-8 flex justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                  </div>
+                ) : wardAccounts.length > 0 ? (
                   <div className="mt-8">
                     <h3 className="text-lg font-medium mb-4">Assigned Ward Accounts</h3>
                     <div className="bg-gray-50 rounded-lg p-4 border">
@@ -699,7 +746,7 @@ const ITDashboard = () => {
                       </div>
                     </div>
                   </div>
-                )}
+                ) : null}
               </CardContent>
             </Card>
           </TabsContent>
