@@ -18,15 +18,15 @@ export async function createWardAccount(wardAccount: WardAccount): Promise<{ dat
   try {
     // Using a direct API call with type assertions since the ward_accounts table is not in the TypeScript definition
     const { data, error } = await supabase
-      .from('ward_accounts')
+      .from('ward_accounts' as any)
       .insert([
         {
           ward: wardAccount.ward,
           username: wardAccount.username,
           password: wardAccount.password,
         },
-      ] as any)
-      .select();
+      ])
+      .select() as { data: WardAccount[] | null; error: any };
 
     if (error) {
       // Check if the error is a unique constraint violation
@@ -51,7 +51,7 @@ export async function getWardAccounts(): Promise<{ data: WardAccount[] | null; e
   try {
     // Using a direct API call with type assertions since the ward_accounts table is not in the TypeScript definition
     const { data, error } = await supabase
-      .from('ward_accounts')
+      .from('ward_accounts' as any)
       .select('*') as { data: WardAccount[] | null; error: any };
 
     if (error) {

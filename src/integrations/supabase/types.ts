@@ -144,6 +144,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ward_accounts: {
+        Row: {
+          created_at: string | null
+          id: string
+          password: string
+          username: string
+          ward: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          password: string
+          username: string
+          ward: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          password?: string
+          username?: string
+          ward?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       patient_lab_results: {
