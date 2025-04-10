@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
+import PatientScanLogs from "@/components/PatientScanLogs";
 
 type Patient = {
   id: string;
@@ -63,6 +64,14 @@ type PatientData = {
   labs: LabTest[];
 };
 
+type WardScanLog = {
+  id: string;
+  patient_id: string;
+  ward: string;
+  scanned_at: string;
+  scanned_by: string;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -78,6 +87,10 @@ const AdminDashboard = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [selectedLabTest, setSelectedLabTest] = useState<LabTest | null>(null);
   const [resistance, setResistance] = useState<"positive" | "negative" | null>(null);
+  const [isPatientLogsOpen, setIsPatientLogsOpen] = useState(false);
+  const [selectedPatientForLogs, setSelectedPatientForLogs] = useState<string | null>(null);
+  const [patientScanLogs, setPatientScanLogs] = useState<WardScanLog[]>([]);
+  const [isLoadingPatientLogs, setIsLoadingPatientLogs] = useState(false);
 
   const form = useForm({
     defaultValues: {
@@ -133,6 +146,42 @@ const AdminDashboard = () => {
     
     if (error) throw error;
     return data || [];
+  };
+
+  const fetchPatientScanLogs = async (patientId: string) => {
+    setIsLoadingPatientLogs(true);
+    try {
+      const { data, error } = await supabase
+        .from('ward_scan_logs' as any)
+        .select('*')
+        .eq('patient_id', patientId)
+        .order('scanned_at', { ascending: false }) as { data: WardScanLog[] | null, error: any };
+      
+      if (error) {
+        console.error('Error fetching patient scan logs:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load patient scan logs",
+        });
+        return [];
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching patient scan logs:', error);
+      return [];
+    } finally {
+      setIsLoadingPatientLogs(false);
+    }
+  };
+
+  const handleViewPatientLogs = async (patientId: string) => {
+    setSelectedPatientForLogs(patientId);
+    setIsPatientLogsOpen(true);
+    
+    const logs = await fetchPatientScanLogs(patientId);
+    setPatientScanLogs(logs);
   };
 
   const { mutate: searchPatient } = useMutation({
@@ -615,6 +664,7 @@ const AdminDashboard = () => {
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration Date</th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discharge Date</th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Culture Required</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -634,6 +684,16 @@ const AdminDashboard = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {patient.culture_required ? 'Yes' : 'No'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleViewPatientLogs(patient.patient_id)}
+                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                              >
+                                View Logs
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -679,6 +739,14 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+      
+      <PatientScanLogs 
+        open={isPatientLogsOpen}
+        onOpenChange={setIsPatientLogsOpen}
+        patientId={selectedPatientForLogs}
+        scanLogs={patientScanLogs}
+        isLoading={isLoadingPatientLogs}
+      />
     </div>
   );
 };
