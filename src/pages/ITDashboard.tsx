@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
-import { LogOut, UserPlus, QrCode, Save, Loader2, Search } from "lucide-react";
+import { LogOut, UserPlus, QrCode, Save, Loader2, Search, Building2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,7 +16,6 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation } from "@tanstack/react-query";
 
-// Define a type for our employee data to help with TypeScript
 type Employee = {
   first_name: string;
   last_name: string;
@@ -27,6 +25,12 @@ type Employee = {
   gender: "male" | "female" | "other";
   employee_id: string;
   contact_number?: string;
+}
+
+type WardAccount = {
+  ward: string;
+  username: string;
+  password: string;
 }
 
 const formSchema = z.object({
@@ -54,6 +58,12 @@ const formSchema = z.object({
   }),
 });
 
+const wardAccountSchema = z.object({
+  ward: z.string().min(1, "Please select a ward"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 const ITDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -63,6 +73,18 @@ const ITDashboard = () => {
   const [scannedPatientId, setScannedPatientId] = useState("");
   const [patientInfo, setPatientInfo] = useState<any>(null);
   const [isSearching, setIsSearching] = useState(false);
+  
+  const [wardAccounts, setWardAccounts] = useState<WardAccount[]>([]);
+  const [isCreatingWardAccount, setIsCreatingWardAccount] = useState(false);
+  const [selectedWard, setSelectedWard] = useState("");
+  const [wardUsername, setWardUsername] = useState("");
+  const [wardPassword, setWardPassword] = useState("");
+  
+  const availableWards = [
+    { id: "ward_a", label: "Ward A" },
+    { id: "ward_b", label: "Ward B" },
+    { id: "ward_c", label: "Ward C" },
+  ];
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -78,6 +100,15 @@ const ITDashboard = () => {
     },
   });
 
+  const wardForm = useForm<z.infer<typeof wardAccountSchema>>({
+    resolver: zodResolver(wardAccountSchema),
+    defaultValues: {
+      ward: "",
+      username: "",
+      password: "",
+    },
+  });
+
   const handleLogout = () => {
     toast({
       title: "Logged out",
@@ -86,9 +117,30 @@ const ITDashboard = () => {
     navigate("/");
   };
 
+  const handleCreateWardAccount = (data: z.infer<typeof wardAccountSchema>) => {
+    setIsCreatingWardAccount(true);
+    
+    setTimeout(() => {
+      const newAccount: WardAccount = {
+        ward: data.ward,
+        username: data.username,
+        password: data.password,
+      };
+      
+      setWardAccounts([...wardAccounts, newAccount]);
+      
+      toast({
+        title: "Ward Account Created",
+        description: `Account for ${availableWards.find(w => w.id === data.ward)?.label} has been created successfully.`,
+      });
+      
+      wardForm.reset();
+      setIsCreatingWardAccount(false);
+    }, 1000);
+  };
+
   const { mutate: registerEmployee, isPending: isRegistering } = useMutation({
     mutationFn: async (data: z.infer<typeof formSchema>) => {
-      // Check if username already exists
       const { data: existingUsername } = await supabase
         .from('employees' as any)
         .select("username")
@@ -99,7 +151,6 @@ const ITDashboard = () => {
         throw new Error("Username already exists. Please choose another username.");
       }
 
-      // Check if employee ID already exists
       const { data: existingEmployeeId } = await supabase
         .from('employees' as any)
         .select("employee_id")
@@ -110,7 +161,6 @@ const ITDashboard = () => {
         throw new Error("Employee ID already exists. Please use a different ID.");
       }
 
-      // Prepare employee data
       const employeeData: Employee = {
         first_name: data.firstName,
         last_name: data.lastName,
@@ -122,7 +172,6 @@ const ITDashboard = () => {
         contact_number: data.contactNumber || null,
       };
 
-      // Insert new employee
       const { data: newEmployee, error } = await supabase
         .from('employees' as any)
         .insert([employeeData]);
@@ -197,14 +246,11 @@ const ITDashboard = () => {
         setQrScanner(stream);
         setIsScanning(true);
         
-        // This is a simplified implementation. In a real app, you'd use a library like
-        // jsQR or a React QR scanner component to detect QR codes from the video stream
         toast({
           title: "QR Scanner activated",
           description: "Please scan a patient QR code.",
         });
       } else {
-        // Stop scanning
         if (qrScanner) {
           qrScanner.getTracks().forEach(track => track.stop());
         }
@@ -260,7 +306,7 @@ const ITDashboard = () => {
           onValueChange={setActiveTab} 
           className="w-full max-w-5xl mx-auto"
         >
-          <TabsList className="grid grid-cols-2 w-full">
+          <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger value="register" className="flex items-center gap-2">
               <UserPlus size={18} />
               <span>Employee Registration</span>
@@ -268,6 +314,10 @@ const ITDashboard = () => {
             <TabsTrigger value="qrcode" className="flex items-center gap-2">
               <QrCode size={18} />
               <span>QR Code Scanner</span>
+            </TabsTrigger>
+            <TabsTrigger value="ward" className="flex items-center gap-2">
+              <Building2 size={18} />
+              <span>Assign Ward Account</span>
             </TabsTrigger>
           </TabsList>
           
@@ -534,6 +584,120 @@ const ITDashboard = () => {
                   <div className="flex flex-col items-center justify-center py-8 text-center text-gray-500">
                     <QrCode size={48} className="mb-2 opacity-50" />
                     <p>Scan a QR code or enter a patient ID to view information</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="ward" className="p-6 bg-white rounded-lg shadow mt-6">
+            <h2 className="text-xl font-medium mb-4">Assign Ward Account</h2>
+            <Card>
+              <CardContent className="pt-6">
+                <Form {...wardForm}>
+                  <form onSubmit={wardForm.handleSubmit(handleCreateWardAccount)} className="space-y-6">
+                    <FormField
+                      control={wardForm.control}
+                      name="ward"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Select Ward</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a ward" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {availableWards.map((ward) => (
+                                <SelectItem
+                                  key={ward.id}
+                                  value={ward.id}
+                                  disabled={wardAccounts.some(acc => acc.ward === ward.id)}
+                                >
+                                  {ward.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={wardForm.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Username</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter username" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={wardForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Enter password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button
+                      type="submit"
+                      className="w-full sm:w-auto gap-2"
+                      disabled={isCreatingWardAccount}
+                    >
+                      {isCreatingWardAccount ? (
+                        <>
+                          <Loader2 size={18} className="animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Check size={18} />
+                          Create Account
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </Form>
+
+                {wardAccounts.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-lg font-medium mb-4">Assigned Ward Accounts</h3>
+                    <div className="bg-gray-50 rounded-lg p-4 border">
+                      <div className="grid grid-cols-3 font-medium text-sm text-gray-500 mb-2">
+                        <div>Ward</div>
+                        <div>Username</div>
+                        <div>Status</div>
+                      </div>
+                      <div className="space-y-2">
+                        {wardAccounts.map((account, index) => (
+                          <div key={index} className="grid grid-cols-3 py-2 border-t">
+                            <div>{availableWards.find(w => w.id === account.ward)?.label}</div>
+                            <div>{account.username}</div>
+                            <div className="flex items-center text-green-600">
+                              <Check size={16} className="mr-1" />
+                              Active
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>
