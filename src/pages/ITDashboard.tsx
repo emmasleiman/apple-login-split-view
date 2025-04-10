@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +16,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createWardAccount, getWardAccounts, type WardAccount } from "@/lib/supabase/ward-accounts";
+import { createWardAccount, getWardAccounts, WardAccount as WardAccountType } from "@/lib/supabase/ward-accounts";
 
 type Employee = {
   first_name: string;
@@ -26,12 +27,6 @@ type Employee = {
   gender: "male" | "female" | "other";
   employee_id: string;
   contact_number?: string;
-}
-
-type WardAccount = {
-  ward: string;
-  username: string;
-  password: string;
 }
 
 const formSchema = z.object({
@@ -95,7 +90,7 @@ const ITDashboard = () => {
     },
   });
 
-  const [wardAccounts, setWardAccounts] = useState<WardAccount[]>([]);
+  const [wardAccounts, setWardAccounts] = useState<WardAccountType[]>([]);
 
   useEffect(() => {
     if (wardAccountsData) {
@@ -239,7 +234,7 @@ const ITDashboard = () => {
   });
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
-    registerEmployee(data);
+    registerEmployee.mutate(data);
   };
 
   const { mutate: fetchPatientInfo, isPending } = useMutation({
@@ -517,9 +512,9 @@ const ITDashboard = () => {
                       <Button 
                         type="submit" 
                         className="gap-2"
-                        disabled={isRegistering}
+                        disabled={registerEmployee.isPending}
                       >
-                        {isRegistering ? (
+                        {registerEmployee.isPending ? (
                           <>
                             <Loader2 size={18} className="animate-spin" />
                             Registering...
