@@ -120,13 +120,14 @@ const WardDashboard = () => {
         });
         
         // Insert the scan log with the patient_id from the QR code
-        const { error } = await supabase
+        const { data: insertData, error } = await supabase
           .from('ward_scan_logs')
           .insert({
             patient_id: patientId,
             ward: wardName,
             scanned_by: wardUsername,
-          }) as { error: any };
+          })
+          .select() as { data: WardScanLog[] | null, error: any };
         
         if (error) {
           console.error('Error logging scan:', error);
@@ -137,6 +138,8 @@ const WardDashboard = () => {
           });
           return;
         }
+        
+        console.log('Scan log inserted:', insertData);
         
         toast({
           title: "Scan Successful",

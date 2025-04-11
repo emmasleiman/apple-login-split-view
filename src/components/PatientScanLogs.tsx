@@ -59,6 +59,9 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
     }
   }, [open, patientId, scanLogs]);
 
+  // Filter logs for the current patient ID for extra safety
+  const patientLogs = scanLogs.filter(log => log.patient_id === patientId);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-md md:max-w-lg">
@@ -79,7 +82,7 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
             <div className="flex justify-center py-10">
               <div className="animate-pulse text-gray-500">Loading scan logs...</div>
             </div>
-          ) : scanLogs.length > 0 ? (
+          ) : patientLogs.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -89,7 +92,7 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {scanLogs.map((log) => (
+                {patientLogs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
