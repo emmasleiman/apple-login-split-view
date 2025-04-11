@@ -170,6 +170,29 @@ const AdminDashboard = () => {
       }
       
       console.log('Patient scan logs fetched:', data);
+      
+      if (data && data.length === 0) {
+        console.log('No logs found with exact match, checking for alternative matches...');
+        
+        const { data: allLogs } = await supabase
+          .from('ward_scan_logs')
+          .select('*') as { data: WardScanLog[] | null, error: any };
+          
+        if (allLogs && allLogs.length > 0) {
+          console.log('All scan logs in system:', allLogs);
+          console.log('Patient IDs in system:', allLogs.map(log => log.patient_id));
+          
+          const possibleMatches = allLogs.filter(log => 
+            log.patient_id.toLowerCase().trim() === patientId.toLowerCase().trim()
+          );
+          
+          if (possibleMatches.length > 0) {
+            console.log('Found possible matches with different casing/format:', possibleMatches);
+            return possibleMatches;
+          }
+        }
+      }
+      
       return data || [];
     } catch (error) {
       console.error('Error fetching patient scan logs:', error);

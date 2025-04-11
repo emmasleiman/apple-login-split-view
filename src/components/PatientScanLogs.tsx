@@ -49,18 +49,22 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
       console.log("PatientScanLogs opened for patient:", patientId);
       console.log("Current scan logs:", scanLogs);
       
-      // Add debug information about the patient ID type and if it matches any logs
-      if (patientId && scanLogs.length > 0) {
-        const matchingLogs = scanLogs.filter(log => log.patient_id === patientId);
-        console.log(`Patient ID type: ${typeof patientId}, value: "${patientId}"`);
-        console.log(`First log patient_id type: ${typeof scanLogs[0].patient_id}, value: "${scanLogs[0].patient_id}"`);
-        console.log(`Exact matches found: ${matchingLogs.length}`);
+      // Log exact content of each log to check patient_id values
+      if (scanLogs.length > 0) {
+        console.log("Scan logs details:");
+        scanLogs.forEach((log, index) => {
+          console.log(`Log #${index + 1}:`, {
+            id: log.id,
+            patient_id: log.patient_id,
+            patient_id_type: typeof log.patient_id,
+            ward: log.ward,
+            scanned_at: log.scanned_at,
+            scanned_by: log.scanned_by
+          });
+        });
       }
     }
   }, [open, patientId, scanLogs]);
-
-  // Filter logs for the current patient ID for extra safety
-  const patientLogs = scanLogs.filter(log => log.patient_id === patientId);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -82,7 +86,7 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
             <div className="flex justify-center py-10">
               <div className="animate-pulse text-gray-500">Loading scan logs...</div>
             </div>
-          ) : patientLogs.length > 0 ? (
+          ) : scanLogs.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -92,7 +96,7 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {patientLogs.map((log) => (
+                {scanLogs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">

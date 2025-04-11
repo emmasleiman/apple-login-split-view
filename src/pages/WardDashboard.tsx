@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -81,11 +80,9 @@ const WardDashboard = () => {
       setIsScanning(false);
       
       try {
-        // The scanned QR code text should be the patient ID
         const patientId = data.text.trim();
         console.log("Scanning patient ID:", patientId);
         
-        // Verify this patient ID exists in the database
         const { data: patientExists, error: patientCheckError } = await supabase
           .from('patients')
           .select('id, patient_id')
@@ -113,13 +110,8 @@ const WardDashboard = () => {
         }
         
         console.log('Patient verified:', patientExists);
-        console.log('Inserting scan log:', {
-          patient_id: patientId, // Use the exact patient_id from the QR code
-          ward: wardName,
-          scanned_by: wardUsername
-        });
+        console.log('Inserting scan log with exact patient_id:', patientId);
         
-        // Insert the scan log with the patient_id from the QR code
         const { data: insertData, error } = await supabase
           .from('ward_scan_logs')
           .insert({
