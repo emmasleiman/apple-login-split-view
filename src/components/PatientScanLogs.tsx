@@ -48,6 +48,14 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
     if (open) {
       console.log("PatientScanLogs opened for patient:", patientId);
       console.log("Current scan logs:", scanLogs);
+      
+      // Add debug information about the patient ID type and if it matches any logs
+      if (patientId && scanLogs.length > 0) {
+        const matchingLogs = scanLogs.filter(log => log.patient_id === patientId);
+        console.log(`Patient ID type: ${typeof patientId}, value: "${patientId}"`);
+        console.log(`First log patient_id type: ${typeof scanLogs[0].patient_id}, value: "${scanLogs[0].patient_id}"`);
+        console.log(`Exact matches found: ${matchingLogs.length}`);
+      }
     }
   }, [open, patientId, scanLogs]);
 

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -80,29 +81,45 @@ const WardDashboard = () => {
       setIsScanning(false);
       
       try {
-        const patientId = data.text;
+        // The scanned QR code text should be the patient ID
+        const patientId = data.text.trim();
         console.log("Scanning patient ID:", patientId);
         
+        // Verify this patient ID exists in the database
         const { data: patientExists, error: patientCheckError } = await supabase
           .from('patients')
-          .select('id')
+          .select('id, patient_id')
           .eq('patient_id', patientId)
           .maybeSingle() as { data: any, error: any };
         
         if (patientCheckError) {
           console.error('Error checking patient:', patientCheckError);
+          toast({
+            variant: "destructive",
+            title: "Database Error",
+            description: "Failed to verify patient record. Please try again.",
+          });
+          return;
         }
         
         if (!patientExists) {
-          console.warn('Patient not found:', patientId);
+          console.warn('Patient not found in database:', patientId);
+          toast({
+            variant: "destructive",
+            title: "Unknown Patient",
+            description: `No record found for patient ID: ${patientId}`,
+          });
+          return;
         }
         
+        console.log('Patient verified:', patientExists);
         console.log('Inserting scan log:', {
-          patient_id: patientId,
+          patient_id: patientId, // Use the exact patient_id from the QR code
           ward: wardName,
           scanned_by: wardUsername
         });
         
+        // Insert the scan log with the patient_id from the QR code
         const { error } = await supabase
           .from('ward_scan_logs')
           .insert({
