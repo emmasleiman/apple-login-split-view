@@ -20,8 +20,9 @@ export default {
 		},
 		extend: {
 			fontFamily: {
+				'helvetica': ['Helvetica', 'Arial', 'sans-serif'],
 				'sfpro': ['"SF Pro Display"', 'Inter', 'Helvetica', 'system-ui', 'sans-serif'],
-				'sans': ['Inter', 'system-ui', 'sans-serif']
+				'sans': ['Helvetica', 'Arial', 'system-ui', 'sans-serif']
 			},
 			fontSize: {
 				'base': '1.05rem',
