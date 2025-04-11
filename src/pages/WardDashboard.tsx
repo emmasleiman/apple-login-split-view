@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +27,8 @@ const WardDashboard = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [recentScans, setRecentScans] = useState<WardScanLog[]>([]);
   const [scanCount, setScanCount] = useState(0);
+  const scanCooldownRef = useRef(false);
+  const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Helper function to extract patient ID from JSON if needed
   const extractPatientId = (qrData: string): string => {
@@ -60,6 +62,13 @@ const WardDashboard = () => {
       console.error('Error parsing ward data:', error);
       navigate('/');
     }
+
+    // Clean up any lingering timeout when component unmounts
+    return () => {
+      if (scanTimeoutRef.current) {
+        clearTimeout(scanTimeoutRef.current);
+      }
+    };
   }, [navigate, toast]);
   
   const fetchRecentScans = async (ward: string) => {
@@ -87,82 +96,96 @@ const WardDashboard = () => {
   };
   
   const handleScan = async (data: { text: string } | null) => {
-    if (data && data.text) {
-      setIsScanning(false);
+    // If there's no data, or the scanner is in cooldown period, ignore this scan
+    if (!data || !data.text || scanCooldownRef.current) {
+      return;
+    }
+    
+    // Set cooldown flag to prevent multiple scans
+    scanCooldownRef.current = true;
+    console.log('QR scan detected:', data.text);
+    
+    // Stop scanning to prevent background processing
+    setIsScanning(false);
+    
+    try {
+      // Get the raw QR code text
+      const qrData = data.text.trim();
+      const patientId = extractPatientId(qrData);
       
-      try {
-        // Get the raw QR code text
-        const qrData = data.text.trim();
-        const patientId = extractPatientId(qrData);
-        
-        console.log("Raw QR data:", qrData);
-        console.log("Extracted patient ID:", patientId);
-        
-        const { data: patientExists, error: patientCheckError } = await supabase
-          .from('patients')
-          .select('id, patient_id')
-          .eq('patient_id', patientId)
-          .maybeSingle() as { data: any, error: any };
-        
-        if (patientCheckError) {
-          console.error('Error checking patient:', patientCheckError);
-          toast({
-            variant: "destructive",
-            title: "Database Error",
-            description: "Failed to verify patient record. Please try again.",
-          });
-          return;
-        }
-        
-        if (!patientExists) {
-          console.warn('Patient not found in database:', patientId);
-          toast({
-            variant: "destructive",
-            title: "Unknown Patient",
-            description: `No record found for patient ID: ${patientId}`,
-          });
-          return;
-        }
-        
-        console.log('Patient verified:', patientExists);
-        
-        // Store the original QR data as is - this is important for compatibility
-        const { data: insertData, error } = await supabase
-          .from('ward_scan_logs')
-          .insert({
-            patient_id: qrData, // Store the original QR data
-            ward: wardName,
-            scanned_by: wardUsername,
-          })
-          .select() as { data: WardScanLog[] | null, error: any };
-        
-        if (error) {
-          console.error('Error logging scan:', error);
-          toast({
-            variant: "destructive",
-            title: "Scan Failed",
-            description: "Failed to log patient scan. Please try again.",
-          });
-          return;
-        }
-        
-        console.log('Scan log inserted:', insertData);
-        
+      console.log("Raw QR data:", qrData);
+      console.log("Extracted patient ID:", patientId);
+      
+      const { data: patientExists, error: patientCheckError } = await supabase
+        .from('patients')
+        .select('id, patient_id')
+        .eq('patient_id', patientId)
+        .maybeSingle() as { data: any, error: any };
+      
+      if (patientCheckError) {
+        console.error('Error checking patient:', patientCheckError);
         toast({
-          title: "Scan Successful",
-          description: `Patient ID ${patientId} scanned successfully.`,
+          variant: "destructive",
+          title: "Database Error",
+          description: "Failed to verify patient record. Please try again.",
         });
-        
-        fetchRecentScans(wardName);
-        setIsScannerOpen(false);
-      } catch (error) {
-        console.error('Error processing scan:', error);
+        return;
+      }
+      
+      if (!patientExists) {
+        console.warn('Patient not found in database:', patientId);
+        toast({
+          variant: "destructive",
+          title: "Unknown Patient",
+          description: `No record found for patient ID: ${patientId}`,
+        });
+        return;
+      }
+      
+      console.log('Patient verified:', patientExists);
+      
+      // Store the original QR data as is - this is important for compatibility
+      const { data: insertData, error } = await supabase
+        .from('ward_scan_logs')
+        .insert({
+          patient_id: qrData, // Store the original QR data
+          ward: wardName,
+          scanned_by: wardUsername,
+        })
+        .select() as { data: WardScanLog[] | null, error: any };
+      
+      if (error) {
+        console.error('Error logging scan:', error);
         toast({
           variant: "destructive",
           title: "Scan Failed",
-          description: "Failed to process QR code. Please try again.",
+          description: "Failed to log patient scan. Please try again.",
         });
+        return;
       }
+      
+      console.log('Scan log inserted:', insertData);
+      
+      toast({
+        title: "Scan Successful",
+        description: `Patient ID ${patientId} scanned successfully.`,
+      });
+      
+      fetchRecentScans(wardName);
+      setIsScannerOpen(false);
+    } catch (error) {
+      console.error('Error processing scan:', error);
+      toast({
+        variant: "destructive",
+        title: "Scan Failed",
+        description: "Failed to process QR code. Please try again.",
+      });
+    } finally {
+      // Set a timeout to reset the cooldown after 3 seconds
+      scanTimeoutRef.current = setTimeout(() => {
+        scanCooldownRef.current = false;
+        console.log('Scanner cooldown reset, ready for next scan');
+      }, 3000);
     }
   };
   
@@ -173,6 +196,16 @@ const WardDashboard = () => {
       title: "Scanner Error",
       description: "An error occurred with the QR scanner. Please try again.",
     });
+  };
+  
+  // Reset the scan cooldown when the scanner is closed
+  const handleScannerClose = () => {
+    setIsScannerOpen(false);
+    scanCooldownRef.current = false;
+    if (scanTimeoutRef.current) {
+      clearTimeout(scanTimeoutRef.current);
+      scanTimeoutRef.current = null;
+    }
   };
   
   const handleLogout = () => {
@@ -227,7 +260,7 @@ const WardDashboard = () => {
                         <CheckCircle2 className="h-5 w-5 text-green-600" />
                       </div>
                       <div className="flex-grow">
-                        <h4 className="font-medium">Patient ID: {scan.patient_id}</h4>
+                        <h4 className="font-medium">Patient ID: {extractPatientId(scan.patient_id)}</h4>
                         <div className="flex items-center text-sm text-gray-500">
                           <Clock className="h-3.5 w-3.5 mr-1" />
                           {formatDateTime(scan.scanned_at)}
@@ -278,7 +311,7 @@ const WardDashboard = () => {
                     {isScannerOpen && (
                       <div className="w-full max-w-md mx-auto">
                         <QrScanner
-                          delay={300}
+                          delay={500} // Increased delay to reduce rapid scans
                           onError={handleError}
                           onScan={handleScan}
                           style={{ width: '100%' }}
@@ -290,7 +323,7 @@ const WardDashboard = () => {
                         <div className="text-center mt-4">
                           <Button 
                             variant="outline" 
-                            onClick={() => setIsScannerOpen(false)}
+                            onClick={handleScannerClose} // Use our new handler
                             className="mt-4"
                           >
                             Cancel
