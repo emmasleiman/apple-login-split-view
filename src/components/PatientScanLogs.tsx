@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { 
   Sheet,
@@ -37,6 +37,16 @@ interface PatientScanLogsProps {
   isLoading: boolean;
 }
 
+// Function to extract patient ID from JSON string or return original if not JSON
+const extractPatientId = (patientIdStr: string): string => {
+  try {
+    const parsed = JSON.parse(patientIdStr);
+    return parsed.patientId || patientIdStr;
+  } catch (e) {
+    return patientIdStr;
+  }
+};
+
 const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
   open,
   onOpenChange,
@@ -44,8 +54,11 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
   scanLogs,
   isLoading
 }) => {
+  // Filter logs for the current patient ID by comparing with the extracted patient ID
+  const [filteredLogs, setFilteredLogs] = useState<WardScanLog[]>([]);
+
   useEffect(() => {
-    if (open) {
+    if (open && patientId) {
       console.log("PatientScanLogs opened for patient:", patientId);
       console.log("Current scan logs:", scanLogs);
       
@@ -63,6 +76,16 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
           });
         });
       }
+
+      // Filter logs by extracted patient ID
+      const filtered = scanLogs.filter(log => {
+        const extractedId = extractPatientId(log.patient_id);
+        console.log(`Comparing: extracted "${extractedId}" with provided "${patientId}"`);
+        return extractedId === patientId;
+      });
+      
+      console.log("Filtered logs:", filtered);
+      setFilteredLogs(filtered);
     }
   }, [open, patientId, scanLogs]);
 
@@ -86,7 +109,7 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
             <div className="flex justify-center py-10">
               <div className="animate-pulse text-gray-500">Loading scan logs...</div>
             </div>
-          ) : scanLogs.length > 0 ? (
+          ) : filteredLogs.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -96,7 +119,7 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {scanLogs.map((log) => (
+                {filteredLogs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">

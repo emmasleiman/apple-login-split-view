@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,16 @@ const WardDashboard = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [recentScans, setRecentScans] = useState<WardScanLog[]>([]);
   const [scanCount, setScanCount] = useState(0);
+  
+  // Helper function to extract patient ID from JSON if needed
+  const extractPatientId = (qrData: string): string => {
+    try {
+      const parsed = JSON.parse(qrData);
+      return parsed.patientId || qrData;
+    } catch (e) {
+      return qrData;
+    }
+  };
   
   useEffect(() => {
     const wardDataStr = localStorage.getItem('wardData');
@@ -80,8 +91,12 @@ const WardDashboard = () => {
       setIsScanning(false);
       
       try {
-        const patientId = data.text.trim();
-        console.log("Scanning patient ID:", patientId);
+        // Get the raw QR code text
+        const qrData = data.text.trim();
+        const patientId = extractPatientId(qrData);
+        
+        console.log("Raw QR data:", qrData);
+        console.log("Extracted patient ID:", patientId);
         
         const { data: patientExists, error: patientCheckError } = await supabase
           .from('patients')
@@ -110,12 +125,12 @@ const WardDashboard = () => {
         }
         
         console.log('Patient verified:', patientExists);
-        console.log('Inserting scan log with exact patient_id:', patientId);
         
+        // Store the original QR data as is - this is important for compatibility
         const { data: insertData, error } = await supabase
           .from('ward_scan_logs')
           .insert({
-            patient_id: patientId,
+            patient_id: qrData, // Store the original QR data
             ward: wardName,
             scanned_by: wardUsername,
           })

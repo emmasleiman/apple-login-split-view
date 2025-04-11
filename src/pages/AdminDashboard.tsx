@@ -148,57 +148,50 @@ const AdminDashboard = () => {
     return data || [];
   };
 
+  const extractPatientId = (patientIdStr: string): string => {
+    try {
+      const parsed = JSON.parse(patientIdStr);
+      return parsed.patientId || patientIdStr;
+    } catch (e) {
+      return patientIdStr;
+    }
+  };
+
   const fetchPatientScanLogs = async (patientId: string) => {
-    setIsLoadingPatientLogs(true);
     try {
       console.log('Fetching logs for patient ID:', patientId);
       
       const { data, error } = await supabase
         .from('ward_scan_logs')
-        .select('*')
-        .eq('patient_id', patientId)
-        .order('scanned_at', { ascending: false }) as { data: WardScanLog[] | null, error: any };
+        .select('*') as { data: WardScanLog[] | null, error: any };
       
       if (error) {
         console.error('Error fetching patient scan logs:', error);
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "Failed to load patient scan logs",
+          title: "Failed to Load",
+          description: "Could not load patient scan logs.",
         });
         return [];
       }
       
-      console.log('Patient scan logs fetched:', data);
-      
-      if (data && data.length === 0) {
-        console.log('No logs found with exact match, checking for alternative matches...');
-        
-        const { data: allLogs } = await supabase
-          .from('ward_scan_logs')
-          .select('*') as { data: WardScanLog[] | null, error: any };
-          
-        if (allLogs && allLogs.length > 0) {
-          console.log('All scan logs in system:', allLogs);
-          console.log('Patient IDs in system:', allLogs.map(log => log.patient_id));
-          
-          const possibleMatches = allLogs.filter(log => 
-            log.patient_id.toLowerCase().trim() === patientId.toLowerCase().trim()
-          );
-          
-          if (possibleMatches.length > 0) {
-            console.log('Found possible matches with different casing/format:', possibleMatches);
-            return possibleMatches;
-          }
-        }
+      if (!data || data.length === 0) {
+        console.log('No scan logs found');
+        return [];
       }
       
-      return data || [];
+      const filteredLogs = data.filter(log => {
+        const extractedId = extractPatientId(log.patient_id);
+        return extractedId === patientId;
+      });
+      
+      console.log('Patient scan logs fetched:', data);
+      console.log('Filtered logs for patient:', filteredLogs);
+      
+      return filteredLogs;
     } catch (error) {
       console.error('Error fetching patient scan logs:', error);
       return [];
-    } finally {
-      setIsLoadingPatientLogs(false);
     }
   };
 
