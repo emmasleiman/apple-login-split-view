@@ -69,8 +69,8 @@ type WardScanLog = {
   patient_id: string;
   ward: string;
   scanned_at: string;
-  scanned_by: string;
-}
+  scanned_by: string
+};
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -151,6 +151,8 @@ const AdminDashboard = () => {
   const fetchPatientScanLogs = async (patientId: string) => {
     setIsLoadingPatientLogs(true);
     try {
+      console.log('Fetching logs for patient ID:', patientId);
+      
       const { data, error } = await supabase
         .from('ward_scan_logs')
         .select('*')
@@ -178,6 +180,7 @@ const AdminDashboard = () => {
   };
 
   const handleViewPatientLogs = async (patientId: string) => {
+    console.log('View logs requested for patient ID:', patientId);
     setSelectedPatientForLogs(patientId);
     
     const logs = await fetchPatientScanLogs(patientId);

@@ -53,19 +53,22 @@ const WardDashboard = () => {
   
   const fetchRecentScans = async (ward: string) => {
     try {
+      console.log('Fetching recent scans for ward:', ward);
+      
       const { data, error } = await supabase
         .from('ward_scan_logs')
         .select('*')
         .eq('ward', ward)
         .order('scanned_at', { ascending: false })
-        .limit(10);
+        .limit(10) as { data: WardScanLog[] | null, error: any };
       
       if (error) {
         console.error('Error fetching scan logs:', error);
         return;
       }
       
-      setRecentScans(data as unknown as WardScanLog[]);
+      console.log('Scans fetched:', data);
+      setRecentScans(data || []);
       setScanCount(data ? data.length : 0);
     } catch (error) {
       console.error('Error fetching scan logs:', error);
@@ -80,13 +83,33 @@ const WardDashboard = () => {
         const patientId = data.text;
         console.log("Scanning patient ID:", patientId);
         
+        const { data: patientExists, error: patientCheckError } = await supabase
+          .from('patients')
+          .select('id')
+          .eq('patient_id', patientId)
+          .maybeSingle() as { data: any, error: any };
+        
+        if (patientCheckError) {
+          console.error('Error checking patient:', patientCheckError);
+        }
+        
+        if (!patientExists) {
+          console.warn('Patient not found:', patientId);
+        }
+        
+        console.log('Inserting scan log:', {
+          patient_id: patientId,
+          ward: wardName,
+          scanned_by: wardUsername
+        });
+        
         const { error } = await supabase
           .from('ward_scan_logs')
           .insert({
             patient_id: patientId,
             ward: wardName,
             scanned_by: wardUsername,
-          }) as unknown as { error: any };
+          }) as { error: any };
         
         if (error) {
           console.error('Error logging scan:', error);

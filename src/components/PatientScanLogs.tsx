@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { format } from "date-fns";
 import { 
   Sheet,
@@ -44,6 +44,13 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
   scanLogs,
   isLoading
 }) => {
+  useEffect(() => {
+    if (open) {
+      console.log("PatientScanLogs opened for patient:", patientId);
+      console.log("Current scan logs:", scanLogs);
+    }
+  }, [open, patientId, scanLogs]);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-md md:max-w-lg">
