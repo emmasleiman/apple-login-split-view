@@ -19,7 +19,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, User, X } from "lucide-react";
+import { MapPin, Clock, User, X, AlertCircle } from "lucide-react";
 
 type WardScanLog = {
   id: string;
@@ -100,6 +100,7 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
             </Table>
           ) : (
             <div className="text-center py-10 border rounded-md bg-gray-50">
+              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-500">No scan logs found for this patient.</p>
               <p className="text-sm text-gray-400 mt-2">Logs will appear when the patient's QR code is scanned at a ward.</p>
             </div>

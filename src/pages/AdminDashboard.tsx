@@ -152,7 +152,7 @@ const AdminDashboard = () => {
     setIsLoadingPatientLogs(true);
     try {
       const { data, error } = await supabase
-        .from('ward_scan_logs' as any)
+        .from('ward_scan_logs')
         .select('*')
         .eq('patient_id', patientId)
         .order('scanned_at', { ascending: false }) as { data: WardScanLog[] | null, error: any };
@@ -167,6 +167,7 @@ const AdminDashboard = () => {
         return [];
       }
       
+      console.log('Patient scan logs fetched:', data);
       return data || [];
     } catch (error) {
       console.error('Error fetching patient scan logs:', error);
@@ -178,10 +179,12 @@ const AdminDashboard = () => {
 
   const handleViewPatientLogs = async (patientId: string) => {
     setSelectedPatientForLogs(patientId);
-    setIsPatientLogsOpen(true);
     
     const logs = await fetchPatientScanLogs(patientId);
+    console.log('Setting patient scan logs:', logs);
     setPatientScanLogs(logs);
+    
+    setIsPatientLogsOpen(true);
   };
 
   const { mutate: searchPatient } = useMutation({

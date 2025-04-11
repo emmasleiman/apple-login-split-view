@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,6 @@ import { Scan, LogOut, Clock, CheckCircle2, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import QrScanner from 'react-qr-scanner';
 
-// Define the WardScanLog type manually since it's not in the generated types
 type WardScanLog = {
   id: string;
   patient_id: string;
@@ -30,7 +28,6 @@ const WardDashboard = () => {
   const [scanCount, setScanCount] = useState(0);
   
   useEffect(() => {
-    // Check if user is logged in as a ward account
     const wardDataStr = localStorage.getItem('wardData');
     if (!wardDataStr) {
       toast({
@@ -47,7 +44,6 @@ const WardDashboard = () => {
       setWardName(wardData.ward);
       setWardUsername(wardData.username);
       
-      // Fetch recent scans for this ward
       fetchRecentScans(wardData.ward);
     } catch (error) {
       console.error('Error parsing ward data:', error);
@@ -55,12 +51,10 @@ const WardDashboard = () => {
     }
   }, [navigate, toast]);
   
-  // Fetch recent scans for this ward
   const fetchRecentScans = async (ward: string) => {
     try {
-      // Use type assertion to bypass TypeScript restrictions
       const { data, error } = await supabase
-        .from('ward_scan_logs' as any)
+        .from('ward_scan_logs')
         .select('*')
         .eq('ward', ward)
         .order('scanned_at', { ascending: false })
@@ -71,7 +65,6 @@ const WardDashboard = () => {
         return;
       }
       
-      // Cast the data to our WardScanLog type
       setRecentScans(data as unknown as WardScanLog[]);
       setScanCount(data ? data.length : 0);
     } catch (error) {
@@ -79,22 +72,21 @@ const WardDashboard = () => {
     }
   };
   
-  // Handle QR scan result
   const handleScan = async (data: { text: string } | null) => {
     if (data && data.text) {
       setIsScanning(false);
       
       try {
         const patientId = data.text;
+        console.log("Scanning patient ID:", patientId);
         
-        // Insert scan log into database with type assertion
         const { error } = await supabase
-          .from('ward_scan_logs' as any)
+          .from('ward_scan_logs')
           .insert({
             patient_id: patientId,
             ward: wardName,
             scanned_by: wardUsername,
-          } as any);
+          }) as unknown as { error: any };
         
         if (error) {
           console.error('Error logging scan:', error);
@@ -106,13 +98,11 @@ const WardDashboard = () => {
           return;
         }
         
-        // Success
         toast({
           title: "Scan Successful",
           description: `Patient ID ${patientId} scanned successfully.`,
         });
         
-        // Refresh scan list
         fetchRecentScans(wardName);
         setIsScannerOpen(false);
       } catch (error) {
@@ -126,7 +116,6 @@ const WardDashboard = () => {
     }
   };
   
-  // Handle QR scan error
   const handleError = (err: any) => {
     console.error('QR Scan error:', err);
     toast({
@@ -136,7 +125,6 @@ const WardDashboard = () => {
     });
   };
   
-  // Handle logout
   const handleLogout = () => {
     localStorage.removeItem('wardData');
     navigate('/');
