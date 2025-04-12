@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -35,10 +34,11 @@ import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle, LogOut, Search, User, UserCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle, User, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import LogoutButton from "@/components/LogoutButton";
 
 type PatientLabResult = {
   patient_uuid: string;
@@ -85,7 +85,6 @@ const LabDashboard = () => {
     }
   });
 
-  // Function to handle logout
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -104,7 +103,6 @@ const LabDashboard = () => {
     }
   };
 
-  // Query for fetching a patient's lab results
   const fetchPatientLabResults = async (patientId: string) => {
     const { data, error } = await supabase
       .from('patient_lab_results')
@@ -128,14 +126,13 @@ const LabDashboard = () => {
       if (data.length > 0) {
         setSelectedPatientId(form.getValues().patientId);
         
-        // Transform data into the expected structure
         const labTests = data.map(item => ({
           id: item.lab_result_id || '',
           type: item.sample_id ? item.sample_id.split('-')[0] : 'Unknown',
           requestedOn: item.collection_date ? new Date(item.collection_date).toISOString().split('T')[0] : '',
           status: item.result === null ? 'pending' : 'completed',
           resistanceResult: item.result
-        })).filter(lab => lab.id); // Filter out any null lab results
+        })).filter(lab => lab.id);
         
         setPatientData({
           id: form.getValues().patientId,
@@ -190,7 +187,6 @@ const LabDashboard = () => {
         description: `Recorded ${resistance} result for ${selectedLabTest?.type}`,
       });
       
-      // Update local state to reflect the change
       if (patientData) {
         const updatedLabs = patientData.labs.map((lab: LabTest) => 
           lab.id === selectedLabTest?.id 
@@ -204,7 +200,6 @@ const LabDashboard = () => {
         });
       }
       
-      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['patientLabResults', selectedPatientId] });
       
       setConfirmDialogOpen(false);
@@ -248,14 +243,7 @@ const LabDashboard = () => {
             <User className="h-5 w-5 text-gray-500" />
             <span className="text-lg font-medium">Lab Technician</span>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={handleLogout} 
-            className="flex items-center gap-2 bg-white"
-          >
-            <LogOut className="h-5 w-5" />
-            <span>Logout</span>
-          </Button>
+          <LogoutButton />
         </div>
       </header>
 

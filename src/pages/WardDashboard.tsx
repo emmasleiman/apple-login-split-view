@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,9 +5,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Scan, LogOut, Clock, CheckCircle2, History } from "lucide-react";
+import { Scan, Clock, CheckCircle2, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import QrScanner from 'react-qr-scanner';
+import LogoutButton from "@/components/LogoutButton";
 
 type WardScanLog = {
   id: string;
@@ -30,7 +30,6 @@ const WardDashboard = () => {
   const scanCooldownRef = useRef(false);
   const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  // Helper function to extract patient ID from JSON if needed
   const extractPatientId = (qrData: string): string => {
     try {
       const parsed = JSON.parse(qrData);
@@ -63,7 +62,6 @@ const WardDashboard = () => {
       navigate('/');
     }
 
-    // Clean up any lingering timeout when component unmounts
     return () => {
       if (scanTimeoutRef.current) {
         clearTimeout(scanTimeoutRef.current);
@@ -96,20 +94,16 @@ const WardDashboard = () => {
   };
   
   const handleScan = async (data: { text: string } | null) => {
-    // If there's no data, or the scanner is in cooldown period, ignore this scan
     if (!data || !data.text || scanCooldownRef.current) {
       return;
     }
     
-    // Set cooldown flag to prevent multiple scans
     scanCooldownRef.current = true;
     console.log('QR scan detected:', data.text);
     
-    // Stop scanning to prevent background processing
     setIsScanning(false);
     
     try {
-      // Get the raw QR code text
       const qrData = data.text.trim();
       const patientId = extractPatientId(qrData);
       
@@ -144,11 +138,10 @@ const WardDashboard = () => {
       
       console.log('Patient verified:', patientExists);
       
-      // Store the original QR data as is - this is important for compatibility
       const { data: insertData, error } = await supabase
         .from('ward_scan_logs')
         .insert({
-          patient_id: qrData, // Store the original QR data
+          patient_id: qrData,
           ward: wardName,
           scanned_by: wardUsername,
         })
@@ -181,7 +174,6 @@ const WardDashboard = () => {
         description: "Failed to process QR code. Please try again.",
       });
     } finally {
-      // Set a timeout to reset the cooldown after 3 seconds
       scanTimeoutRef.current = setTimeout(() => {
         scanCooldownRef.current = false;
         console.log('Scanner cooldown reset, ready for next scan');
@@ -198,7 +190,6 @@ const WardDashboard = () => {
     });
   };
   
-  // Reset the scan cooldown when the scanner is closed
   const handleScannerClose = () => {
     setIsScannerOpen(false);
     scanCooldownRef.current = false;
@@ -235,14 +226,7 @@ const WardDashboard = () => {
             </p>
           </div>
           
-          <Button 
-            variant="outline" 
-            onClick={handleLogout} 
-            className="flex items-center gap-2"
-          >
-            <LogOut size={16} />
-            Logout
-          </Button>
+          <LogoutButton />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -311,7 +295,7 @@ const WardDashboard = () => {
                     {isScannerOpen && (
                       <div className="w-full max-w-md mx-auto">
                         <QrScanner
-                          delay={500} // Increased delay to reduce rapid scans
+                          delay={500}
                           onError={handleError}
                           onScan={handleScan}
                           style={{ width: '100%' }}
@@ -323,7 +307,7 @@ const WardDashboard = () => {
                         <div className="text-center mt-4">
                           <Button 
                             variant="outline" 
-                            onClick={handleScannerClose} // Use our new handler
+                            onClick={handleScannerClose}
                             className="mt-4"
                           >
                             Cancel

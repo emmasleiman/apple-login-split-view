@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
-import { LogOut, UserPlus, QrCode, Save, Loader2, Search, Building2, Check } from "lucide-react";
+import { UserPlus, QrCode, Save, Loader2, Search, Building2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import LogoutButton from "@/components/LogoutButton";
 import { createWardAccount, getWardAccounts, WardAccount as WardAccountType } from "@/lib/supabase/ward-accounts";
 
 type Employee = {
@@ -326,14 +326,7 @@ const ITDashboard = () => {
             <h1 className="text-2xl font-light tracking-tight text-gray-900">TraceMed</h1>
             <p className="text-gray-500">IT Dashboard</p>
           </div>
-          <Button 
-            variant="outline" 
-            className="gap-2" 
-            onClick={handleLogout}
-          >
-            <LogOut size={16} />
-            Logout
-          </Button>
+          <LogoutButton />
         </div>
       </header>
 
