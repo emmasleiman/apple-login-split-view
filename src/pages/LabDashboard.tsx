@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Card, 
@@ -34,7 +35,7 @@ import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle, User, UserCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle, User, UserCheck, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
