@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
 import { supabase } from "@/integrations/supabase/client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import LogoutButton from "@/components/LogoutButton";
 import DashboardHeader from "@/components/DashboardHeader";
 
@@ -30,9 +31,67 @@ const Dashboard = () => {
   const [cultureRequired, setCultureRequired] = useState<"yes" | "no">("no");
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [dischargePatientId, setDischargePatientId] = useState("");
+  const [patientExists, setPatientExists] = useState(false);
+  const [existingPatientData, setExistingPatientData] = useState<Patient | null>(null);
+
+  // Query to check if a patient exists when patientId changes
+  const { refetch: checkPatientExists } = useQuery({
+    queryKey: ["checkPatient", patientId],
+    queryFn: async () => {
+      if (!patientId) return null;
+      
+      const { data, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('patient_id', patientId)
+        .eq('status', 'admitted')
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
+        console.error("Error checking patient:", error);
+        throw error;
+      }
+      
+      if (data) {
+        setPatientExists(true);
+        setExistingPatientData(data);
+        if (data.qr_code_url) {
+          setQrCodeData(data.qr_code_url);
+        }
+        return data;
+      } else {
+        setPatientExists(false);
+        setExistingPatientData(null);
+        setQrCodeData(null);
+        return null;
+      }
+    },
+    enabled: false, // We'll trigger this manually when needed
+  });
+
+  // Effect to check if patient exists when ID changes
+  useEffect(() => {
+    if (patientId.trim()) {
+      // We use a slight delay to avoid too many requests while typing
+      const timer = setTimeout(() => {
+        checkPatientExists();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setPatientExists(false);
+      setExistingPatientData(null);
+      setQrCodeData(null);
+    }
+  }, [patientId, checkPatientExists]);
 
   const { mutate: registerPatient } = useMutation({
     mutationFn: async ({ patientId, cultureRequired }: { patientId: string, cultureRequired: boolean }) => {
+      // Don't proceed if the patient already exists
+      if (patientExists) {
+        return existingPatientData;
+      }
+      
       const qrData = JSON.stringify({
         patientId: patientId,
         cultureRequired: cultureRequired,
@@ -70,6 +129,15 @@ const Dashboard = () => {
       return patientData ? patientData[0] : null;
     },
     onSuccess: (data) => {
+      // If the patient already exists, show a different message
+      if (patientExists) {
+        toast({
+          title: "Patient Already Registered",
+          description: `Patient ${patientId} is already in the system. QR code has been loaded.`,
+        });
+        return;
+      }
+      
       const qrData = JSON.stringify({
         patientId: patientId,
         cultureRequired: cultureRequired === "yes",
@@ -130,6 +198,16 @@ const Dashboard = () => {
         title: "Error",
         description: "Please enter a patient ID",
         variant: "destructive",
+      });
+      return;
+    }
+
+    // If patient exists, we just set the QR code from existing data
+    if (patientExists && existingPatientData?.qr_code_url) {
+      setQrCodeData(existingPatientData.qr_code_url);
+      toast({
+        title: "Patient Already Registered",
+        description: `Patient ${patientId} is already in the system. QR code has been loaded.`,
       });
       return;
     }
@@ -211,6 +289,11 @@ const Dashboard = () => {
             <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
                 <CardTitle className="text-2xl font-normal text-gray-700">Register New Patient</CardTitle>
+                {patientExists && (
+                  <div className="text-amber-600 text-sm font-medium mt-1 flex items-center gap-1">
+                    Patient ID already exists in the system
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="pt-6">
                 <form onSubmit={handleRegisterSubmit} className="space-y-6">
@@ -220,7 +303,7 @@ const Dashboard = () => {
                       id="patientId"
                       value={patientId}
                       onChange={(e) => setPatientId(e.target.value)}
-                      className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base"
+                      className={`h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base ${patientExists ? 'border-amber-300' : ''}`}
                       placeholder="e.g. P12345"
                     />
                   </div>
@@ -247,7 +330,7 @@ const Dashboard = () => {
                     type="submit" 
                     className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
                   >
-                    Register Patient
+                    {patientExists ? "Load Existing QR Code" : "Register Patient"}
                   </Button>
                 </form>
 
