@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, AlertTriangle, Users, FileText, LogOut, Search, Loader2 } from "lucide-react";
+import { AlertTriangle, Users, FileText, Search, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import PatientScanLogs from "@/components/PatientScanLogs";
+import DashboardHeader from "@/components/DashboardHeader";
 
 type Patient = {
   id: string;
@@ -447,16 +448,8 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50/40">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleLogout}
-        className="absolute top-4 left-4 text-gray-500 hover:text-gray-700"
-        aria-label="Logout"
-      >
-        <ArrowLeft className="h-6 w-6" />
-      </Button>
+    <div className="flex flex-col min-h-screen bg-gray-50/40">
+      <DashboardHeader title="TraceMed" role="Administrator" />
 
       <div className="w-full max-w-6xl mx-auto px-4 py-10">
         <div className="flex flex-col gap-2 mb-10 text-center">
