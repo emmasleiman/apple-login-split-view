@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation } from "@tanstack/react-query";
+import LogoutButton from "@/components/LogoutButton";
+import DashboardHeader from "@/components/DashboardHeader";
 
 type Patient = {
   id: string;
@@ -31,10 +31,6 @@ const Dashboard = () => {
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [dischargePatientId, setDischargePatientId] = useState("");
 
-  const handleLogout = () => {
-    navigate("/");
-  };
-
   const { mutate: registerPatient } = useMutation({
     mutationFn: async ({ patientId, cultureRequired }: { patientId: string, cultureRequired: boolean }) => {
       const qrData = JSON.stringify({
@@ -50,7 +46,7 @@ const Dashboard = () => {
             patient_id: patientId,
             culture_required: cultureRequired,
             status: 'admitted',
-            qr_code_url: qrData // Store the QR data as a string in the database
+            qr_code_url: qrData
           }
         ])
         .select() as { data: Patient[] | null, error: any };
@@ -192,17 +188,9 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50/40">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleLogout}
-        className="absolute top-4 left-4 text-gray-500 hover:text-gray-700"
-        aria-label="Logout"
-      >
-        <ArrowLeft className="h-6 w-6" />
-      </Button>
-
+    <div className="flex flex-col min-h-screen bg-gray-50/40">
+      <DashboardHeader title="TraceMed" role="Data Encoder" />
+      
       <div className="w-full max-w-4xl mx-auto px-4 py-10">
         <div className="flex flex-col gap-2 mb-10 text-center">
           <h1 className="text-3xl font-light tracking-tight text-gray-800">Data Encoder Dashboard</h1>
