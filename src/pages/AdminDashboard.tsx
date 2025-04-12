@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Users, FileText, Search, Loader2 } from "lucide-react";
@@ -809,4 +810,39 @@ const AdminDashboard = () => {
                       id="dischargePatientId"
                       value={dischargePatientId}
                       onChange={(e) => setDischargePatientId(e.target.value)}
-                      className="h-12 border-gray-200 bg-gray-50/30 focus
+                      className="h-12 border-gray-200 bg-gray-50/30 focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      "Discharge Patient"
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      <PatientScanLogs
+        open={isPatientLogsOpen}
+        onOpenChange={setIsPatientLogsOpen}
+        patientId={selectedPatientForLogs}
+        scanLogs={patientScanLogs}
+        isLoading={isLoadingPatientLogs}
+      />
+    </div>
+  );
+};
+
+export default AdminDashboard;
