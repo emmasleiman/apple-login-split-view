@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Users, FileText, Search, Loader2 } from "lucide-react";
+import { AlertTriangle, Users, FileText, Search, Loader2, Clock } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import PatientScanLogs from "@/components/PatientScanLogs";
 import DashboardHeader from "@/components/DashboardHeader";
+import { Separator } from "@/components/ui/separator";
 
 type Patient = {
   id: string;
@@ -74,7 +74,6 @@ type WardScanLog = {
   scanned_by: string
 };
 
-// Enhanced type for critical cases that includes location information
 type CriticalCaseWithLocation = LabResult & { 
   patients: Pick<Patient, 'patient_id'>;
   lastLocation?: string | null;
@@ -100,7 +99,6 @@ const AdminDashboard = () => {
   const [selectedPatientForLogs, setSelectedPatientForLogs] = useState<string | null>(null);
   const [patientScanLogs, setPatientScanLogs] = useState<WardScanLog[]>([]);
   const [isLoadingPatientLogs, setIsLoadingPatientLogs] = useState(false);
-  // New state to store last locations for critical cases
   const [criticalCasesLocations, setCriticalCasesLocations] = useState<Record<string, string>>({});
 
   const form = useForm({
@@ -156,10 +154,8 @@ const AdminDashboard = () => {
     },
   });
 
-  // Filter critical cases
   const criticalCases = labResults.filter(result => result.result === "positive");
   
-  // Function to extract patient ID from a string that might be JSON
   const extractPatientId = (patientIdStr: string): string => {
     try {
       const parsed = JSON.parse(patientIdStr);
@@ -169,9 +165,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // Function to get the most recent ward location for a patient
   const getLastPatientLocation = (patientId: string): { ward: string | null, scannedAt: string | null } => {
-    // Filter logs for this patient
     const patientLogs = wardScanLogs.filter(log => {
       const extractedId = extractPatientId(log.patient_id);
       return extractedId === patientId;
@@ -181,20 +175,30 @@ const AdminDashboard = () => {
       return { ward: null, scannedAt: null };
     }
     
-    // Sort by scan time (latest first)
     const sortedLogs = [...patientLogs].sort((a, b) => 
       new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime()
     );
     
-    // Return the most recent ward and time
     return { 
       ward: sortedLogs[0].ward,
       scannedAt: sortedLogs[0].scanned_at
     };
   };
-  
-  // Create enhanced critical cases with location data
+
   const enhancedCriticalCases: CriticalCaseWithLocation[] = criticalCases.map(result => {
+    const patientId = result.patients?.patient_id;
+    const { ward, scannedAt } = patientId ? getLastPatientLocation(patientId) : { ward: null, scannedAt: null };
+    
+    return {
+      ...result,
+      lastLocation: ward,
+      lastScanTime: scannedAt
+    };
+  });
+
+  const pendingCases = labResults.filter(result => result.result === null);
+  
+  const enhancedPendingCases = pendingCases.map(result => {
     const patientId = result.patients?.patient_id;
     const { ward, scannedAt } = patientId ? getLastPatientLocation(patientId) : { ward: null, scannedAt: null };
     
@@ -553,7 +557,7 @@ const AdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="criticalCases">
-            <Card className="border-gray-100 shadow-sm">
+            <Card className="border-gray-100 shadow-sm mb-8">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
                 <CardTitle className="text-2xl font-normal text-gray-700">Critical Cases - Positive Results</CardTitle>
               </CardHeader>
@@ -608,6 +612,64 @@ const AdminDashboard = () => {
                 ) : (
                   <div className="text-center py-10">
                     <p className="text-gray-500">No critical cases found.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card className="border-gray-100 shadow-sm">
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+                <CardTitle className="text-2xl font-normal text-gray-700">Pending Cases - Awaiting Results</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {isLoadingLabResults || isLoadingWardScanLogs ? (
+                  <div className="flex justify-center py-10">
+                    <div className="animate-pulse text-gray-500">Loading pending cases...</div>
+                  </div>
+                ) : enhancedPendingCases.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample ID</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Collection Date</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Location</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time in System</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {enhancedPendingCases.map((result) => (
+                          <tr key={result.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{result.sample_id}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{result.patients?.patient_id}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {format(new Date(result.collection_date), 'MMM dd, yyyy')}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <Badge variant="secondary" className="px-3 py-1">Pending</Badge>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {result.lastLocation ? (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  {result.lastLocation}
+                                </Badge>
+                              ) : (
+                                <span className="text-gray-400 text-sm">Not scanned yet</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {format(new Date(result.collection_date), 'MMM dd, yyyy')}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-10">
+                    <p className="text-gray-500">No pending cases found.</p>
                   </div>
                 )}
               </CardContent>
