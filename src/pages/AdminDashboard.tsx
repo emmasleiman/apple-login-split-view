@@ -484,7 +484,7 @@ const AdminDashboard = () => {
               value="dischargePatient" 
               className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-lg py-3 flex-1 flex items-center justify-center gap-2"
             >
-              <LogOut className="h-5 w-5" />
+              <Users className="h-5 w-5" />
               Discharge Patient
             </TabsTrigger>
           </TabsList>
