@@ -28,7 +28,7 @@ const LogoutButton = ({
       onClick={handleLogout} 
       variant={variant} 
       size={size}
-      className={`font-helvetica ${className}`}
+      className={className}
     >
       <LogOut className="w-4 h-4 mr-2" />
       Logout
