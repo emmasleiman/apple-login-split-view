@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -19,23 +18,13 @@ import LogoutButton from "@/components/LogoutButton";
 import { createWardAccount, getWardAccounts, WardAccount as WardAccountType } from "@/lib/supabase/ward-accounts";
 
 type Employee = {
-  first_name: string;
-  last_name: string;
   username: string;
   password: string;
   role: "admin" | "data_encoder" | "lab_technician";
-  gender: "male" | "female" | "other";
   employee_id: string;
-  contact_number?: string;
 }
 
 const formSchema = z.object({
-  firstName: z.string().min(2, {
-    message: "First name must be at least 2 characters.",
-  }),
-  lastName: z.string().min(2, {
-    message: "Last name must be at least 2 characters.",
-  }),
   username: z.string().min(3, {
     message: "Username must be at least 3 characters.",
   }),
@@ -45,10 +34,6 @@ const formSchema = z.object({
   role: z.enum(["admin", "data_encoder", "lab_technician"], {
     required_error: "Please select a role.",
   }),
-  gender: z.enum(["male", "female", "other"], {
-    required_error: "Please select a gender.",
-  }),
-  contactNumber: z.string().optional(),
   employeeId: z.string().min(1, {
     message: "Employee ID is required.",
   }),
@@ -97,18 +82,18 @@ const ITDashboard = () => {
     { id: "ward_a", label: "Ward A" },
     { id: "ward_b", label: "Ward B" },
     { id: "ward_c", label: "Ward C" },
+    { id: "ward_d", label: "Ward D" },
+    { id: "ward_e", label: "Ward E" },
+    { id: "ward_f", label: "Ward F" },
+    { id: "isolation_room", label: "Isolation Room" },
   ];
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
       username: "",
       password: "",
       employeeId: "",
-      contactNumber: "",
-      gender: "male",
       role: "data_encoder",
     },
   });
@@ -194,15 +179,14 @@ const ITDashboard = () => {
         throw new Error("Employee ID already exists. Please use a different ID.");
       }
 
-      const employeeData: Employee = {
-        first_name: data.firstName,
-        last_name: data.lastName,
+      const employeeData: Employee & { first_name: string, last_name: string, gender: string } = {
         username: data.username,
         password: data.password,
         role: data.role,
-        gender: data.gender,
         employee_id: data.employeeId,
-        contact_number: data.contactNumber || null,
+        first_name: "Employee",
+        last_name: data.username,
+        gender: "other"
       };
 
       const { data: newEmployee, error } = await supabase
@@ -215,7 +199,7 @@ const ITDashboard = () => {
     onSuccess: (_, variables) => {
       toast({
         title: "Employee registered successfully",
-        description: `${variables.firstName} ${variables.lastName} has been registered as a ${variables.role.replace('_', ' ')}.`,
+        description: `${variables.username} has been registered as a ${variables.role.replace('_', ' ')}.`,
       });
       form.reset();
     },
@@ -271,33 +255,6 @@ const ITDashboard = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <FormField
                         control={form.control}
-                        name="firstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>First Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="First Name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="lastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Last Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Last Name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
                         name="employeeId"
                         render={({ field }) => (
                           <FormItem>
@@ -312,12 +269,35 @@ const ITDashboard = () => {
 
                       <FormField
                         control={form.control}
-                        name="contactNumber"
+                        name="role"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Contact Number</FormLabel>
+                            <FormLabel>Work Type</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select work type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="admin">Administrator</SelectItem>
+                                <SelectItem value="data_encoder">Data Encoder</SelectItem>
+                                <SelectItem value="lab_technician">Lab Technician</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Username</FormLabel>
                             <FormControl>
-                              <Input placeholder="Contact Number" type="tel" {...field} />
+                              <Input placeholder="Username" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -326,89 +306,17 @@ const ITDashboard = () => {
 
                       <FormField
                         control={form.control}
-                        name="gender"
+                        name="password"
                         render={({ field }) => (
-                          <FormItem className="space-y-3">
-                            <FormLabel>Gender</FormLabel>
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <RadioGroup
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                                className="flex space-x-4"
-                              >
-                                <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="male" id="male" />
-                                  <Label htmlFor="male">Male</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="female" id="female" />
-                                  <Label htmlFor="female">Female</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="other" id="other" />
-                                  <Label htmlFor="other">Other</Label>
-                                </div>
-                              </RadioGroup>
+                              <Input placeholder="Password" type="password" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    </div>
-
-                    <div className="border-t pt-4">
-                      <h3 className="text-lg font-medium mb-4">Access Credentials</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField
-                          control={form.control}
-                          name="username"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Username</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Username" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Password</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Password" type="password" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="role"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Role</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select a role" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="admin">Administrator</SelectItem>
-                                  <SelectItem value="data_encoder">Data Encoder</SelectItem>
-                                  <SelectItem value="lab_technician">Lab Technician</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
                     </div>
 
                     <div className="flex justify-end">

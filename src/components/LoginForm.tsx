@@ -42,8 +42,8 @@ const LoginForm = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Special case for IT dashboard direct access
-    if (username === 'jlk' && password === '101112') {
+    // Special case for IT dashboard direct access - UPDATED CREDENTIALS
+    if (username === 'itofficer' && password === '123456') {
       toast({
         title: "Success",
         description: "Accessing IT Dashboard with special credentials.",

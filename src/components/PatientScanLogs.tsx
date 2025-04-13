@@ -9,7 +9,6 @@ import {
   SheetTitle,
   SheetClose
 } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import { 
   Table, 
   TableBody, 
@@ -45,6 +44,22 @@ const extractPatientId = (patientIdStr: string): string => {
   } catch (e) {
     return patientIdStr;
   }
+};
+
+// New function to check if a patient is in isolation
+export const isPatientInIsolation = (scanLogs: WardScanLog[], patientId: string): boolean => {
+  if (!patientId || !scanLogs.length) return false;
+
+  // Sort logs by scan time (latest first)
+  const sortedLogs = [...scanLogs]
+    .filter(log => {
+      const extractedId = extractPatientId(log.patient_id);
+      return extractedId === patientId;
+    })
+    .sort((a, b) => new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime());
+
+  // Check if the most recent scan is in isolation room
+  return sortedLogs.length > 0 && sortedLogs[0].ward === 'isolation_room';
 };
 
 const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
@@ -124,7 +139,7 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-gray-500" />
-                        <Badge variant="outline">{log.ward}</Badge>
+                        <Badge variant={log.ward === "isolation_room" ? "destructive" : "outline"}>{log.ward}</Badge>
                       </div>
                     </TableCell>
                     <TableCell>
