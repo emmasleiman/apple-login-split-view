@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,12 +43,16 @@ const Dashboard = () => {
     queryFn: async () => {
       if (!patientId) return null;
       
+      console.log("Checking if patient exists:", patientId);
+      
       const { data, error } = await supabase
         .from('patients')
         .select('*')
         .eq('patient_id', patientId)
         .eq('status', 'admitted')
         .single();
+      
+      console.log("Patient check result:", { data, error });
       
       if (error && error.code !== 'PGRST116') {
         console.error("Error checking patient:", error);
@@ -98,10 +101,24 @@ const Dashboard = () => {
     }
   }, [patientId, checkPatientExists]);
 
-  const { mutate: registerPatient } = useMutation({
+  const { mutate: registerPatient, isPending: isRegistering } = useMutation({
     mutationFn: async ({ patientId, cultureRequired }: { patientId: string, cultureRequired: boolean }) => {
       if (patientExists) {
         return existingPatientData;
+      }
+      
+      console.log("Registering patient:", { patientId, cultureRequired });
+      
+      const { data: existingPatient, error: checkError } = await supabase
+        .from('patients')
+        .select('patient_id')
+        .eq('patient_id', patientId)
+        .maybeSingle();
+      
+      console.log("Existing patient check:", { existingPatient, checkError });
+      
+      if (existingPatient) {
+        throw new Error("Patient ID already exists");
       }
       
       const wristbandQRData = JSON.stringify({
@@ -137,9 +154,14 @@ const Dashboard = () => {
             other_qr_code: otherQRData
           }
         ])
-        .select() as { data: Patient[] | null, error: any };
+        .select();
 
-      if (patientError) throw patientError;
+      console.log("Patient registration result:", { patientData, patientError });
+      
+      if (patientError) {
+        console.error("Error registering patient:", patientError);
+        throw patientError;
+      }
       
       if (cultureRequired && patientData && patientData.length > 0) {
         const { error: labError } = await supabase
@@ -152,10 +174,13 @@ const Dashboard = () => {
             }
           ]);
         
-        if (labError) throw labError;
+        if (labError) {
+          console.error("Error creating lab result:", labError);
+          throw labError;
+        }
       }
       
-      return patientData ? patientData[0] : null;
+      return patientData && patientData.length > 0 ? patientData[0] : null;
     },
     onSuccess: (data) => {
       if (patientExists) {
@@ -170,18 +195,19 @@ const Dashboard = () => {
         setWristbandQRCode(data.wristband_qr_code);
         setCultureQRCode(data.culture_qr_code);
         setOtherQRCode(data.other_qr_code);
+        
+        toast({
+          title: "Patient Registered",
+          description: `Patient ${patientId} registered successfully with 3 QR codes`,
+        });
       }
-
-      toast({
-        title: "Patient Registered",
-        description: `Patient ${patientId} registered successfully with 3 QR codes`,
-      });
     },
     onError: (error) => {
-      console.error("Error registering patient:", error);
+      console.error("Registration error:", error);
+      
       toast({
         title: "Registration Error",
-        description: "Failed to register patient. Patient ID may already exist.",
+        description: error instanceof Error ? error.message : "Failed to register patient. Please try again.",
         variant: "destructive",
       });
     }
@@ -365,8 +391,9 @@ const Dashboard = () => {
                   <Button 
                     type="submit" 
                     className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
+                    disabled={isRegistering}
                   >
-                    {patientExists ? "Load Existing QR Codes" : "Register Patient"}
+                    {isRegistering ? "Registering..." : patientExists ? "Load Existing QR Codes" : "Register Patient"}
                   </Button>
                 </form>
 
@@ -492,4 +519,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

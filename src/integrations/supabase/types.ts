@@ -98,31 +98,40 @@ export type Database = {
       }
       patients: {
         Row: {
+          culture_qr_code: string | null
           culture_required: boolean
           discharge_date: string | null
           id: string
+          other_qr_code: string | null
           patient_id: string
           qr_code_url: string | null
           registration_date: string
           status: string
+          wristband_qr_code: string | null
         }
         Insert: {
+          culture_qr_code?: string | null
           culture_required?: boolean
           discharge_date?: string | null
           id?: string
+          other_qr_code?: string | null
           patient_id: string
           qr_code_url?: string | null
           registration_date?: string
           status: string
+          wristband_qr_code?: string | null
         }
         Update: {
+          culture_qr_code?: string | null
           culture_required?: boolean
           discharge_date?: string | null
           id?: string
+          other_qr_code?: string | null
           patient_id?: string
           qr_code_url?: string | null
           registration_date?: string
           status?: string
+          wristband_qr_code?: string | null
         }
         Relationships: []
       }
