@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,18 +57,19 @@ const Dashboard = () => {
       }
       
       if (data) {
+        const patientData = data as Patient;
         setPatientExists(true);
-        setExistingPatientData(data);
-        if (data.wristband_qr_code) {
-          setWristbandQRCode(data.wristband_qr_code);
+        setExistingPatientData(patientData);
+        if (patientData.wristband_qr_code) {
+          setWristbandQRCode(patientData.wristband_qr_code);
         }
-        if (data.culture_qr_code) {
-          setCultureQRCode(data.culture_qr_code);
+        if (patientData.culture_qr_code) {
+          setCultureQRCode(patientData.culture_qr_code);
         }
-        if (data.other_qr_code) {
-          setOtherQRCode(data.other_qr_code);
+        if (patientData.other_qr_code) {
+          setOtherQRCode(patientData.other_qr_code);
         }
-        return data;
+        return patientData;
       } else {
         setPatientExists(false);
         setExistingPatientData(null);
@@ -490,3 +492,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
