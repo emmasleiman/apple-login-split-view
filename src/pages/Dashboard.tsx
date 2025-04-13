@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +21,9 @@ type Patient = {
   registration_date: string;
   discharge_date: string | null;
   qr_code_url: string | null;
+  wristband_qr_code: string | null;
+  culture_qr_code: string | null;
+  other_qr_code: string | null;
 };
 
 const Dashboard = () => {
@@ -29,12 +31,13 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [patientId, setPatientId] = useState("");
   const [cultureRequired, setCultureRequired] = useState<"yes" | "no">("no");
-  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [wristbandQRCode, setWristbandQRCode] = useState<string | null>(null);
+  const [cultureQRCode, setCultureQRCode] = useState<string | null>(null);
+  const [otherQRCode, setOtherQRCode] = useState<string | null>(null);
   const [dischargePatientId, setDischargePatientId] = useState("");
   const [patientExists, setPatientExists] = useState(false);
   const [existingPatientData, setExistingPatientData] = useState<Patient | null>(null);
 
-  // Query to check if a patient exists when patientId changes
   const { refetch: checkPatientExists } = useQuery({
     queryKey: ["checkPatient", patientId],
     queryFn: async () => {
@@ -47,7 +50,7 @@ const Dashboard = () => {
         .eq('status', 'admitted')
         .single();
       
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
+      if (error && error.code !== 'PGRST116') {
         console.error("Error checking patient:", error);
         throw error;
       }
@@ -55,24 +58,30 @@ const Dashboard = () => {
       if (data) {
         setPatientExists(true);
         setExistingPatientData(data);
-        if (data.qr_code_url) {
-          setQrCodeData(data.qr_code_url);
+        if (data.wristband_qr_code) {
+          setWristbandQRCode(data.wristband_qr_code);
+        }
+        if (data.culture_qr_code) {
+          setCultureQRCode(data.culture_qr_code);
+        }
+        if (data.other_qr_code) {
+          setOtherQRCode(data.other_qr_code);
         }
         return data;
       } else {
         setPatientExists(false);
         setExistingPatientData(null);
-        setQrCodeData(null);
+        setWristbandQRCode(null);
+        setCultureQRCode(null);
+        setOtherQRCode(null);
         return null;
       }
     },
-    enabled: false, // We'll trigger this manually when needed
+    enabled: false,
   });
 
-  // Effect to check if patient exists when ID changes
   useEffect(() => {
     if (patientId.trim()) {
-      // We use a slight delay to avoid too many requests while typing
       const timer = setTimeout(() => {
         checkPatientExists();
       }, 500);
@@ -81,20 +90,36 @@ const Dashboard = () => {
     } else {
       setPatientExists(false);
       setExistingPatientData(null);
-      setQrCodeData(null);
+      setWristbandQRCode(null);
+      setCultureQRCode(null);
+      setOtherQRCode(null);
     }
   }, [patientId, checkPatientExists]);
 
   const { mutate: registerPatient } = useMutation({
     mutationFn: async ({ patientId, cultureRequired }: { patientId: string, cultureRequired: boolean }) => {
-      // Don't proceed if the patient already exists
       if (patientExists) {
         return existingPatientData;
       }
       
-      const qrData = JSON.stringify({
+      const wristbandQRData = JSON.stringify({
         patientId: patientId,
         cultureRequired: cultureRequired,
+        type: "wristband",
+        timestamp: new Date().toISOString(),
+      });
+      
+      const cultureQRData = JSON.stringify({
+        patientId: patientId,
+        cultureRequired: cultureRequired,
+        type: "culture",
+        timestamp: new Date().toISOString(),
+      });
+      
+      const otherQRData = JSON.stringify({
+        patientId: patientId,
+        cultureRequired: cultureRequired,
+        type: "other",
         timestamp: new Date().toISOString(),
       });
       
@@ -105,7 +130,9 @@ const Dashboard = () => {
             patient_id: patientId,
             culture_required: cultureRequired,
             status: 'admitted',
-            qr_code_url: qrData
+            wristband_qr_code: wristbandQRData,
+            culture_qr_code: cultureQRData,
+            other_qr_code: otherQRData
           }
         ])
         .select() as { data: Patient[] | null, error: any };
@@ -129,25 +156,23 @@ const Dashboard = () => {
       return patientData ? patientData[0] : null;
     },
     onSuccess: (data) => {
-      // If the patient already exists, show a different message
       if (patientExists) {
         toast({
           title: "Patient Already Registered",
-          description: `Patient ${patientId} is already in the system. QR code has been loaded.`,
+          description: `Patient ${patientId} is already in the system. QR codes have been loaded.`,
         });
         return;
       }
       
-      const qrData = JSON.stringify({
-        patientId: patientId,
-        cultureRequired: cultureRequired === "yes",
-        timestamp: new Date().toISOString(),
-      });
-      setQrCodeData(qrData);
+      if (data) {
+        setWristbandQRCode(data.wristband_qr_code);
+        setCultureQRCode(data.culture_qr_code);
+        setOtherQRCode(data.other_qr_code);
+      }
 
       toast({
         title: "Patient Registered",
-        description: `Patient ${patientId} registered successfully`,
+        description: `Patient ${patientId} registered successfully with 3 QR codes`,
       });
     },
     onError: (error) => {
@@ -202,12 +227,13 @@ const Dashboard = () => {
       return;
     }
 
-    // If patient exists, we just set the QR code from existing data
-    if (patientExists && existingPatientData?.qr_code_url) {
-      setQrCodeData(existingPatientData.qr_code_url);
+    if (patientExists && existingPatientData) {
+      setWristbandQRCode(existingPatientData.wristband_qr_code);
+      setCultureQRCode(existingPatientData.culture_qr_code);
+      setOtherQRCode(existingPatientData.other_qr_code);
       toast({
         title: "Patient Already Registered",
-        description: `Patient ${patientId} is already in the system. QR code has been loaded.`,
+        description: `Patient ${patientId} is already in the system. QR codes have been loaded.`,
       });
       return;
     }
@@ -218,26 +244,34 @@ const Dashboard = () => {
     });
   };
 
-  const handlePrint = () => {
+  const handlePrint = (qrType: string, qrData: string | null) => {
+    if (!qrData) return;
+
+    const typeLabel = qrType === "wristband" ? "Wristband (W)" : 
+                      qrType === "culture" ? "Lab Culture" :
+                      "Other";
+
     const printWindow = window.open("", "_blank");
     if (printWindow) {
       printWindow.document.write(`
         <html>
           <head>
-            <title>Patient QR Code</title>
+            <title>Patient QR Code - ${typeLabel}</title>
             <style>
               body { font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 20px; font-size: 16px; }
               h2 { font-weight: 300; color: #333; font-size: 24px; }
               .container { margin-top: 30px; }
+              .type-label { font-weight: bold; margin-top: 10px; font-size: 18px; color: #555; }
             </style>
           </head>
           <body>
             <h2>TraceMed: Patient ${patientId}</h2>
+            <p class="type-label">${typeLabel}</p>
             <div class="container" id="qrcode"></div>
             <p>Scan for patient information</p>
             <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
             <script>
-              QRCode.toCanvas(document.getElementById('qrcode'), '${qrCodeData}', function (error) {
+              QRCode.toCanvas(document.getElementById('qrcode'), '${qrData}', function (error) {
                 if (error) console.error(error);
               });
             </script>
@@ -330,23 +364,91 @@ const Dashboard = () => {
                     type="submit" 
                     className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
                   >
-                    {patientExists ? "Load Existing QR Code" : "Register Patient"}
+                    {patientExists ? "Load Existing QR Codes" : "Register Patient"}
                   </Button>
                 </form>
 
-                {qrCodeData && (
-                  <div className="mt-8 flex flex-col items-center space-y-4 pt-6 border-t border-gray-100">
-                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                      <QRCode value={qrCodeData} size={180} />
-                    </div>
-                    <p className="text-base text-gray-500">Patient ID: {patientId}</p>
-                    <Button 
-                      onClick={handlePrint}
-                      variant="outline" 
-                      className="mt-2 border-gray-200 text-gray-700 hover:bg-gray-50 text-base"
-                    >
-                      Print QR Code
-                    </Button>
+                {(wristbandQRCode || cultureQRCode || otherQRCode) && (
+                  <div className="mt-8 flex flex-col items-center space-y-6 pt-6 border-t border-gray-100">
+                    <p className="text-lg text-center font-medium text-gray-700">Patient ID: {patientId} - QR Codes</p>
+                    
+                    {wristbandQRCode && (
+                      <div className="w-full border rounded-lg p-5 bg-gray-50">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                          <div className="flex flex-col items-center">
+                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                              <QRCode value={wristbandQRCode} size={150} />
+                            </div>
+                            <p className="mt-2 font-medium text-blue-600">Wristband (W)</p>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <p className="text-sm text-gray-500 text-center md:text-left mb-2">
+                              Primary QR code for patient identification.<br />
+                              <span className="font-medium">This scan takes priority over other scans.</span>
+                            </p>
+                            <Button 
+                              onClick={() => handlePrint("wristband", wristbandQRCode)}
+                              variant="outline" 
+                              className="w-full md:w-auto border-blue-300 text-blue-700 hover:bg-blue-50"
+                            >
+                              Print Wristband QR
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {cultureQRCode && (
+                      <div className="w-full border rounded-lg p-5 bg-gray-50">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                          <div className="flex flex-col items-center">
+                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                              <QRCode value={cultureQRCode} size={150} />
+                            </div>
+                            <p className="mt-2 font-medium text-green-600">Lab Culture</p>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <p className="text-sm text-gray-500 text-center md:text-left mb-2">
+                              Use for lab samples and culture requests.<br />
+                              <span className="font-medium">Secondary priority for patient location.</span>
+                            </p>
+                            <Button 
+                              onClick={() => handlePrint("culture", cultureQRCode)}
+                              variant="outline" 
+                              className="w-full md:w-auto border-green-300 text-green-700 hover:bg-green-50"
+                            >
+                              Print Culture QR
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {otherQRCode && (
+                      <div className="w-full border rounded-lg p-5 bg-gray-50">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                          <div className="flex flex-col items-center">
+                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                              <QRCode value={otherQRCode} size={150} />
+                            </div>
+                            <p className="mt-2 font-medium text-gray-600">Other</p>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <p className="text-sm text-gray-500 text-center md:text-left mb-2">
+                              Additional QR code for other purposes.<br />
+                              <span className="font-medium">Lowest priority for patient location.</span>
+                            </p>
+                            <Button 
+                              onClick={() => handlePrint("other", otherQRCode)}
+                              variant="outline" 
+                              className="w-full md:w-auto border-gray-300 text-gray-700 hover:bg-gray-50"
+                            >
+                              Print Other QR
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>

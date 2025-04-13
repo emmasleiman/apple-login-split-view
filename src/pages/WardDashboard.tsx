@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,15 @@ const WardDashboard = () => {
       return parsed.patientId || qrData;
     } catch (e) {
       return qrData;
+    }
+  };
+
+  const extractQRType = (qrData: string): string => {
+    try {
+      const parsed = JSON.parse(qrData);
+      return parsed.type || "other";
+    } catch (e) {
+      return "other";
     }
   };
   
@@ -106,9 +116,11 @@ const WardDashboard = () => {
     try {
       const qrData = data.text.trim();
       const patientId = extractPatientId(qrData);
+      const qrType = extractQRType(qrData);
       
       console.log("Raw QR data:", qrData);
       console.log("Extracted patient ID:", patientId);
+      console.log("QR code type:", qrType);
       
       const { data: patientExists, error: patientCheckError } = await supabase
         .from('patients')
@@ -138,31 +150,105 @@ const WardDashboard = () => {
       
       console.log('Patient verified:', patientExists);
       
-      const { data: insertData, error } = await supabase
-        .from('ward_scan_logs')
-        .insert({
-          patient_id: qrData,
-          ward: wardName,
-          scanned_by: wardUsername,
-        })
-        .select() as { data: WardScanLog[] | null, error: any };
-      
-      if (error) {
-        console.error('Error logging scan:', error);
+      // Handle wristband scan priority logic
+      if (qrType === "wristband") {
+        // Wristband has highest priority - proceed with scan
+        const { data: insertData, error } = await supabase
+          .from('ward_scan_logs')
+          .insert({
+            patient_id: qrData,
+            ward: wardName,
+            scanned_by: wardUsername,
+          })
+          .select() as { data: WardScanLog[] | null, error: any };
+        
+        if (error) {
+          console.error('Error logging scan:', error);
+          toast({
+            variant: "destructive",
+            title: "Scan Failed",
+            description: "Failed to log patient scan. Please try again.",
+          });
+          return;
+        }
+        
+        console.log('Wristband scan log inserted:', insertData);
+        
         toast({
-          variant: "destructive",
-          title: "Scan Failed",
-          description: "Failed to log patient scan. Please try again.",
+          title: "Wristband Scan Successful",
+          description: `Patient ID ${patientId} location updated to ${wardName}.`,
         });
-        return;
+      } else {
+        // For non-wristband scans, check if a wristband scan exists within the last 5 minutes
+        const fiveMinutesAgo = new Date();
+        fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+        
+        const { data: recentWristbandScans, error: recentScansError } = await supabase
+          .from('ward_scan_logs')
+          .select('*')
+          .eq('patient_id', qrData.includes("wristband") ? qrData : `{"patientId":"${patientId}","type":"wristband"}`) // This is a simplification
+          .gt('scanned_at', fiveMinutesAgo.toISOString())
+          .order('scanned_at', { ascending: false })
+          .limit(1) as { data: WardScanLog[] | null, error: any };
+        
+        if (recentScansError) {
+          console.error('Error checking recent scans:', recentScansError);
+        }
+        
+        // If no recent wristband scan, proceed with this scan
+        if (!recentWristbandScans || recentWristbandScans.length === 0) {
+          const { data: insertData, error } = await supabase
+            .from('ward_scan_logs')
+            .insert({
+              patient_id: qrData,
+              ward: wardName,
+              scanned_by: wardUsername,
+            })
+            .select() as { data: WardScanLog[] | null, error: any };
+          
+          if (error) {
+            console.error('Error logging scan:', error);
+            toast({
+              variant: "destructive",
+              title: "Scan Failed",
+              description: "Failed to log patient scan. Please try again.",
+            });
+            return;
+          }
+          
+          console.log(`${qrType} scan log inserted:`, insertData);
+          
+          toast({
+            title: "Scan Successful",
+            description: `Patient ID ${patientId} location updated to ${wardName}.`,
+          });
+        } else {
+          // Wristband scan exists, this scan is lower priority - still record but notify
+          const { data: insertData, error } = await supabase
+            .from('ward_scan_logs')
+            .insert({
+              patient_id: qrData,
+              ward: wardName,
+              scanned_by: wardUsername,
+            })
+            .select() as { data: WardScanLog[] | null, error: any };
+          
+          if (error) {
+            console.error('Error logging scan:', error);
+            toast({
+              variant: "destructive",
+              title: "Scan Failed",
+              description: "Failed to log patient scan. Please try again.",
+            });
+            return;
+          }
+          
+          toast({
+            title: "Scan Recorded",
+            description: `Note: A wristband scan may override this location update.`,
+          });
+        }
       }
-      
-      console.log('Scan log inserted:', insertData);
-      
-      toast({
-        title: "Scan Successful",
-        description: `Patient ID ${patientId} scanned successfully.`,
-      });
       
       fetchRecentScans(wardName);
       setIsScannerOpen(false);
@@ -248,6 +334,15 @@ const WardDashboard = () => {
                         <div className="flex items-center text-sm text-gray-500">
                           <Clock className="h-3.5 w-3.5 mr-1" />
                           {formatDateTime(scan.scanned_at)}
+                          {scan.patient_id.includes("wristband") && (
+                            <span className="ml-2 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">Wristband</span>
+                          )}
+                          {scan.patient_id.includes("culture") && (
+                            <span className="ml-2 px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">Culture</span>
+                          )}
+                          {scan.patient_id.includes("other") && (
+                            <span className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">Other</span>
+                          )}
                         </div>
                       </div>
                     </div>
