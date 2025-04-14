@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Users, FileText, Search, Loader2, Clock } from "lucide-react";
+import { AlertTriangle, Users, FileText, Search, Loader2, Clock, CheckCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -155,6 +155,7 @@ const AdminDashboard = () => {
   });
 
   const criticalCases = labResults.filter(result => result.result === "positive");
+  const resolvedCases = labResults.filter(result => result.result === "resolved");
   
   const extractPatientId = (patientIdStr: string): string => {
     try {
@@ -186,6 +187,17 @@ const AdminDashboard = () => {
   };
 
   const enhancedCriticalCases: CriticalCaseWithLocation[] = criticalCases.map(result => {
+    const patientId = result.patients?.patient_id;
+    const { ward, scannedAt } = patientId ? getLastPatientLocation(patientId) : { ward: null, scannedAt: null };
+    
+    return {
+      ...result,
+      lastLocation: ward,
+      lastScanTime: scannedAt
+    };
+  });
+
+  const enhancedResolvedCases: CriticalCaseWithLocation[] = resolvedCases.map(result => {
     const patientId = result.patients?.patient_id;
     const { ward, scannedAt } = patientId ? getLastPatientLocation(patientId) : { ward: null, scannedAt: null };
     
@@ -534,6 +546,13 @@ const AdminDashboard = () => {
               Critical Cases
             </TabsTrigger>
             <TabsTrigger 
+              value="resolvedCases" 
+              className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-lg py-3 flex-1 flex items-center justify-center gap-2"
+            >
+              <CheckCircle className="h-5 w-5" />
+              Resolved Cases
+            </TabsTrigger>
+            <TabsTrigger 
               value="inputLabResults" 
               className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-lg py-3 flex-1 flex items-center justify-center gap-2"
             >
@@ -670,6 +689,68 @@ const AdminDashboard = () => {
                 ) : (
                   <div className="text-center py-10">
                     <p className="text-gray-500">No pending cases found.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="resolvedCases">
+            <Card className="border-gray-100 shadow-sm mb-8">
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+                <CardTitle className="text-2xl font-normal text-gray-700">Resolved Cases - Previously Positive</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {isLoadingLabResults || isLoadingWardScanLogs ? (
+                  <div className="flex justify-center py-10">
+                    <div className="animate-pulse text-gray-500">Loading resolved cases...</div>
+                  </div>
+                ) : enhancedResolvedCases.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample ID</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Collection Date</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Result</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed By</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Location</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {enhancedResolvedCases.map((result) => (
+                          <tr key={result.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{result.sample_id}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{result.patients?.patient_id}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {format(new Date(result.collection_date), 'MMM dd, yyyy')}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 px-3 py-1">Resolved</Badge>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{result.processed_by}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {result.lastLocation ? (
+                                <Badge variant={result.lastLocation === 'isolation_room' ? "secondary" : "outline"} className="px-3 py-1">
+                                  {result.lastLocation}
+                                </Badge>
+                              ) : (
+                                <span className="text-gray-400 text-sm">Not scanned yet</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {result.notes || "No additional notes"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-10">
+                    <p className="text-gray-500">No resolved cases found.</p>
                   </div>
                 )}
               </CardContent>

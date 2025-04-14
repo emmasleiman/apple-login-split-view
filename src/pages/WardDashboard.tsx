@@ -104,6 +104,8 @@ const WardDashboard = () => {
   
   const updatePatientLabStatus = async (patientId: string) => {
     try {
+      console.log('Updating lab status for patient:', patientId);
+      
       const { data: patientData, error: patientError } = await supabase
         .from('patients')
         .select('id')
@@ -119,6 +121,8 @@ const WardDashboard = () => {
         console.error('Patient not found:', patientId);
         return;
       }
+      
+      console.log('Found patient with ID:', patientData.id);
       
       const { data: updateData, error: updateError } = await supabase
         .from('lab_results')
@@ -139,8 +143,10 @@ const WardDashboard = () => {
       if (updateData && updateData.length > 0) {
         toast({
           title: "Status Updated",
-          description: "Patient marked as resolved since they're now in isolation.",
+          description: `Patient ${patientId} marked as resolved since they're now in isolation.`,
         });
+      } else {
+        console.log('No lab results were updated.');
       }
     } catch (error) {
       console.error('Error updating patient lab status:', error);
@@ -217,6 +223,7 @@ const WardDashboard = () => {
         console.log('Wristband scan log inserted:', insertData);
         
         if (wardName === 'isolation_room') {
+          console.log(`Patient ${patientId} scanned into isolation room - updating lab status`);
           await updatePatientLabStatus(patientId);
         }
         
@@ -263,6 +270,7 @@ const WardDashboard = () => {
           console.log(`${qrType} scan log inserted:`, insertData);
           
           if (wardName === 'isolation_room') {
+            console.log(`Patient ${patientId} scanned into isolation room - updating lab status`);
             await updatePatientLabStatus(patientId);
           }
           
