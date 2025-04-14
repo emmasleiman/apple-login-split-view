@@ -35,6 +35,7 @@ type LabResult = {
   collection_date: string;
   processed_by: string | null;
   processed_date: string | null;
+  notes: string | null;
 };
 
 type PatientLabResult = {
@@ -78,6 +79,7 @@ type CriticalCaseWithLocation = LabResult & {
   patients: Pick<Patient, 'patient_id'>;
   lastLocation?: string | null;
   lastScanTime?: string | null;
+  notes?: string | null;
 };
 
 const AdminDashboard = () => {
