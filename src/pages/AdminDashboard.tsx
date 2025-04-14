@@ -17,6 +17,7 @@ import { useForm } from "react-hook-form";
 import PatientScanLogs from "@/components/PatientScanLogs";
 import DashboardHeader from "@/components/DashboardHeader";
 import { Separator } from "@/components/ui/separator";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type Patient = {
   id: string;
@@ -156,7 +157,6 @@ const AdminDashboard = () => {
     },
   });
 
-  // Function to check if a patient has been moved to isolation based on scan logs
   const isPatientInIsolation = (patientId: string): boolean => {
     if (!wardScanLogs.length) return false;
     
@@ -169,16 +169,13 @@ const AdminDashboard = () => {
       }
     });
     
-    // Sort by most recent scan
     const sortedLogs = [...patientLogs].sort((a, b) => 
       new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime()
     );
     
-    // Check if most recent scan is isolation room
     return sortedLogs.length > 0 && sortedLogs[0].ward === 'isolation_room';
   };
 
-  // Updated filtering logic
   const filteredLabResults = labResults.map(result => {
     const patientId = result.patients?.patient_id;
     const inIsolation = patientId ? isPatientInIsolation(patientId) : false;
@@ -781,4 +778,39 @@ const AdminDashboard = () => {
                                   {result.lastLocation}
                                 </Badge>
                               ) : (
-                                <span className="text-gray-400 text-sm">Not
+                                <span className="text-gray-400 text-sm">Not scanned yet</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {result.notes}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-10">
+                    <p className="text-gray-500">No resolved cases found.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {isPatientLogsOpen && selectedPatientForLogs && (
+        <PatientScanLogs 
+          open={isPatientLogsOpen}
+          onClose={() => setIsPatientLogsOpen(false)}
+          patientId={selectedPatientForLogs}
+          logs={patientScanLogs}
+          isLoading={isLoadingPatientLogs}
+        />
+      )}
+    </div>
+  );
+};
+
+export default AdminDashboard;
