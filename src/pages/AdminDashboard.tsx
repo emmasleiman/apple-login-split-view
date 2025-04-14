@@ -156,8 +156,50 @@ const AdminDashboard = () => {
     },
   });
 
-  const criticalCases = labResults.filter(result => result.result === "positive" && result.notes !== "Patient moved to isolation room. Previously marked as positive.");
-  const resolvedCases = labResults.filter(result => result.result === "resolved" || (result.result === "positive" && result.notes === "Patient moved to isolation room. Previously marked as positive."));
+  // Function to check if a patient has been moved to isolation based on scan logs
+  const isPatientInIsolation = (patientId: string): boolean => {
+    if (!wardScanLogs.length) return false;
+    
+    const patientLogs = wardScanLogs.filter(log => {
+      try {
+        const logData = typeof log.patient_id === 'string' ? JSON.parse(log.patient_id) : log.patient_id;
+        return logData.patientId === patientId;
+      } catch (e) {
+        return false;
+      }
+    });
+    
+    // Sort by most recent scan
+    const sortedLogs = [...patientLogs].sort((a, b) => 
+      new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime()
+    );
+    
+    // Check if most recent scan is isolation room
+    return sortedLogs.length > 0 && sortedLogs[0].ward === 'isolation_room';
+  };
+
+  // Updated filtering logic
+  const filteredLabResults = labResults.map(result => {
+    const patientId = result.patients?.patient_id;
+    const inIsolation = patientId ? isPatientInIsolation(patientId) : false;
+    
+    return {
+      ...result,
+      isInIsolation: inIsolation
+    };
+  });
+
+  const criticalCases = filteredLabResults.filter(result => 
+    result.result === "positive" && 
+    !result.isInIsolation &&
+    result.notes !== "Patient moved to isolation room. Previously marked as positive."
+  );
+
+  const resolvedCases = filteredLabResults.filter(result => 
+    result.result === "resolved" || 
+    result.isInIsolation ||
+    (result.result === "positive" && result.notes === "Patient moved to isolation room. Previously marked as positive.")
+  );
   
   const extractPatientId = (patientIdStr: string): string => {
     try {
@@ -739,255 +781,4 @@ const AdminDashboard = () => {
                                   {result.lastLocation}
                                 </Badge>
                               ) : (
-                                <span className="text-gray-400 text-sm">Not scanned yet</span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {result.notes || "No additional notes"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-10">
-                    <p className="text-gray-500">No resolved cases found.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="inputLabResults">
-            <Card className="border-gray-100 shadow-sm">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
-                <CardTitle className="text-xl font-medium text-left">Input Lab Results</CardTitle>
-                <CardDescription>
-                  Enter patient ID to view and update requested lab cultures
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(handleSearch)} className="space-y-4 mb-8">
-                    <FormField
-                      control={form.control}
-                      name="patientId"
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormControl>
-                            <div className="flex gap-3">
-                              <Input 
-                                {...field} 
-                                placeholder="Enter Patient ID" 
-                                className="h-16 text-xl"
-                              />
-                              <Button type="submit" className="h-16 px-6 text-xl">
-                                <Search className="h-5 w-5 mr-2" />
-                                Search
-                              </Button>
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </form>
-                </Form>
-
-                {patientData && (
-                  <div className="mt-6">
-                    <h3 className="text-xl font-medium mb-3 flex items-center gap-2">
-                      Lab Cultures for Patient {patientData.id}
-                    </h3>
-                    
-                    <div className="rounded-md border overflow-hidden">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Test Type</th>
-                            <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Requested On</th>
-                            <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" className="px-6 py-3 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {patientData.labs.length > 0 ? (
-                            patientData.labs.map((lab: LabTest) => (
-                              <tr key={lab.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{lab.type}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lab.requestedOn}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <Badge variant={lab.status === "completed" ? "default" : "secondary"} className="px-3 py-1">
-                                    {lab.status}
-                                  </Badge>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right">
-                                  {lab.status === "pending" ? (
-                                    <div className="flex justify-end gap-2">
-                                      <Button 
-                                        variant="outline" 
-                                        size="sm" 
-                                        onClick={() => handleSelectLabTest(lab, "negative")}
-                                        className="border-green-200 text-green-700 hover:bg-green-50"
-                                      >
-                                        Susceptible
-                                      </Button>
-                                      <Button 
-                                        variant="outline" 
-                                        size="sm" 
-                                        onClick={() => handleSelectLabTest(lab, "positive")}
-                                        className="border-amber-200 text-amber-700 hover:bg-amber-50"
-                                      >
-                                        Resistant
-                                      </Button>
-                                    </div>
-                                  ) : (
-                                    <span className="text-gray-500">
-                                      {lab.resistanceResult === "positive" 
-                                        ? "Carbapenem Resistant"
-                                        : "Carbapenem Susceptible"}
-                                    </span>
-                                  )}
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan={4} className="text-center py-4 text-gray-500">
-                                No lab tests found for this patient
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="allPatients">
-            <Card className="border-gray-100 shadow-sm">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <CardTitle className="text-2xl font-normal text-gray-700">All Patients</CardTitle>
-                  <div className="w-full md:w-64">
-                    <Input
-                      placeholder="Search by patient ID"
-                      value={patientIdFilter}
-                      onChange={(e) => setPatientIdFilter(e.target.value)}
-                      className="h-10 border-gray-200"
-                    />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                {isLoadingPatients ? (
-                  <div className="flex justify-center py-10">
-                    <div className="animate-pulse text-gray-500">Loading patients...</div>
-                  </div>
-                ) : filteredPatients.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration Date</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discharge Date</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Culture Required</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredPatients.map((patient) => (
-                          <tr key={patient.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{patient.patient_id}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <Badge variant={patient.status === "discharged" ? "outline" : "default"} className="px-3 py-1">
-                                {patient.status}
-                              </Badge>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {format(new Date(patient.registration_date), 'MMM dd, yyyy')}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {patient.discharge_date ? format(new Date(patient.discharge_date), 'MMM dd, yyyy') : '-'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {patient.culture_required ? 'Yes' : 'No'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleViewPatientLogs(patient.patient_id)}
-                                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                              >
-                                View Logs
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-10">
-                    <p className="text-gray-500">No patients found.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="dischargePatient">
-            <Card className="border-gray-100 shadow-sm">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
-                <CardTitle className="text-2xl font-normal text-gray-700">Discharge Patient</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <form onSubmit={handleDischargeSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="dischargePatientId" className="text-base text-gray-700">Patient ID to Discharge</Label>
-                    <Input
-                      id="dischargePatientId"
-                      value={dischargePatientId}
-                      onChange={(e) => setDischargePatientId(e.target.value)}
-                      className="h-12 border-gray-200 bg-gray-50/30 focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      "Discharge Patient"
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      <PatientScanLogs
-        open={isPatientLogsOpen}
-        onOpenChange={setIsPatientLogsOpen}
-        patientId={selectedPatientForLogs}
-        scanLogs={patientScanLogs}
-        isLoading={isLoadingPatientLogs}
-      />
-    </div>
-  );
-};
-
-export default AdminDashboard;
+                                <span className="text-gray-400 text-sm">Not
