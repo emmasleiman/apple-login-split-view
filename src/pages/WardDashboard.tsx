@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -103,6 +102,51 @@ const WardDashboard = () => {
     }
   };
   
+  const updatePatientLabStatus = async (patientId: string) => {
+    try {
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('patient_id', patientId)
+        .maybeSingle() as { data: { id: string } | null, error: any };
+      
+      if (patientError) {
+        console.error('Error fetching patient data:', patientError);
+        return;
+      }
+      
+      if (!patientData) {
+        console.error('Patient not found:', patientId);
+        return;
+      }
+      
+      const { data: updateData, error: updateError } = await supabase
+        .from('lab_results')
+        .update({ 
+          result: 'resolved',
+          notes: 'Patient moved to isolation room. Previously marked as positive.'
+        })
+        .eq('patient_id', patientData.id)
+        .eq('result', 'positive')
+        .select() as { data: any, error: any };
+      
+      if (updateError) {
+        console.error('Error updating lab results:', updateError);
+        return;
+      }
+      
+      console.log('Updated lab results:', updateData);
+      if (updateData && updateData.length > 0) {
+        toast({
+          title: "Status Updated",
+          description: "Patient marked as resolved since they're now in isolation.",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating patient lab status:', error);
+    }
+  };
+  
   const handleScan = async (data: { text: string } | null) => {
     if (!data || !data.text || scanCooldownRef.current) {
       return;
@@ -150,9 +194,7 @@ const WardDashboard = () => {
       
       console.log('Patient verified:', patientExists);
       
-      // Handle wristband scan priority logic
       if (qrType === "wristband") {
-        // Wristband has highest priority - proceed with scan
         const { data: insertData, error } = await supabase
           .from('ward_scan_logs')
           .insert({
@@ -174,19 +216,22 @@ const WardDashboard = () => {
         
         console.log('Wristband scan log inserted:', insertData);
         
+        if (wardName === 'isolation_room') {
+          await updatePatientLabStatus(patientId);
+        }
+        
         toast({
           title: "Wristband Scan Successful",
           description: `Patient ID ${patientId} location updated to ${wardName}.`,
         });
       } else {
-        // For non-wristband scans, check if a wristband scan exists within the last 5 minutes
         const fiveMinutesAgo = new Date();
         fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
         
         const { data: recentWristbandScans, error: recentScansError } = await supabase
           .from('ward_scan_logs')
           .select('*')
-          .eq('patient_id', qrData.includes("wristband") ? qrData : `{"patientId":"${patientId}","type":"wristband"}`) // This is a simplification
+          .eq('patient_id', qrData.includes("wristband") ? qrData : `{"patientId":"${patientId}","type":"wristband"}`)
           .gt('scanned_at', fiveMinutesAgo.toISOString())
           .order('scanned_at', { ascending: false })
           .limit(1) as { data: WardScanLog[] | null, error: any };
@@ -195,7 +240,6 @@ const WardDashboard = () => {
           console.error('Error checking recent scans:', recentScansError);
         }
         
-        // If no recent wristband scan, proceed with this scan
         if (!recentWristbandScans || recentWristbandScans.length === 0) {
           const { data: insertData, error } = await supabase
             .from('ward_scan_logs')
@@ -218,12 +262,15 @@ const WardDashboard = () => {
           
           console.log(`${qrType} scan log inserted:`, insertData);
           
+          if (wardName === 'isolation_room') {
+            await updatePatientLabStatus(patientId);
+          }
+          
           toast({
             title: "Scan Successful",
             description: `Patient ID ${patientId} location updated to ${wardName}.`,
           });
         } else {
-          // Wristband scan exists, this scan is lower priority - still record but notify
           const { data: insertData, error } = await supabase
             .from('ward_scan_logs')
             .insert({
