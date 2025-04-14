@@ -803,9 +803,9 @@ const AdminDashboard = () => {
       {isPatientLogsOpen && selectedPatientForLogs && (
         <PatientScanLogs 
           open={isPatientLogsOpen}
-          onClose={() => setIsPatientLogsOpen(false)}
+          onOpenChange={setIsPatientLogsOpen}
           patientId={selectedPatientForLogs}
-          logs={patientScanLogs}
+          scanLogs={patientScanLogs}
           isLoading={isLoadingPatientLogs}
         />
       )}

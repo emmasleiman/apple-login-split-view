@@ -31,6 +31,7 @@ type WardScanLog = {
 interface PatientScanLogsProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onClose?: () => void;  // Added onClose as an optional prop
   patientId: string | null;
   scanLogs: WardScanLog[];
   isLoading: boolean;
@@ -65,6 +66,7 @@ export const isPatientInIsolation = (scanLogs: WardScanLog[], patientId: string)
 const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
   open,
   onOpenChange,
+  onClose,
   patientId,
   scanLogs,
   isLoading
@@ -104,6 +106,15 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
     }
   }, [open, patientId, scanLogs]);
 
+  // Handle both onClose and onOpenChange for flexibility
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      onOpenChange(false);
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-md md:max-w-lg">
@@ -114,7 +125,7 @@ const PatientScanLogs: React.FC<PatientScanLogsProps> = ({
           </SheetDescription>
         </SheetHeader>
         
-        <SheetClose className="absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+        <SheetClose onClick={handleClose} className="absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </SheetClose>
