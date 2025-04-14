@@ -156,8 +156,8 @@ const AdminDashboard = () => {
     },
   });
 
-  const criticalCases = labResults.filter(result => result.result === "positive");
-  const resolvedCases = labResults.filter(result => result.result === "resolved");
+  const criticalCases = labResults.filter(result => result.result === "positive" && result.notes !== "Patient moved to isolation room. Previously marked as positive.");
+  const resolvedCases = labResults.filter(result => result.result === "resolved" || (result.result === "positive" && result.notes === "Patient moved to isolation room. Previously marked as positive."));
   
   const extractPatientId = (patientIdStr: string): string => {
     try {
