@@ -1,7 +1,5 @@
-
 import { useIsMobile } from "@/hooks/use-mobile";
 import LoginForm from "@/components/LoginForm";
-import Image from "@/components/ui/image";
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -40,4 +38,3 @@ const Index = () => {
 };
 
 export default Index;
-
