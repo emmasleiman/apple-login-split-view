@@ -16,11 +16,12 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-red-500 text-white hover:bg-red-600",
         outline: "text-foreground bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200",
-        // Adding new variants that match patient status types
+        // Patient status types
         clear: "border-transparent bg-green-500 text-white hover:bg-green-600",
         pending: "border-transparent bg-amber-500 text-white hover:bg-amber-600",
         critical: "border-transparent bg-red-500 text-white hover:bg-red-600",
-        discharged: "border-transparent bg-gray-400 text-white hover:bg-gray-500",
+        discharged: "border-transparent bg-blue-400 text-white hover:bg-blue-500", // Changed from gray to blue
+        active: "border-transparent bg-green-500 text-white hover:bg-green-600", // Added for active patients
       },
     },
     defaultVariants: {

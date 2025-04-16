@@ -99,21 +99,22 @@ const AdminDashboard = () => {
   const queryClient = useQueryClient();
   const [patientIdFilter, setPatientIdFilter] = useState("");
   const [dischargePatientId, setDischargePatientId] = useState("");
-  const [labResult, setLabResult] = useState("");
-  const [sampleId, setSampleId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState("");
-  const [patientData, setPatientData] = useState<PatientData | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [selectedLabTest, setSelectedLabTest] = useState<LabTest | null>(null);
-  const [resistance, setResistance] = useState<"positive" | "negative" | null>(null);
   const [isPatientLogsOpen, setIsPatientLogsOpen] = useState(false);
   const [selectedPatientForLogs, setSelectedPatientForLogs] = useState<string | null>(null);
   const [patientScanLogs, setPatientScanLogs] = useState<WardScanLog[]>([]);
   const [isLoadingPatientLogs, setIsLoadingPatientLogs] = useState(false);
   const [criticalCasesLocations, setCriticalCasesLocations] = useState<Record<string, string>>({});
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [patientIdForLabResult, setPatientIdForLabResult] = useState("");
+  
+  // For the simplified lab results workflow
+  const [patientIdInput, setPatientIdInput] = useState("");
+  const [patientLabSamples, setPatientLabSamples] = useState<any[]>([]);
+  const [isLoadingPatientSamples, setIsLoadingPatientSamples] = useState(false);
+  const [selectedSample, setSelectedSample] = useState<any | null>(null);
+  const [selectedResult, setSelectedResult] = useState<"positive" | "negative" | null>(null);
+  const [showResultConfirm, setShowResultConfirm] = useState(false);
 
   const form = useForm({
     defaultValues: {
@@ -451,73 +452,110 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleLabResultSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!labResult) {
-      toast({
-        title: "Error",
-        description: "Please select a result",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!sampleId) {
-      toast({
-        title: "Error",
-        description: "Please enter a sample ID",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setShowSubmitConfirm(true);
+  const handleLogout = () => {
+    navigate("/");
   };
 
-  const confirmLabResultSubmit = async () => {
+  const handleFindPatientSamples = async () => {
+    if (!patientIdInput.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a patient ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoadingPatientSamples(true);
+    
     try {
-      setIsSubmitting(true);
-      
-      const { data: sampleExists, error: sampleCheckError } = await supabase
-        .from("lab_results")
-        .select("id, sample_id")
-        .eq("sample_id", sampleId)
+      // First check if patient exists
+      const { data: patientExists, error: patientError } = await supabase
+        .from("patients")
+        .select("id, patient_id")
+        .eq("patient_id", patientIdInput)
         .maybeSingle();
       
-      if (sampleCheckError) throw sampleCheckError;
+      if (patientError) throw patientError;
       
-      if (!sampleExists) {
+      if (!patientExists) {
         toast({
-          title: "Error",
-          description: "No sample found with the provided ID",
+          title: "Patient not found",
+          description: `No patient found with ID: ${patientIdInput}`,
           variant: "destructive",
         });
-        setIsSubmitting(false);
+        setPatientLabSamples([]);
+        setIsLoadingPatientSamples(false);
         return;
       }
+
+      // Get lab samples that need results
+      const { data: samples, error: samplesError } = await supabase
+        .from("lab_results")
+        .select("id, sample_id, collection_date, patient_id")
+        .eq("patient_id", patientExists.id)
+        .is("result", null);
       
+      if (samplesError) throw samplesError;
+      
+      setPatientLabSamples(samples || []);
+      
+      if (samples && samples.length === 0) {
+        toast({
+          title: "No pending samples",
+          description: `Patient ${patientIdInput} has no pending lab samples`,
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error("Error finding patient samples:", error);
+      toast({
+        title: "Error",
+        description: "Failed to retrieve patient samples",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPatientSamples(false);
+    }
+  };
+
+  const handleSelectSampleForResult = (sample: any, result: "positive" | "negative") => {
+    setSelectedSample(sample);
+    setSelectedResult(result);
+    setShowResultConfirm(true);
+  };
+
+  const handleConfirmLabResult = async () => {
+    if (!selectedSample || !selectedResult) return;
+    
+    setIsSubmitting(true);
+    
+    try {
       const { data, error } = await supabase
         .from("lab_results")
         .update({
-          result: labResult,
+          result: selectedResult,
           processed_by: "Administrator",
           processed_date: new Date().toISOString(),
         })
-        .eq("sample_id", sampleId)
+        .eq("id", selectedSample.id)
         .select();
       
       if (error) throw error;
       
       toast({
         title: "Success",
-        description: `Lab result updated successfully for sample ${sampleId}`,
+        description: `Lab result updated successfully for sample ${selectedSample.sample_id}`,
       });
       
-      setSampleId("");
-      setLabResult("");
-      setPatientIdForLabResult("");
-      refetchLabResults();
+      // Remove the processed sample from the list
+      setPatientLabSamples(prevSamples => 
+        prevSamples.filter(sample => sample.id !== selectedSample.id)
+      );
+      
+      // Refresh lab results data
+      queryClient.invalidateQueries({ queryKey: ['lab_results'] });
+      
     } catch (error) {
       console.error("Error updating lab result:", error);
       toast({
@@ -527,7 +565,9 @@ const AdminDashboard = () => {
       });
     } finally {
       setIsSubmitting(false);
-      setShowSubmitConfirm(false);
+      setShowResultConfirm(false);
+      setSelectedSample(null);
+      setSelectedResult(null);
     }
   };
 
@@ -577,10 +617,6 @@ const AdminDashboard = () => {
         variant: "destructive",
       });
     }
-  };
-
-  const handleLogout = () => {
-    navigate("/");
   };
 
   return (
@@ -749,321 +785,49 @@ const AdminDashboard = () => {
             <Card className="border-gray-100 shadow-sm mb-8">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
                 <CardTitle className="text-2xl font-normal text-gray-700">Input Lab Results</CardTitle>
-                <CardDescription>Enter lab test results for patient samples</CardDescription>
+                <CardDescription>Enter patient ID to view and update pending lab samples</CardDescription>
               </CardHeader>
               <CardContent className="p-6">
-                <form onSubmit={handleLabResultSubmit} className="space-y-6">
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="patientIdForLabResult">Patient ID</Label>
+                <div className="space-y-8">
+                  {/* Patient ID Input Section */}
+                  <div className="max-w-md">
+                    <Label htmlFor="patientIdInput" className="text-lg font-medium mb-2 block">Patient ID</Label>
+                    <div className="flex gap-3">
                       <Input
-                        id="patientIdForLabResult"
+                        id="patientIdInput"
                         placeholder="Enter patient ID"
-                        value={patientIdForLabResult}
-                        onChange={(e) => setPatientIdForLabResult(e.target.value)}
-                        className="mt-1"
-                        required
+                        value={patientIdInput}
+                        onChange={(e) => setPatientIdInput(e.target.value)}
+                        className="text-lg py-6"
                       />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="sampleId">Sample ID</Label>
-                      <Input
-                        id="sampleId"
-                        placeholder="Enter sample ID"
-                        value={sampleId}
-                        onChange={(e) => setSampleId(e.target.value)}
-                        className="mt-1"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="labResult">Result</Label>
-                      <RadioGroup 
-                        value={labResult} 
-                        onValueChange={setLabResult}
-                        className="flex space-x-4 mt-1"
-                        required
+                      <Button 
+                        onClick={handleFindPatientSamples} 
+                        disabled={isLoadingPatientSamples}
+                        className="py-6 px-6 text-lg"
                       >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="positive" id="positive" />
-                          <Label htmlFor="positive">Positive</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="negative" id="negative" />
-                          <Label htmlFor="negative">Negative</Label>
-                        </div>
-                      </RadioGroup>
+                        {isLoadingPatientSamples ? (
+                          <>
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            Searching...
+                          </>
+                        ) : (
+                          <>
+                            <Search className="h-5 w-5 mr-2" />
+                            Search
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
                   
-                  <Button type="submit" disabled={isSubmitting} className="w-full">
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      "Submit Lab Result"
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-gray-100 shadow-sm">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
-                <CardTitle className="text-2xl font-normal text-gray-700">Search Patient Lab History</CardTitle>
-                <CardDescription>Find lab results for a specific patient</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(handleSearch)} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="patientId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <Label htmlFor="patientId">Patient ID</Label>
-                          <FormControl>
-                            <div className="flex">
-                              <Input
-                                id="patientId"
-                                placeholder="Enter patient ID"
-                                {...field}
-                                className="mr-2"
-                              />
-                              <Button type="submit" disabled={isSearching}>
-                                {isSearching ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Search className="h-4 w-4" />
-                                )}
-                                <span className="ml-2">Search</span>
-                              </Button>
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </form>
-                </Form>
-                
-                {patientData && (
-                  <div className="mt-8">
-                    <h3 className="text-lg font-medium mb-4">Lab Culture Results for Patient {patientData.id}</h3>
-                    {patientData.labs.length > 0 ? (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Requested On</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Result</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {patientData.labs.map((lab) => (
-                            <TableRow key={lab.id}>
-                              <TableCell>{lab.type}</TableCell>
-                              <TableCell>{lab.requestedOn}</TableCell>
-                              <TableCell>
-                                {lab.status === "pending" ? (
-                                  <Badge variant="secondary">Pending</Badge>
-                                ) : (
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                    Completed
-                                  </Badge>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {lab.resistanceResult === "positive" ? (
-                                  <Badge variant="destructive">Positive</Badge>
-                                ) : lab.resistanceResult === "negative" ? (
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Negative</Badge>
-                                ) : (
-                                  "-"
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {lab.status === "pending" && (
-                                  <div className="flex space-x-2">
-                                    <Button 
-                                      size="sm" 
-                                      variant="destructive"
-                                      onClick={() => handleSelectLabTest(lab, "positive")}
-                                    >
-                                      Set Positive
-                                    </Button>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => handleSelectLabTest(lab, "negative")}
-                                    >
-                                      Set Negative
-                                    </Button>
-                                  </div>
-                                )}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <div className="text-center py-8 border rounded-md bg-gray-50">
-                        <p className="text-gray-500">No lab cultures found for this patient.</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="allPatients">
-            <Card className="border-gray-100 shadow-sm">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
-                <CardTitle className="text-2xl font-normal text-gray-700">All Patients</CardTitle>
-                <div className="flex items-center mt-2">
-                  <Input
-                    placeholder="Filter by patient ID..."
-                    value={patientIdFilter}
-                    onChange={(e) => setPatientIdFilter(e.target.value)}
-                    className="max-w-sm"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                {isLoadingPatients ? (
-                  <div className="flex justify-center py-10">
-                    <div className="animate-pulse text-gray-500">Loading patients...</div>
-                  </div>
-                ) : filteredPatients.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration Date</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discharge Date</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">View Location History</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredPatients.map((patient) => (
-                          <tr key={patient.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{patient.patient_id}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <Badge variant={patient.status === "active" ? "clear" : "discharged"} className="px-3 py-1">
-                                {patient.status}
-                              </Badge>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {format(new Date(patient.registration_date), 'MMM dd, yyyy')}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {patient.discharge_date ? format(new Date(patient.discharge_date), 'MMM dd, yyyy') : '-'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleViewPatientLogs(patient.patient_id)}
-                                className="flex items-center gap-1"
-                              >
-                                <Clock className="h-4 w-4" />
-                                <span>View Logs</span>
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-10">
-                    <p className="text-gray-500">No patients found.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="dischargePatient">
-            <Card className="border-gray-100 shadow-sm">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
-                <CardTitle className="text-2xl font-normal text-gray-700">Discharge Patient</CardTitle>
-                <CardDescription>Update patient status to discharged</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <form onSubmit={handleDischargeSubmit} className="space-y-6 max-w-md mx-auto">
-                  <div>
-                    <Label htmlFor="dischargePatientId">Patient ID</Label>
-                    <Input
-                      id="dischargePatientId"
-                      placeholder="Enter patient ID to discharge"
-                      value={dischargePatientId}
-                      onChange={(e) => setDischargePatientId(e.target.value)}
-                      className="mt-1"
-                      required
-                    />
-                  </div>
-                  
-                  <Button type="submit" className="w-full">
-                    Discharge Patient
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      {isPatientLogsOpen && selectedPatientForLogs && (
-        <PatientScanLogs 
-          open={isPatientLogsOpen}
-          onOpenChange={setIsPatientLogsOpen}
-          patientId={selectedPatientForLogs}
-          scanLogs={patientScanLogs}
-          isLoading={isLoadingPatientLogs}
-        />
-      )}
-      
-      <AlertDialog open={showSubmitConfirm} onOpenChange={setShowSubmitConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Lab Result Submission</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to submit the following lab result?
-              <div className="mt-4 space-y-2">
-                <div className="flex justify-between">
-                  <span className="font-medium">Patient ID:</span>
-                  <span>{patientIdForLabResult}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Sample ID:</span>
-                  <span>{sampleId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Result:</span>
-                  <span className={labResult === "positive" ? "text-red-600 font-medium" : "text-green-600 font-medium"}>
-                    {labResult === "positive" ? "Positive" : "Negative"}
-                  </span>
-                </div>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmLabResultSubmit}>Confirm</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-};
-
-export default AdminDashboard;
+                  {/* Results Section */}
+                  {patientLabSamples.length > 0 && (
+                    <div className="mt-8">
+                      <h3 className="text-xl font-medium mb-4">Pending Lab Samples</h3>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample ID</th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Collection Date</th>
+                              <th scope="col" className="px-6 py-3
