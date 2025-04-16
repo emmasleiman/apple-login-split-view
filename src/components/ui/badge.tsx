@@ -20,8 +20,9 @@ const badgeVariants = cva(
         clear: "border-transparent bg-green-500 text-white hover:bg-green-600",
         pending: "border-transparent bg-amber-500 text-white hover:bg-amber-600",
         critical: "border-transparent bg-red-500 text-white hover:bg-red-600",
-        discharged: "border-transparent bg-blue-400 text-white hover:bg-blue-500", // Changed from gray to blue
-        active: "border-transparent bg-green-500 text-white hover:bg-green-600", // Added for active patients
+        discharged: "border-transparent bg-blue-400 text-white hover:bg-blue-500",
+        active: "border-transparent bg-green-500 text-white hover:bg-green-600",
+        admitted: "border-transparent bg-green-500 text-white hover:bg-green-600",
       },
     },
     defaultVariants: {

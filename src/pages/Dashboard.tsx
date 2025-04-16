@@ -12,6 +12,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import LogoutButton from "@/components/LogoutButton";
 import DashboardHeader from "@/components/DashboardHeader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Patient = {
   id: string;
@@ -37,6 +47,7 @@ const Dashboard = () => {
   const [dischargePatientId, setDischargePatientId] = useState("");
   const [patientExists, setPatientExists] = useState(false);
   const [existingPatientData, setExistingPatientData] = useState<Patient | null>(null);
+  const [showDischargeConfirm, setShowDischargeConfirm] = useState(false);
 
   const { refetch: checkPatientExists } = useQuery({
     queryKey: ["checkPatient", patientId],
@@ -233,6 +244,7 @@ const Dashboard = () => {
         description: `Patient ${dischargePatientId} discharged successfully`,
       });
       setDischargePatientId("");
+      setShowDischargeConfirm(false);
     },
     onError: (error) => {
       console.error("Error discharging patient:", error);
@@ -241,6 +253,7 @@ const Dashboard = () => {
         description: "Failed to discharge patient. Patient may not exist.",
         variant: "destructive",
       });
+      setShowDischargeConfirm(false);
     }
   });
 
@@ -315,6 +328,7 @@ const Dashboard = () => {
 
   const handleDischargeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!dischargePatientId.trim()) {
       toast({
         title: "Error",
@@ -324,6 +338,10 @@ const Dashboard = () => {
       return;
     }
 
+    setShowDischargeConfirm(true);
+  };
+
+  const confirmDischarge = () => {
     dischargePatient(dischargePatientId);
   };
 
@@ -513,6 +531,27 @@ const Dashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Patient Discharge</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to discharge patient with ID: <strong>{dischargePatientId}</strong>?
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmDischarge}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Yes, Discharge Patient
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

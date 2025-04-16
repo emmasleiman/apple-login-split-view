@@ -1,7 +1,6 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Users, FileText, Search, Loader2, Clock, CheckCircle } from "lucide-react";
+import { AlertTriangle, Users, FileText, Search, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -108,11 +107,8 @@ const AdminDashboard = () => {
   const [isLoadingPatientLogs, setIsLoadingPatientLogs] = useState(false);
   const [criticalCasesLocations, setCriticalCasesLocations] = useState<Record<string, string>>({});
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [patientData, setPatientData] = useState<PatientData | null>(null);
-  const [selectedLabTest, setSelectedLabTest] = useState<LabTest | null>(null);
-  const [resistance, setResistance] = useState<string | null>(null);
+  const [showDischargeConfirm, setShowDischargeConfirm] = useState(false);
   
-  // For the simplified lab results workflow
   const [patientIdInput, setPatientIdInput] = useState("");
   const [patientLabSamples, setPatientLabSamples] = useState<any[]>([]);
   const [isLoadingPatientSamples, setIsLoadingPatientSamples] = useState(false);
@@ -473,7 +469,6 @@ const AdminDashboard = () => {
     setIsLoadingPatientSamples(true);
     
     try {
-      // First check if patient exists
       const { data: patientExists, error: patientError } = await supabase
         .from("patients")
         .select("id, patient_id")
@@ -493,7 +488,6 @@ const AdminDashboard = () => {
         return;
       }
 
-      // Get lab samples that need results
       const { data: samples, error: samplesError } = await supabase
         .from("lab_results")
         .select("id, sample_id, collection_date, patient_id")
@@ -552,12 +546,10 @@ const AdminDashboard = () => {
         description: `Lab result updated successfully for sample ${selectedSample.sample_id}`,
       });
       
-      // Remove the processed sample from the list
       setPatientLabSamples(prevSamples => 
         prevSamples.filter(sample => sample.id !== selectedSample.id)
       );
       
-      // Refresh lab results data
       queryClient.invalidateQueries({ queryKey: ['lab_results'] });
       
     } catch (error) {
@@ -587,6 +579,10 @@ const AdminDashboard = () => {
       return;
     }
 
+    setShowDischargeConfirm(true);
+  };
+
+  const confirmDischarge = async () => {
     try {
       const { data, error } = await supabase
         .from("patients")
@@ -620,6 +616,8 @@ const AdminDashboard = () => {
         description: "Failed to discharge patient",
         variant: "destructive",
       });
+    } finally {
+      setShowDischargeConfirm(false);
     }
   };
 
@@ -793,7 +791,6 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-8">
-                  {/* Patient ID Input Section */}
                   <div className="max-w-md">
                     <Label htmlFor="patientIdInput" className="text-lg font-medium mb-2 block">Patient ID</Label>
                     <div className="flex gap-3">
@@ -824,7 +821,6 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   
-                  {/* Results Section */}
                   {patientLabSamples.length > 0 && (
                     <div className="mt-8">
                       <h3 className="text-xl font-medium mb-4">Pending Lab Samples</h3>
@@ -954,26 +950,26 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="dischargePatient">
-            <Card className="border-gray-100 shadow-sm">
+            <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
                 <CardTitle className="text-2xl font-normal text-gray-700">Discharge Patient</CardTitle>
-                <CardDescription>Enter patient ID to discharge a patient</CardDescription>
               </CardHeader>
-              <CardContent className="p-6">
-                <form onSubmit={handleDischargeSubmit} className="space-y-6 max-w-md">
+              <CardContent className="pt-6">
+                <form onSubmit={handleDischargeSubmit} className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="dischargePatientId" className="text-lg font-medium">Patient ID</Label>
+                    <Label htmlFor="dischargePatientId" className="text-base text-gray-700">Enter Patient ID to Discharge</Label>
                     <Input
                       id="dischargePatientId"
                       value={dischargePatientId}
                       onChange={(e) => setDischargePatientId(e.target.value)}
-                      placeholder="Enter patient ID"
-                      className="text-lg py-6"
+                      className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base"
+                      placeholder="e.g. P12345"
                     />
                   </div>
+
                   <Button 
                     type="submit" 
-                    className="py-6 px-8 text-lg"
+                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
                   >
                     Discharge Patient
                   </Button>
@@ -1019,6 +1015,27 @@ const AdminDashboard = () => {
               ) : (
                 'Confirm'
               )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Patient Discharge</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to discharge patient with ID: <strong>{dischargePatientId}</strong>?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDischarge}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Yes, Discharge Patient
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
