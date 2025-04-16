@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Users, FileText, Search, Loader2, Clock, CheckCircle } from "lucide-react";
@@ -107,6 +108,9 @@ const AdminDashboard = () => {
   const [isLoadingPatientLogs, setIsLoadingPatientLogs] = useState(false);
   const [criticalCasesLocations, setCriticalCasesLocations] = useState<Record<string, string>>({});
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [patientData, setPatientData] = useState<PatientData | null>(null);
+  const [selectedLabTest, setSelectedLabTest] = useState<LabTest | null>(null);
+  const [resistance, setResistance] = useState<string | null>(null);
   
   // For the simplified lab results workflow
   const [patientIdInput, setPatientIdInput] = useState("");
@@ -830,4 +834,197 @@ const AdminDashboard = () => {
                             <tr>
                               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample ID</th>
                               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Collection Date</th>
-                              <th scope="col" className="px-6 py-3
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {patientLabSamples.map((sample) => (
+                              <tr key={sample.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sample.sample_id}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {format(new Date(sample.collection_date), 'MMM dd, yyyy')}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex space-x-3">
+                                    <Button
+                                      onClick={() => handleSelectSampleForResult(sample, "negative")}
+                                      variant="outline"
+                                      className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-1" />
+                                      Susceptible
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleSelectSampleForResult(sample, "positive")}
+                                      variant="outline"
+                                      className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                                    >
+                                      <AlertTriangle className="h-4 w-4 mr-1" />
+                                      Resistant
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="allPatients">
+            <Card className="border-gray-100 shadow-sm">
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+                <CardTitle className="text-2xl font-normal text-gray-700">All Patients</CardTitle>
+                <div className="pt-4">
+                  <div className="relative max-w-sm">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                    <Input
+                      type="search"
+                      placeholder="Search patients by ID..."
+                      value={patientIdFilter}
+                      onChange={(e) => setPatientIdFilter(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                {isLoadingPatients ? (
+                  <div className="flex justify-center py-10">
+                    <div className="animate-pulse text-gray-500">Loading patients...</div>
+                  </div>
+                ) : filteredPatients.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Patient ID</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Registration Date</TableHead>
+                          <TableHead>Discharge Date</TableHead>
+                          <TableHead>Culture Required</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredPatients.map((patient) => (
+                          <TableRow key={patient.id} className="cursor-pointer hover:bg-gray-50">
+                            <TableCell className="font-medium">{patient.patient_id}</TableCell>
+                            <TableCell>
+                              <Badge variant={patient.status === "discharged" ? "discharged" : "active"}>
+                                {patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(patient.registration_date), 'MMM dd, yyyy')}
+                            </TableCell>
+                            <TableCell>
+                              {patient.discharge_date ? format(new Date(patient.discharge_date), 'MMM dd, yyyy') : '-'}
+                            </TableCell>
+                            <TableCell>
+                              {patient.culture_required ? 'Yes' : 'No'}
+                            </TableCell>
+                            <TableCell>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleViewPatientLogs(patient.patient_id)}
+                                className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                              >
+                                View Location History
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-10">
+                    <p className="text-gray-500">No patients found.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="dischargePatient">
+            <Card className="border-gray-100 shadow-sm">
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+                <CardTitle className="text-2xl font-normal text-gray-700">Discharge Patient</CardTitle>
+                <CardDescription>Enter patient ID to discharge a patient</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <form onSubmit={handleDischargeSubmit} className="space-y-6 max-w-md">
+                  <div className="space-y-2">
+                    <Label htmlFor="dischargePatientId" className="text-lg font-medium">Patient ID</Label>
+                    <Input
+                      id="dischargePatientId"
+                      value={dischargePatientId}
+                      onChange={(e) => setDischargePatientId(e.target.value)}
+                      placeholder="Enter patient ID"
+                      className="text-lg py-6"
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="py-6 px-8 text-lg"
+                  >
+                    Discharge Patient
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      <PatientScanLogs
+        open={isPatientLogsOpen}
+        onOpenChange={setIsPatientLogsOpen}
+        patientId={selectedPatientForLogs}
+        scanLogs={patientScanLogs}
+        isLoading={isLoadingPatientLogs}
+      />
+
+      <AlertDialog open={showResultConfirm} onOpenChange={setShowResultConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Lab Result</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark sample <strong>{selectedSample?.sample_id}</strong> as{' '}
+              <span className={selectedResult === 'positive' ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
+                {selectedResult === 'positive' ? 'Resistant' : 'Susceptible'}
+              </span>?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmLabResult}
+              disabled={isSubmitting}
+              className={selectedResult === 'positive' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Confirm'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default AdminDashboard;
