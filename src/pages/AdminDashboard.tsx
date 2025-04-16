@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Users, FileText, Search, Loader2, Clock, CheckCircle } from "lucide-react";
@@ -19,6 +18,16 @@ import PatientScanLogs from "@/components/PatientScanLogs";
 import DashboardHeader from "@/components/DashboardHeader";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Patient = {
   id: string;
@@ -91,7 +100,6 @@ const AdminDashboard = () => {
   const [patientIdFilter, setPatientIdFilter] = useState("");
   const [dischargePatientId, setDischargePatientId] = useState("");
   const [labResult, setLabResult] = useState("");
-  const [labTechName, setLabTechName] = useState("");
   const [sampleId, setSampleId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState("");
@@ -104,6 +112,8 @@ const AdminDashboard = () => {
   const [patientScanLogs, setPatientScanLogs] = useState<WardScanLog[]>([]);
   const [isLoadingPatientLogs, setIsLoadingPatientLogs] = useState(false);
   const [criticalCasesLocations, setCriticalCasesLocations] = useState<Record<string, string>>({});
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [patientIdForLabResult, setPatientIdForLabResult] = useState("");
 
   const form = useForm({
     defaultValues: {
@@ -444,10 +454,10 @@ const AdminDashboard = () => {
   const handleLabResultSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!labTechName || !labResult) {
+    if (!labResult) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please select a result",
         variant: "destructive",
       });
       return;
@@ -462,6 +472,10 @@ const AdminDashboard = () => {
       return;
     }
     
+    setShowSubmitConfirm(true);
+  };
+
+  const confirmLabResultSubmit = async () => {
     try {
       setIsSubmitting(true);
       
@@ -487,7 +501,7 @@ const AdminDashboard = () => {
         .from("lab_results")
         .update({
           result: labResult,
-          processed_by: labTechName,
+          processed_by: "Administrator",
           processed_date: new Date().toISOString(),
         })
         .eq("sample_id", sampleId)
@@ -502,7 +516,7 @@ const AdminDashboard = () => {
       
       setSampleId("");
       setLabResult("");
-      setLabTechName("");
+      setPatientIdForLabResult("");
       refetchLabResults();
     } catch (error) {
       console.error("Error updating lab result:", error);
@@ -513,6 +527,7 @@ const AdminDashboard = () => {
       });
     } finally {
       setIsSubmitting(false);
+      setShowSubmitConfirm(false);
     }
   };
 
@@ -586,13 +601,6 @@ const AdminDashboard = () => {
             >
               <AlertTriangle className="h-5 w-5" />
               Critical Cases
-            </TabsTrigger>
-            <TabsTrigger 
-              value="resolvedCases" 
-              className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-lg py-3 flex-1 flex items-center justify-center gap-2"
-            >
-              <CheckCircle className="h-5 w-5" />
-              Resolved Cases
             </TabsTrigger>
             <TabsTrigger 
               value="inputLabResults" 
@@ -737,68 +745,6 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="resolvedCases">
-            <Card className="border-gray-100 shadow-sm mb-8">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
-                <CardTitle className="text-2xl font-normal text-gray-700">Resolved Cases - Previously Positive</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                {isLoadingLabResults || isLoadingWardScanLogs ? (
-                  <div className="flex justify-center py-10">
-                    <div className="animate-pulse text-gray-500">Loading resolved cases...</div>
-                  </div>
-                ) : enhancedResolvedCases.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample ID</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Collection Date</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Result</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed By</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Location</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {enhancedResolvedCases.map((result) => (
-                          <tr key={result.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{result.sample_id}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{result.patients?.patient_id}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {format(new Date(result.collection_date), 'MMM dd, yyyy')}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 px-3 py-1">Resolved</Badge>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{result.processed_by}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {result.lastLocation ? (
-                                <Badge variant={result.lastLocation === 'isolation_room' ? "secondary" : "outline"} className="px-3 py-1">
-                                  {result.lastLocation}
-                                </Badge>
-                              ) : (
-                                <span className="text-gray-400 text-sm">Not scanned yet</span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {result.notes}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-10">
-                    <p className="text-gray-500">No resolved cases found.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="inputLabResults">
             <Card className="border-gray-100 shadow-sm mb-8">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
@@ -808,6 +754,18 @@ const AdminDashboard = () => {
               <CardContent className="p-6">
                 <form onSubmit={handleLabResultSubmit} className="space-y-6">
                   <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="patientIdForLabResult">Patient ID</Label>
+                      <Input
+                        id="patientIdForLabResult"
+                        placeholder="Enter patient ID"
+                        value={patientIdForLabResult}
+                        onChange={(e) => setPatientIdForLabResult(e.target.value)}
+                        className="mt-1"
+                        required
+                      />
+                    </div>
+                    
                     <div>
                       <Label htmlFor="sampleId">Sample ID</Label>
                       <Input
@@ -837,18 +795,6 @@ const AdminDashboard = () => {
                           <Label htmlFor="negative">Negative</Label>
                         </div>
                       </RadioGroup>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="labTechName">Lab Technician Name</Label>
-                      <Input
-                        id="labTechName"
-                        placeholder="Enter your name"
-                        value={labTechName}
-                        onChange={(e) => setLabTechName(e.target.value)}
-                        className="mt-1"
-                        required
-                      />
                     </div>
                   </div>
                   
@@ -1011,7 +957,7 @@ const AdminDashboard = () => {
                           <tr key={patient.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{patient.patient_id}</td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <Badge variant={patient.status === "active" ? "outline" : "secondary"} className="px-3 py-1">
+                              <Badge variant={patient.status === "active" ? "clear" : "discharged"} className="px-3 py-1">
                                 {patient.status}
                               </Badge>
                             </td>
@@ -1085,6 +1031,37 @@ const AdminDashboard = () => {
           isLoading={isLoadingPatientLogs}
         />
       )}
+      
+      <AlertDialog open={showSubmitConfirm} onOpenChange={setShowSubmitConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Lab Result Submission</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to submit the following lab result?
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-between">
+                  <span className="font-medium">Patient ID:</span>
+                  <span>{patientIdForLabResult}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Sample ID:</span>
+                  <span>{sampleId}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Result:</span>
+                  <span className={labResult === "positive" ? "text-red-600 font-medium" : "text-green-600 font-medium"}>
+                    {labResult === "positive" ? "Positive" : "Negative"}
+                  </span>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLabResultSubmit}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
