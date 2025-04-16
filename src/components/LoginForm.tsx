@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -186,7 +185,7 @@ const LoginForm = () => {
             <button 
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-5 top-5 text-gray-500 hover:text-gray-800 transition-colors"
+              className="absolute right-5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-800 transition-colors"
             >
               {showPassword ? <EyeOff size={26} /> : <Eye size={26} />}
             </button>

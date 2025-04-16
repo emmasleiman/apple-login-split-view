@@ -1,6 +1,7 @@
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import LoginForm from "@/components/LoginForm";
+import Image from "@/components/ui/image";
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -26,7 +27,11 @@ const Index = () => {
       {/* Login Form Section - Right Side on desktop, Bottom on mobile */}
       <div className="md:w-1/2 flex-1 bg-white flex flex-col items-center justify-center">
         <div className="w-full max-w-md px-6">
-          <h1 className="text-3xl md:text-4xl text-gray-800 font-light mb-12 tracking-tight">TraceMed</h1>
+          <img 
+            src="/lovable-uploads/3fa4235d-815a-4a5e-96df-a97a1d7312ea.png" 
+            alt="TraceMed Logo" 
+            className="h-16 mb-12 mx-auto"
+          />
           <LoginForm />
         </div>
       </div>
@@ -35,3 +40,4 @@ const Index = () => {
 };
 
 export default Index;
+
