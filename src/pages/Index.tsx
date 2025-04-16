@@ -11,8 +11,8 @@ const Index = () => {
       <div className="md:w-1/2 h-[300px] md:h-screen relative overflow-hidden">
         {/* Base image */}
         <img 
-          src="/lovable-uploads/ce99aa03-eacd-4145-81c7-14be1222a55d.png"
-          alt="Serene landscape"
+          src="/lovable-uploads/6e4d5ba9-b898-4255-93c1-5d3d0a7f7c28.png"
+          alt="Arched window with scenic view"
           className="w-full h-full object-cover"
         />
         
@@ -21,11 +21,6 @@ const Index = () => {
         
         {/* Dark gradient overlay to improve text visibility */}
         <div className="absolute inset-0 bg-gradient-to-t from-gray-900/40 to-transparent"></div>
-        
-        {/* Text overlay */}
-        <div className="absolute bottom-8 left-8 text-white">
-          <h2 className="text-3xl md:text-4xl font-light tracking-tight">TraceMed</h2>
-        </div>
       </div>
       
       {/* Login Form Section - Right Side on desktop, Bottom on mobile */}
