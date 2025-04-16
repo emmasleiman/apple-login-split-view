@@ -1,4 +1,3 @@
-
 import { useIsMobile } from "@/hooks/use-mobile";
 import LoginForm from "@/components/LoginForm";
 
@@ -29,7 +28,7 @@ const Index = () => {
           <img 
             src="/lovable-uploads/3fa4235d-815a-4a5e-96df-a97a1d7312ea.png" 
             alt="TraceMed Logo" 
-            className="h-24 mb-12 mx-auto" // Increased height from h-16 to h-24
+            className="h-48 mb-16 mx-auto object-contain"
           />
           <LoginForm />
         </div>
@@ -39,4 +38,3 @@ const Index = () => {
 };
 
 export default Index;
-
