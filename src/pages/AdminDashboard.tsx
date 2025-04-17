@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Users, FileText, Search, Loader2, Clock, CheckCircle } from "lucide-react";
@@ -94,7 +93,6 @@ type CriticalCaseWithLocation = LabResult & {
   notes?: string | null;
 };
 
-// Define the type for the lab sample that needs to be processed
 type PatientLabSample = {
   id: string;
   sample_id: string;
@@ -118,7 +116,6 @@ const AdminDashboard = () => {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showDischargeConfirm, setShowDischargeConfirm] = useState(false);
   
-  // Add missing state variables
   const [patientData, setPatientData] = useState<PatientData | null>(null);
   const [selectedLabTest, setSelectedLabTest] = useState<LabTest | null>(null);
   const [resistance, setResistance] = useState<string | null>(null);
@@ -999,7 +996,6 @@ const AdminDashboard = () => {
         </Tabs>
       </div>
 
-      {/* Alert Dialogs */}
       <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1062,8 +1058,8 @@ const AdminDashboard = () => {
       </AlertDialog>
       
       <PatientScanLogs
-        isOpen={isPatientLogsOpen}
-        setIsOpen={setIsPatientLogsOpen}
+        open={isPatientLogsOpen}
+        onOpenChange={setIsPatientLogsOpen}
         patientId={selectedPatientForLogs || ""}
         scanLogs={patientScanLogs}
         isLoading={isLoadingPatientLogs}
