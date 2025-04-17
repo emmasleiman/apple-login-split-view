@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Users, FileText, Search, Loader2 } from "lucide-react";
+import { AlertTriangle, Users, FileText, Search, Loader2, Clock, CheckCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -109,12 +109,18 @@ const AdminDashboard = () => {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showDischargeConfirm, setShowDischargeConfirm] = useState(false);
   
+  // For the simplified lab results workflow
   const [patientIdInput, setPatientIdInput] = useState("");
   const [patientLabSamples, setPatientLabSamples] = useState<any[]>([]);
   const [isLoadingPatientSamples, setIsLoadingPatientSamples] = useState(false);
   const [selectedSample, setSelectedSample] = useState<any | null>(null);
   const [selectedResult, setSelectedResult] = useState<"positive" | "negative" | null>(null);
   const [showResultConfirm, setShowResultConfirm] = useState(false);
+  
+  // Add missing state variables
+  const [patientData, setPatientData] = useState<PatientData | null>(null);
+  const [selectedLabTest, setSelectedLabTest] = useState<LabTest | null>(null);
+  const [resistance, setResistance] = useState<string | null>(null);
 
   const form = useForm({
     defaultValues: {
@@ -469,6 +475,7 @@ const AdminDashboard = () => {
     setIsLoadingPatientSamples(true);
     
     try {
+      // First check if patient exists
       const { data: patientExists, error: patientError } = await supabase
         .from("patients")
         .select("id, patient_id")
@@ -488,6 +495,7 @@ const AdminDashboard = () => {
         return;
       }
 
+      // Get lab samples that need results
       const { data: samples, error: samplesError } = await supabase
         .from("lab_results")
         .select("id, sample_id, collection_date, patient_id")
@@ -546,10 +554,12 @@ const AdminDashboard = () => {
         description: `Lab result updated successfully for sample ${selectedSample.sample_id}`,
       });
       
+      // Remove the processed sample from the list
       setPatientLabSamples(prevSamples => 
         prevSamples.filter(sample => sample.id !== selectedSample.id)
       );
       
+      // Refresh lab results data
       queryClient.invalidateQueries({ queryKey: ['lab_results'] });
       
     } catch (error) {
@@ -791,6 +801,7 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-8">
+                  {/* Patient ID Input Section */}
                   <div className="max-w-md">
                     <Label htmlFor="patientIdInput" className="text-lg font-medium mb-2 block">Patient ID</Label>
                     <div className="flex gap-3">
@@ -821,227 +832,9 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   
+                  {/* Results Section */}
                   {patientLabSamples.length > 0 && (
                     <div className="mt-8">
                       <h3 className="text-xl font-medium mb-4">Pending Lab Samples</h3>
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample ID</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Collection Date</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {patientLabSamples.map((sample) => (
-                              <tr key={sample.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sample.sample_id}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {format(new Date(sample.collection_date), 'MMM dd, yyyy')}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="flex space-x-3">
-                                    <Button
-                                      onClick={() => handleSelectSampleForResult(sample, "negative")}
-                                      variant="outline"
-                                      className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-                                    >
-                                      <CheckCircle className="h-4 w-4 mr-1" />
-                                      Susceptible
-                                    </Button>
-                                    <Button
-                                      onClick={() => handleSelectSampleForResult(sample, "positive")}
-                                      variant="outline"
-                                      className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
-                                    >
-                                      <AlertTriangle className="h-4 w-4 mr-1" />
-                                      Resistant
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="allPatients">
-            <Card className="border-gray-100 shadow-sm">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
-                <CardTitle className="text-2xl font-normal text-gray-700">All Patients</CardTitle>
-                <div className="pt-4">
-                  <div className="relative max-w-sm">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                    <Input
-                      type="search"
-                      placeholder="Search patients by ID..."
-                      value={patientIdFilter}
-                      onChange={(e) => setPatientIdFilter(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                {isLoadingPatients ? (
-                  <div className="flex justify-center py-10">
-                    <div className="animate-pulse text-gray-500">Loading patients...</div>
-                  </div>
-                ) : filteredPatients.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Patient ID</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Registration Date</TableHead>
-                          <TableHead>Discharge Date</TableHead>
-                          <TableHead>Culture Required</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredPatients.map((patient) => (
-                          <TableRow key={patient.id} className="cursor-pointer hover:bg-gray-50">
-                            <TableCell className="font-medium">{patient.patient_id}</TableCell>
-                            <TableCell>
-                              <Badge variant={patient.status === "discharged" ? "discharged" : "active"}>
-                                {patient.status.charAt(0).toUpperCase() + patient.status.slice(1)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {format(new Date(patient.registration_date), 'MMM dd, yyyy')}
-                            </TableCell>
-                            <TableCell>
-                              {patient.discharge_date ? format(new Date(patient.discharge_date), 'MMM dd, yyyy') : '-'}
-                            </TableCell>
-                            <TableCell>
-                              {patient.culture_required ? 'Yes' : 'No'}
-                            </TableCell>
-                            <TableCell>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleViewPatientLogs(patient.patient_id)}
-                                className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-                              >
-                                View Location History
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="text-center py-10">
-                    <p className="text-gray-500">No patients found.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="dischargePatient">
-            <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
-                <CardTitle className="text-2xl font-normal text-gray-700">Discharge Patient</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <form onSubmit={handleDischargeSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="dischargePatientId" className="text-base text-gray-700">Enter Patient ID to Discharge</Label>
-                    <Input
-                      id="dischargePatientId"
-                      value={dischargePatientId}
-                      onChange={(e) => setDischargePatientId(e.target.value)}
-                      className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base"
-                      placeholder="e.g. P12345"
-                    />
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
-                  >
-                    Discharge Patient
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      <PatientScanLogs
-        open={isPatientLogsOpen}
-        onOpenChange={setIsPatientLogsOpen}
-        patientId={selectedPatientForLogs}
-        scanLogs={patientScanLogs}
-        isLoading={isLoadingPatientLogs}
-      />
-
-      <AlertDialog open={showResultConfirm} onOpenChange={setShowResultConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Lab Result</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to mark sample <strong>{selectedSample?.sample_id}</strong> as{' '}
-              <span className={selectedResult === 'positive' ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
-                {selectedResult === 'positive' ? 'Resistant' : 'Susceptible'}
-              </span>?
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleConfirmLabResult}
-              disabled={isSubmitting}
-              className={selectedResult === 'positive' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                'Confirm'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Patient Discharge</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to discharge patient with ID: <strong>{dischargePatientId}</strong>?
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDischarge}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              Yes, Discharge Patient
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-};
-
-export default AdminDashboard;
+                        <table className="min-w-
