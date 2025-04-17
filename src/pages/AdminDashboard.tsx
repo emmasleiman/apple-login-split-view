@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Users, FileText, Search, Loader2, Clock, CheckCircle } from "lucide-react";
@@ -837,4 +838,238 @@ const AdminDashboard = () => {
                     <div className="mt-8">
                       <h3 className="text-xl font-medium mb-4">Pending Lab Samples</h3>
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample ID</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Collection Date</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {patientLabSamples.map((sample) => (
+                              <tr key={sample.id}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sample.sample_id}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {format(new Date(sample.collection_date), 'MMM dd, yyyy')}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                  <Button 
+                                    variant="default" 
+                                    size="sm"
+                                    className="bg-green-500 hover:bg-green-600"
+                                    onClick={() => handleSelectSampleForResult(sample, "negative")}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1" /> 
+                                    Negative
+                                  </Button>
+                                  <Button 
+                                    variant="destructive" 
+                                    size="sm"
+                                    onClick={() => handleSelectSampleForResult(sample, "positive")}
+                                  >
+                                    <AlertTriangle className="h-4 w-4 mr-1" />
+                                    Positive
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="allPatients">
+            <Card className="border-gray-100 shadow-sm">
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+                <CardTitle className="text-2xl font-normal text-gray-700">All Patients</CardTitle>
+                <CardDescription>Search and manage patient records</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="flex flex-col space-y-6">
+                  <div className="flex gap-3 items-end">
+                    <div className="flex-1">
+                      <Label htmlFor="patientIdFilter" className="text-sm font-medium mb-2 block">Filter by Patient ID</Label>
+                      <Input
+                        id="patientIdFilter"
+                        placeholder="Enter patient ID to filter"
+                        value={patientIdFilter}
+                        onChange={(e) => setPatientIdFilter(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    <Button variant="outline" onClick={() => setPatientIdFilter("")} className="mb-0.5">
+                      Clear Filter
+                    </Button>
+                  </div>
+                  
+                  {isLoadingPatients ? (
+                    <div className="flex justify-center py-10">
+                      <div className="animate-pulse text-gray-500">Loading patient data...</div>
+                    </div>
+                  ) : filteredPatients.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration Date</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discharge Date</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Culture Required</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {filteredPatients.map((patient) => (
+                            <tr key={patient.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{patient.patient_id}</td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <Badge variant={patient.status === "active" ? "active" : patient.status === "discharged" ? "discharged" : "pending"}>
+                                  {patient.status}
+                                </Badge>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {format(new Date(patient.registration_date), 'MMM dd, yyyy')}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {patient.discharge_date ? format(new Date(patient.discharge_date), 'MMM dd, yyyy') : "-"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {patient.culture_required ? "Yes" : "No"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => handleViewPatientLogs(patient.patient_id)}
+                                >
+                                  View Logs
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-10">
+                      <p className="text-gray-500">No patients found.</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="dischargePatient">
+            <Card className="border-gray-100 shadow-sm">
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+                <CardTitle className="text-2xl font-normal text-gray-700">Discharge Patient</CardTitle>
+                <CardDescription>Enter patient ID to discharge</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <form onSubmit={handleDischargeSubmit} className="space-y-6 max-w-md">
+                  <div>
+                    <Label htmlFor="dischargePatientId" className="text-lg font-medium mb-2 block">Patient ID</Label>
+                    <Input
+                      id="dischargePatientId"
+                      placeholder="Enter patient ID to discharge"
+                      value={dischargePatientId}
+                      onChange={(e) => setDischargePatientId(e.target.value)}
+                      className="text-lg py-6"
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="bg-blue-500 hover:bg-blue-600 text-lg py-6"
+                  >
+                    Discharge Patient
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Alert Dialogs */}
+      <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Discharge</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to discharge patient {dischargePatientId}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDischarge} 
+              className="bg-red-500 hover:bg-red-600" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : "Discharge Patient"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showResultConfirm} onOpenChange={setShowResultConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Lab Result</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark sample {selectedSample?.sample_id} as <strong>{selectedResult === 'positive' ? 'positive' : 'negative'}</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmLabResult} 
+              className={selectedResult === 'positive' ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"} 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  {selectedResult === 'positive' ? (
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                  )}
+                  Confirm {selectedResult}
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <PatientScanLogs
+        isOpen={isPatientLogsOpen}
+        setIsOpen={setIsPatientLogsOpen}
+        patientId={selectedPatientForLogs || ""}
+        scanLogs={patientScanLogs}
+        isLoading={isLoadingPatientLogs}
+      />
+    </div>
+  );
+};
+
+export default AdminDashboard;
