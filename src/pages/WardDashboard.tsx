@@ -1,11 +1,11 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Scan, Clock, CheckCircle2, History } from "lucide-react";
+import { Scan } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import QrScanner from 'react-qr-scanner';
 import LogoutButton from "@/components/LogoutButton";
@@ -24,9 +24,6 @@ const WardDashboard = () => {
   const [wardName, setWardName] = useState<string>("");
   const [wardUsername, setWardUsername] = useState<string>("");
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-  const [recentScans, setRecentScans] = useState<WardScanLog[]>([]);
-  const [scanCount, setScanCount] = useState(0);
   const scanCooldownRef = useRef(false);
   const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
@@ -64,8 +61,6 @@ const WardDashboard = () => {
       const wardData = JSON.parse(wardDataStr);
       setWardName(wardData.ward);
       setWardUsername(wardData.username);
-      
-      fetchRecentScans(wardData.ward);
     } catch (error) {
       console.error('Error parsing ward data:', error);
       navigate('/');
@@ -77,30 +72,6 @@ const WardDashboard = () => {
       }
     };
   }, [navigate, toast]);
-  
-  const fetchRecentScans = async (ward: string) => {
-    try {
-      console.log('Fetching recent scans for ward:', ward);
-      
-      const { data, error } = await supabase
-        .from('ward_scan_logs')
-        .select('*')
-        .eq('ward', ward)
-        .order('scanned_at', { ascending: false })
-        .limit(10) as { data: WardScanLog[] | null, error: any };
-      
-      if (error) {
-        console.error('Error fetching scan logs:', error);
-        return;
-      }
-      
-      console.log('Scans fetched:', data);
-      setRecentScans(data || []);
-      setScanCount(data ? data.length : 0);
-    } catch (error) {
-      console.error('Error fetching scan logs:', error);
-    }
-  };
   
   const updatePatientLabStatus = async (patientId: string) => {
     try {
@@ -160,8 +131,6 @@ const WardDashboard = () => {
     
     scanCooldownRef.current = true;
     console.log('QR scan detected:', data.text);
-    
-    setIsScanning(false);
     
     try {
       const qrData = data.text.trim();
@@ -305,7 +274,6 @@ const WardDashboard = () => {
         }
       }
       
-      fetchRecentScans(wardName);
       setIsScannerOpen(false);
     } catch (error) {
       console.error('Error processing scan:', error);
@@ -349,11 +317,6 @@ const WardDashboard = () => {
     });
   };
   
-  const formatDateTime = (dateTimeStr: string) => {
-    const dateTime = new Date(dateTimeStr);
-    return dateTime.toLocaleString();
-  };
-  
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="mx-auto max-w-5xl">
@@ -363,58 +326,14 @@ const WardDashboard = () => {
               Ward Dashboard - {wardName}
             </h1>
             <p className="text-gray-600 mt-1">
-              Scan patient QR codes and view recent scans
+              Scan patient QR codes to update their location
             </p>
           </div>
           
           <LogoutButton />
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle>Recent Patient Scans</CardTitle>
-              <CardDescription>Latest patient QR codes scanned in this ward</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentScans.length > 0 ? (
-                <div className="space-y-4">
-                  {recentScans.map((scan) => (
-                    <div key={scan.id} className="flex items-center p-3 border rounded-md bg-white">
-                      <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-4">
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div className="flex-grow">
-                        <h4 className="font-medium">Patient ID: {extractPatientId(scan.patient_id)}</h4>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Clock className="h-3.5 w-3.5 mr-1" />
-                          {formatDateTime(scan.scanned_at)}
-                          {scan.patient_id.includes("wristband") && (
-                            <span className="ml-2 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">Wristband</span>
-                          )}
-                          {scan.patient_id.includes("culture") && (
-                            <span className="ml-2 px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded">Culture</span>
-                          )}
-                          {scan.patient_id.includes("other") && (
-                            <span className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 text-gray-700 rounded">Other</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <History className="h-10 w-10 mx-auto mb-3 text-gray-400" />
-                  <p>No scans recorded yet</p>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <p className="text-sm text-gray-500">Total scans today: {scanCount}</p>
-            </CardFooter>
-          </Card>
-          
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>QR Code Scanner</CardTitle>
