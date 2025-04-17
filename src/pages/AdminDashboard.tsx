@@ -109,15 +109,6 @@ const AdminDashboard = () => {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showDischargeConfirm, setShowDischargeConfirm] = useState(false);
   
-  // For the simplified lab results workflow
-  const [patientIdInput, setPatientIdInput] = useState("");
-  const [patientLabSamples, setPatientLabSamples] = useState<any[]>([]);
-  const [isLoadingPatientSamples, setIsLoadingPatientSamples] = useState(false);
-  const [selectedSample, setSelectedSample] = useState<any | null>(null);
-  const [selectedResult, setSelectedResult] = useState<"positive" | "negative" | null>(null);
-  const [showResultConfirm, setShowResultConfirm] = useState(false);
-  
-  // Add missing state variables
   const [patientData, setPatientData] = useState<PatientData | null>(null);
   const [selectedLabTest, setSelectedLabTest] = useState<LabTest | null>(null);
   const [resistance, setResistance] = useState<string | null>(null);
@@ -475,7 +466,6 @@ const AdminDashboard = () => {
     setIsLoadingPatientSamples(true);
     
     try {
-      // First check if patient exists
       const { data: patientExists, error: patientError } = await supabase
         .from("patients")
         .select("id, patient_id")
@@ -495,7 +485,6 @@ const AdminDashboard = () => {
         return;
       }
 
-      // Get lab samples that need results
       const { data: samples, error: samplesError } = await supabase
         .from("lab_results")
         .select("id, sample_id, collection_date, patient_id")
@@ -554,12 +543,10 @@ const AdminDashboard = () => {
         description: `Lab result updated successfully for sample ${selectedSample.sample_id}`,
       });
       
-      // Remove the processed sample from the list
       setPatientLabSamples(prevSamples => 
         prevSamples.filter(sample => sample.id !== selectedSample.id)
       );
       
-      // Refresh lab results data
       queryClient.invalidateQueries({ queryKey: ['lab_results'] });
       
     } catch (error) {
@@ -801,7 +788,6 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-8">
-                  {/* Patient ID Input Section */}
                   <div className="max-w-md">
                     <Label htmlFor="patientIdInput" className="text-lg font-medium mb-2 block">Patient ID</Label>
                     <div className="flex gap-3">
@@ -832,9 +818,112 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   
-                  {/* Results Section */}
                   {patientLabSamples.length > 0 && (
                     <div className="mt-8">
                       <h3 className="text-xl font-medium mb-4">Pending Lab Samples</h3>
                       <div className="overflow-x-auto">
-                        <table className="min-w-
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample ID</th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Collection Date</th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Result</th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed By</th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Location</th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed Date</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {patientLabSamples.map(sample => (
+                              <tr key={sample.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sample.sample_id}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sample.patient_id}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {format(new Date(sample.collection_date), 'MMM dd, yyyy')}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <Badge variant="secondary" className="px-3 py-1">{sample.result || 'Pending'}</Badge>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sample.processed_by}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  {sample.lastLocation ? (
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                      {sample.lastLocation}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-gray-400 text-sm">Not scanned yet</span>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {sample.processed_date && format(new Date(sample.processed_date), 'MMM dd, yyyy HH:mm')}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="dischargePatient">
+            <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
+              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
+                <CardTitle className="text-2xl font-normal text-gray-700">Discharge Patient</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <form onSubmit={handleDischargeSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="dischargePatientId" className="text-base text-gray-700">Enter Patient ID to Discharge</Label>
+                    <Input
+                      id="dischargePatientId"
+                      value={dischargePatientId}
+                      onChange={(e) => setDischargePatientId(e.target.value)}
+                      className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base"
+                      placeholder="e.g. P12345"
+                    />
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
+                  >
+                    Discharge Patient
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+        
+        <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Patient Discharge</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to discharge patient with ID: <strong>{dischargePatientId}</strong>?
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmDischarge}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Yes, Discharge Patient
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </div>
+  );
+};
+
+export default AdminDashboard;
