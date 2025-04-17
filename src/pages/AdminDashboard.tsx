@@ -93,6 +93,14 @@ type CriticalCaseWithLocation = LabResult & {
   notes?: string | null;
 };
 
+// Define the type for the lab sample that needs to be processed
+type PatientLabSample = {
+  id: string;
+  sample_id: string;
+  collection_date: string;
+  patient_id: string;
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -109,9 +117,16 @@ const AdminDashboard = () => {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showDischargeConfirm, setShowDischargeConfirm] = useState(false);
   
+  // Add missing state variables
   const [patientData, setPatientData] = useState<PatientData | null>(null);
   const [selectedLabTest, setSelectedLabTest] = useState<LabTest | null>(null);
   const [resistance, setResistance] = useState<string | null>(null);
+  const [patientIdInput, setPatientIdInput] = useState("");
+  const [isLoadingPatientSamples, setIsLoadingPatientSamples] = useState(false);
+  const [patientLabSamples, setPatientLabSamples] = useState<PatientLabSample[]>([]);
+  const [selectedSample, setSelectedSample] = useState<PatientLabSample | null>(null);
+  const [selectedResult, setSelectedResult] = useState<"positive" | "negative" | null>(null);
+  const [showResultConfirm, setShowResultConfirm] = useState(false);
 
   const form = useForm({
     defaultValues: {
@@ -514,7 +529,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleSelectSampleForResult = (sample: any, result: "positive" | "negative") => {
+  const handleSelectSampleForResult = (sample: PatientLabSample, result: "positive" | "negative") => {
     setSelectedSample(sample);
     setSelectedResult(result);
     setShowResultConfirm(true);
@@ -822,108 +837,4 @@ const AdminDashboard = () => {
                     <div className="mt-8">
                       <h3 className="text-xl font-medium mb-4">Pending Lab Samples</h3>
                       <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sample ID</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Collection Date</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Result</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed By</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Location</th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed Date</th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {patientLabSamples.map(sample => (
-                              <tr key={sample.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sample.sample_id}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sample.patient_id}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {format(new Date(sample.collection_date), 'MMM dd, yyyy')}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <Badge variant="secondary" className="px-3 py-1">{sample.result || 'Pending'}</Badge>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sample.processed_by}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  {sample.lastLocation ? (
-                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                      {sample.lastLocation}
-                                    </Badge>
-                                  ) : (
-                                    <span className="text-gray-400 text-sm">Not scanned yet</span>
-                                  )}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {sample.processed_date && format(new Date(sample.processed_date), 'MMM dd, yyyy HH:mm')}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="dischargePatient">
-            <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
-                <CardTitle className="text-2xl font-normal text-gray-700">Discharge Patient</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <form onSubmit={handleDischargeSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="dischargePatientId" className="text-base text-gray-700">Enter Patient ID to Discharge</Label>
-                    <Input
-                      id="dischargePatientId"
-                      value={dischargePatientId}
-                      onChange={(e) => setDischargePatientId(e.target.value)}
-                      className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base"
-                      placeholder="e.g. P12345"
-                    />
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
-                  >
-                    Discharge Patient
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        
-        <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Patient Discharge</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to discharge patient with ID: <strong>{dischargePatientId}</strong>?
-                This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={confirmDischarge}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Yes, Discharge Patient
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    </div>
-  );
-};
-
-export default AdminDashboard;
+                        <table className="min-w-full divide
