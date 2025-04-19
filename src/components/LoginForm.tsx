@@ -94,14 +94,13 @@ export function LoginForm() {
       // Log unauthorized attempt if it's a ward login
       if (error.message === 'This ward account is already logged in on another device') {
         try {
+          // Using the correct schema for unauthorized_login_attempts
           await supabase
             .from('unauthorized_login_attempts')
             .insert({
-              username: values.username,
-              account_type: 'ward',
-              device_info: navigator.userAgent,
-              ip_address: 'Unavailable in client',
-              reason: 'Duplicate session attempt'
+              ward_id: values.username, // Using ward_id instead of username
+              ward_name: values.username, // Required field in the schema
+              device_info: navigator.userAgent
             });
         } catch (logError) {
           console.error('Failed to log unauthorized attempt:', logError);
@@ -131,8 +130,12 @@ export function LoginForm() {
         throw new Error('Invalid credentials');
       }
 
-      // For non-ward employees, set up session timeout if they're not a ward role
-      if (employee.role !== 'ward') {
+      // Fix the comparison - employee.role is of type "admin" | "data_encoder" | "lab_technician"
+      // We can't compare to "ward" directly since it's not in the enum
+      // Instead check if it's NOT one of the valid roles for timeout
+      const needsTimeout = ["admin", "data_encoder", "lab_technician"].includes(employee.role);
+      
+      if (needsTimeout) {
         const timeout = setTimeout(() => {
           navigate('/');
           toast({
