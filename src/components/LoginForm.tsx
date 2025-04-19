@@ -6,7 +6,6 @@ import { Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-// Define the Employee type to match our database schema
 type Employee = {
   id: string;
   first_name: string;
@@ -20,7 +19,6 @@ type Employee = {
   created_at?: string;
 }
 
-// Define the WardAccount type
 type WardAccount = {
   id: string;
   ward: string;
@@ -41,7 +39,6 @@ const LoginForm = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Special case for IT dashboard direct access - UPDATED CREDENTIALS
     if (username === 'itofficer' && password === '123456') {
       toast({
         title: "Success",
@@ -53,7 +50,6 @@ const LoginForm = () => {
     }
     
     try {
-      // First, check employee accounts
       const { data: employeeData, error: employeeError } = await supabase
         .from('employees')
         .select('*')
@@ -66,10 +62,8 @@ const LoginForm = () => {
       }
 
       if (employeeData) {
-        // Cast the data to our Employee type for safe access
         const employee = employeeData as unknown as Employee;
 
-        // Store employee data in localStorage with proper typing
         localStorage.setItem('employeeData', JSON.stringify({
           id: employee.id,
           firstName: employee.first_name,
@@ -83,7 +77,6 @@ const LoginForm = () => {
           description: `You have successfully logged in as ${employee.role.replace('_', ' ')}.`,
         });
 
-        // Navigate based on role
         switch (employee.role) {
           case 'admin':
             navigate('/admin-dashboard');
@@ -94,7 +87,7 @@ const LoginForm = () => {
           case 'lab_technician':
             navigate('/lab-dashboard');
             break;
-          case 'it_personnel': // For backward compatibility
+          case 'it_personnel':
             navigate('/it-dashboard');
             break;
           default:
@@ -104,7 +97,6 @@ const LoginForm = () => {
         return;
       }
 
-      // If not found in employees, check ward accounts
       const { data: wardData, error: wardError } = await supabase
         .from('ward_accounts')
         .select('*')
@@ -117,28 +109,67 @@ const LoginForm = () => {
       }
 
       if (wardData) {
-        // Cast the data to our WardAccount type for safe access
-        const wardAccount = wardData as unknown as WardAccount;
+        const { data: activeSession } = await supabase
+          .from('ward_active_sessions')
+          .select('*')
+          .eq('ward_id', wardData.id)
+          .single();
 
-        // Store ward account data in localStorage
+        if (activeSession) {
+          await supabase
+            .from('unauthorized_login_attempts')
+            .insert({
+              ward_id: wardData.id,
+              ward_name: wardData.ward,
+              device_info: navigator.userAgent
+            });
+
+          toast({
+            variant: "destructive",
+            title: "Access Denied",
+            description: "This ward account is currently in use on another device.",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        const sessionId = crypto.randomUUID();
+        const { error: sessionError } = await supabase
+          .from('ward_active_sessions')
+          .insert({
+            ward_id: wardData.id,
+            session_id: sessionId,
+            device_info: navigator.userAgent
+          });
+
+        if (sessionError) {
+          console.error('Session creation error:', sessionError);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to create session. Please try again.",
+          });
+          setIsLoading(false);
+          return;
+        }
+
         localStorage.setItem('wardData', JSON.stringify({
-          id: wardAccount.id,
-          ward: wardAccount.ward,
-          username: wardAccount.username
+          id: wardData.id,
+          ward: wardData.ward,
+          username: wardData.username,
+          sessionId
         }));
 
         toast({
           title: "Success",
-          description: `You have successfully logged in to ward ${wardAccount.ward}.`,
+          description: `You have successfully logged in to ward ${wardData.ward}.`,
         });
 
-        // For ward accounts, navigate to the ward dashboard
         navigate('/ward-dashboard');
         setIsLoading(false);
         return;
       }
 
-      // If we get here, no valid login was found
       toast({
         variant: "destructive",
         title: "Error",

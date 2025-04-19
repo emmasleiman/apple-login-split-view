@@ -135,23 +135,46 @@ export type Database = {
         }
         Relationships: []
       }
-      sample_types: {
+      unauthorized_login_attempts: {
         Row: {
-          description: string | null
+          attempt_time: string | null
+          cleared: boolean | null
+          cleared_at: string | null
+          cleared_by: string | null
+          device_info: string | null
           id: string
-          name: string
+          ward_id: string
+          ward_name: string
         }
         Insert: {
-          description?: string | null
+          attempt_time?: string | null
+          cleared?: boolean | null
+          cleared_at?: string | null
+          cleared_by?: string | null
+          device_info?: string | null
           id?: string
-          name: string
+          ward_id: string
+          ward_name: string
         }
         Update: {
-          description?: string | null
+          attempt_time?: string | null
+          cleared?: boolean | null
+          cleared_at?: string | null
+          cleared_by?: string | null
+          device_info?: string | null
           id?: string
-          name?: string
+          ward_id?: string
+          ward_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "unauthorized_login_attempts_ward_id_fkey"
+            columns: ["ward_id"]
+            isOneToOne: false
+            referencedRelation: "ward_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ward_accounts: {
         Row: {
@@ -176,6 +199,41 @@ export type Database = {
           ward?: string
         }
         Relationships: []
+      }
+      ward_active_sessions: {
+        Row: {
+          created_at: string | null
+          device_info: string | null
+          id: string
+          last_active: string | null
+          session_id: string
+          ward_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_info?: string | null
+          id?: string
+          last_active?: string | null
+          session_id: string
+          ward_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_info?: string | null
+          id?: string
+          last_active?: string | null
+          session_id?: string
+          ward_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ward_active_sessions_ward_id_fkey"
+            columns: ["ward_id"]
+            isOneToOne: false
+            referencedRelation: "ward_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ward_scan_logs: {
         Row: {

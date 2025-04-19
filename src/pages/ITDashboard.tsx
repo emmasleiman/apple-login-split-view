@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import LogoutButton from "@/components/LogoutButton";
 import { createWardAccount, getWardAccounts, WardAccount as WardAccountType } from "@/lib/supabase/ward-accounts";
+import { UnauthorizedLoginAttempts } from "@/components/UnauthorizedLoginAttempts";
 
 type Employee = {
   username: string;
@@ -462,6 +463,8 @@ const ITDashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
+        
+        <UnauthorizedLoginAttempts />
       </main>
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -308,7 +307,23 @@ const WardDashboard = () => {
     }
   };
   
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const wardDataStr = localStorage.getItem('wardData');
+    if (wardDataStr) {
+      try {
+        const wardData = JSON.parse(wardDataStr);
+        
+        // Remove active session
+        await supabase
+          .from('ward_active_sessions')
+          .delete()
+          .eq('ward_id', wardData.id)
+          .eq('session_id', wardData.sessionId);
+      } catch (error) {
+        console.error('Error cleaning up session:', error);
+      }
+    }
+    
     localStorage.removeItem('wardData');
     navigate('/');
     toast({
