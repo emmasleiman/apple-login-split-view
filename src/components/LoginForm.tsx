@@ -1,251 +1,229 @@
-import { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
-type Employee = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  username: string;
-  password: string;
-  role: string;
-  gender: string;
-  employee_id: string;
-  contact_number?: string | null;
-  created_at?: string;
-}
+const loginSchema = z.object({
+  username: z.string().min(3, {
+    message: "Username must be at least 3 characters.",
+  }),
+  password: z.string().min(6, {
+    message: "Password must be at least 6 characters.",
+  }),
+});
 
-type WardAccount = {
-  id: string;
-  ward: string;
-  username: string;
-  password: string;
-  created_at?: string;
-}
-
-const LoginForm = () => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  });
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    if (username === 'itofficer' && password === '123456') {
-      toast({
-        title: "Success",
-        description: "Accessing IT Dashboard with special credentials.",
-      });
-      navigate('/it-dashboard');
-      setIsLoading(false);
-      return;
-    }
-    
+  async function handleWardLogin(values: z.infer<typeof loginSchema>) {
     try {
-      const { data: employeeData, error: employeeError } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('username', username)
-        .eq('password', password)
-        .maybeSingle();
+      setIsLoading(true);
 
-      if (employeeError) {
-        console.error('Employee login error:', employeeError);
-      }
-
-      if (employeeData) {
-        const employee = employeeData as unknown as Employee;
-
-        localStorage.setItem('employeeData', JSON.stringify({
-          id: employee.id,
-          firstName: employee.first_name,
-          lastName: employee.last_name,
-          role: employee.role,
-          employeeId: employee.employee_id
-        }));
-
-        toast({
-          title: "Success",
-          description: `You have successfully logged in as ${employee.role.replace('_', ' ')}.`,
-        });
-
-        switch (employee.role) {
-          case 'admin':
-            navigate('/admin-dashboard');
-            break;
-          case 'data_encoder':
-            navigate('/dashboard');
-            break;
-          case 'lab_technician':
-            navigate('/lab-dashboard');
-            break;
-          case 'it_personnel':
-            navigate('/it-dashboard');
-            break;
-          default:
-            navigate('/dashboard');
-        }
-        setIsLoading(false);
-        return;
-      }
-
-      const { data: wardData, error: wardError } = await supabase
+      const { data: ward, error: wardError } = await supabase
         .from('ward_accounts')
         .select('*')
-        .eq('username', username)
-        .eq('password', password)
-        .maybeSingle();
+        .eq('username', values.username)
+        .eq('password', values.password)
+        .single();
 
-      if (wardError) {
-        console.error('Ward account login error:', wardError);
+      if (wardError || !ward) {
+        throw new Error('Invalid credentials');
       }
 
-      if (wardData) {
-        const { data: activeSession } = await supabase
-          .from('ward_active_sessions')
-          .select('*')
-          .eq('ward_id', wardData.id)
-          .single();
+      // Create active session
+      const { data: session, error: sessionError } = await supabase
+        .from('ward_active_sessions')
+        .insert({
+          ward_id: ward.id,
+          session_id: Math.random().toString(36).substring(2, 15),
+          device_info: navigator.userAgent,
+        })
+        .select()
+        .single();
 
-        if (activeSession) {
-          await supabase
-            .from('unauthorized_login_attempts')
-            .insert({
-              ward_id: wardData.id,
-              ward_name: wardData.ward,
-              device_info: navigator.userAgent
-            });
-
-          toast({
-            variant: "destructive",
-            title: "Access Denied",
-            description: "This ward account is currently in use on another device.",
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        const sessionId = crypto.randomUUID();
-        const { error: sessionError } = await supabase
-          .from('ward_active_sessions')
-          .insert({
-            ward_id: wardData.id,
-            session_id: sessionId,
-            device_info: navigator.userAgent
-          });
-
-        if (sessionError) {
-          console.error('Session creation error:', sessionError);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to create session. Please try again.",
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        localStorage.setItem('wardData', JSON.stringify({
-          id: wardData.id,
-          ward: wardData.ward,
-          username: wardData.username,
-          sessionId
-        }));
-
-        toast({
-          title: "Success",
-          description: `You have successfully logged in to ward ${wardData.ward}.`,
-        });
-
-        navigate('/ward-dashboard');
-        setIsLoading(false);
-        return;
+      if (sessionError || !session) {
+        throw new Error('Failed to create session');
       }
+
+      // Store ward data in local storage
+      localStorage.setItem('wardData', JSON.stringify({
+        id: ward.id,
+        username: ward.username,
+        ward: ward.ward,
+        sessionId: session.session_id,
+      }));
 
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Invalid username or password.",
+        title: "Login successful",
+        description: `Welcome, ${ward.username}!`,
       });
-    } catch (error) {
-      console.error('Login error:', error);
+
+      navigate("/ward-dashboard");
+    } catch (error: any) {
       toast({
+        title: "Login failed",
+        description: error.message,
         variant: "destructive",
-        title: "Error",
-        description: "An error occurred while trying to log in.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handleEmployeeLogin = async (values: z.infer<typeof loginSchema>) => {
+    try {
+      const { data: employee, error: employeeError } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('username', values.username)
+        .eq('password', values.password)
+        .single();
+
+      if (employeeError || !employee) {
+        throw new Error('Invalid credentials');
+      }
+
+      // Set session timeout for non-ward employees
+      if (employee.role !== 'ward') {
+        const timeout = setTimeout(() => {
+          navigate('/');
+          toast({
+            title: "Session Expired",
+            description: "You have been logged out due to inactivity.",
+          });
+        }, 60 * 60 * 1000); // 1 hour timeout
+
+        // Clear timeout on unmount
+        return () => clearTimeout(timeout);
+      }
+
+      toast({
+        title: "Login successful",
+        description: `Welcome, ${employee.username}!`,
+      });
+
+      switch (employee.role) {
+        case "admin":
+          navigate("/admin-dashboard");
+          break;
+        case "data_encoder":
+          navigate("/data-encoder-dashboard");
+          break;
+        case "lab_technician":
+          navigate("/lab-technician-dashboard");
+          break;
+        default:
+          navigate("/");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const onSubmit = async (values: z.infer<typeof loginSchema>) => {
+    setIsLoading(true);
+    try {
+      // Attempt ward login first
+      await handleWardLogin(values);
+    } catch (wardError) {
+      // If ward login fails, attempt employee login
+      try {
+        await handleEmployeeLogin(values);
+      } catch (employeeError: any) {
+        toast({
+          title: "Login failed",
+          description: employeeError.message,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="w-full">
-      <form onSubmit={handleLogin} className="space-y-6">
-        <div className="space-y-5">
-          <div className="space-y-2">
-            <Input
-              type="text"
-              placeholder="Username handle"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="h-16 text-xl border border-gray-200 rounded-md px-6 
-                focus:border-gray-400 transition-colors bg-gray-50/50"
-              autoComplete="username"
-            />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <h1 className="text-2xl font-semibold">Login</h1>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Username</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter your username" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="Enter your password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Logging in
+                  </>
+                ) : (
+                  "Sign in"
+                )}
+              </Button>
+            </form>
+          </Form>
+          <div className="mt-4 text-center">
+            <Link to="/register" className="text-sm text-gray-600 hover:underline">
+              Don't have an account? Register
+            </Link>
           </div>
-          
-          <div className="space-y-2 relative">
-            <Input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="h-16 text-xl border border-gray-200 rounded-md px-6
-                focus:border-gray-400 transition-colors bg-gray-50/50"
-              autoComplete="current-password"
-            />
-            <button 
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-800 transition-colors"
-            >
-              {showPassword ? <EyeOff size={26} /> : <Eye size={26} />}
-            </button>
-          </div>
-        </div>
-        
-        <div className="pt-2">
-          <Button 
-            type="submit" 
-            disabled={isLoading}
-            className="w-full bg-gray-900 hover:bg-gray-800 text-white py-7 rounded-md 
-              font-normal transition-all h-16 text-xl"
-          >
-            {isLoading ? "Signing in..." : "Sign in"}
-          </Button>
-        </div>
-        
-        <div className="text-center">
-          <a href="#" className="text-xl text-gray-600 hover:text-gray-900 transition-colors">
-            Forgot password?
-          </a>
-        </div>
-      </form>
-      
-      <div className="mt-14 text-center text-gray-400 text-lg">
-        &copy; {new Date().getFullYear()} TraceMed. All rights reserved.
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
-};
-
-export default LoginForm;
+}

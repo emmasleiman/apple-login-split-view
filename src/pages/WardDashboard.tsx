@@ -140,34 +140,45 @@ const WardDashboard = () => {
       console.log("Extracted patient ID:", patientId);
       console.log("QR code type:", qrType);
       
-      const { data: patientExists, error: patientCheckError } = await supabase
-        .from('patients')
-        .select('id, patient_id')
-        .eq('patient_id', patientId)
-        .maybeSingle() as { data: any, error: any };
+      // Check for recent scans in other wards
+      const fiveMinutesAgo = new Date();
+      fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
       
-      if (patientCheckError) {
-        console.error('Error checking patient:', patientCheckError);
-        toast({
-          variant: "destructive",
-          title: "Database Error",
-          description: "Failed to verify patient record. Please try again.",
-        });
+      const { data: recentScans, error: scansError } = await supabase
+        .from('ward_scan_logs')
+        .select('*')
+        .eq('patient_id', qrData)
+        .gt('scanned_at', fiveMinutesAgo.toISOString())
+        .neq('ward', wardName)
+        .order('scanned_at', { ascending: false })
+        .limit(1) as { data: WardScanLog[] | null, error: any };
+      
+      if (scansError) {
+        console.error('Error checking recent scans:', scansError);
         return;
       }
       
-      if (!patientExists) {
-        console.warn('Patient not found in database:', patientId);
-        toast({
-          variant: "destructive",
-          title: "Unknown Patient",
-          description: `No record found for patient ID: ${patientId}`,
-        });
-        return;
+      // If there's a recent scan from another ward
+      if (recentScans && recentScans.length > 0) {
+        const recentScan = recentScans[0];
+        
+        // Create location inconsistency record if QR type is 'other'
+        if (qrType === 'other') {
+          const { error: inconsistencyError } = await supabase
+            .from('patient_location_inconsistencies')
+            .insert({
+              patient_id: patientId,
+              first_ward: recentScan.ward,
+              second_ward: wardName,
+              time_difference_mins: (new Date().getTime() - new Date(recentScan.scanned_at).getTime()) / 60000
+            });
+          
+          if (inconsistencyError) {
+            console.error('Error creating inconsistency record:', inconsistencyError);
+          }
+        }
       }
-      
-      console.log('Patient verified:', patientExists);
-      
+
       if (qrType === "wristband") {
         const { data: insertData, error } = await supabase
           .from('ward_scan_logs')

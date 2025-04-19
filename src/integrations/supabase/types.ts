@@ -17,6 +17,7 @@ export type Database = {
           first_name: string
           gender: string
           id: string
+          inactive_timeout_mins: number | null
           last_name: string
           password: string
           role: Database["public"]["Enums"]["employee_role"]
@@ -29,6 +30,7 @@ export type Database = {
           first_name: string
           gender: string
           id?: string
+          inactive_timeout_mins?: number | null
           last_name: string
           password: string
           role: Database["public"]["Enums"]["employee_role"]
@@ -41,6 +43,7 @@ export type Database = {
           first_name?: string
           gender?: string
           id?: string
+          inactive_timeout_mins?: number | null
           last_name?: string
           password?: string
           role?: Database["public"]["Enums"]["employee_role"]
@@ -95,6 +98,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      patient_location_inconsistencies: {
+        Row: {
+          cleared: boolean | null
+          cleared_at: string | null
+          cleared_by: string | null
+          detected_at: string | null
+          first_ward: string
+          id: string
+          notes: string | null
+          patient_id: string
+          second_ward: string
+          time_difference_mins: number
+        }
+        Insert: {
+          cleared?: boolean | null
+          cleared_at?: string | null
+          cleared_by?: string | null
+          detected_at?: string | null
+          first_ward: string
+          id?: string
+          notes?: string | null
+          patient_id: string
+          second_ward: string
+          time_difference_mins: number
+        }
+        Update: {
+          cleared?: boolean | null
+          cleared_at?: string | null
+          cleared_by?: string | null
+          detected_at?: string | null
+          first_ward?: string
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          second_ward?: string
+          time_difference_mins?: number
+        }
+        Relationships: []
       }
       patients: {
         Row: {

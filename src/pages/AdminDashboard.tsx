@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { LocationInconsistencyAlerts } from "@/components/LocationInconsistencyAlerts";
 
 type Patient = {
   id: string;
@@ -674,6 +675,7 @@ const AdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="criticalCases">
+            <LocationInconsistencyAlerts />
             <Card className="border-gray-100 shadow-sm mb-8">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
                 <CardTitle className="text-2xl font-normal text-gray-700">Critical Cases - Positive Results</CardTitle>
