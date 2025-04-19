@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +38,17 @@ export function LoginForm() {
   async function handleWardLogin(values: z.infer<typeof loginSchema>) {
     try {
       setIsLoading(true);
+
+      // Check if ward has an active session already
+      const { data: existingSession, error: sessionQueryError } = await supabase
+        .from('ward_active_sessions')
+        .select('*')
+        .eq('ward_id', values.username)
+        .single();
+
+      if (existingSession) {
+        throw new Error('This ward account is already logged in on another device');
+      }
 
       const { data: ward, error: wardError } = await supabase
         .from('ward_accounts')
@@ -79,6 +91,23 @@ export function LoginForm() {
 
       navigate("/ward-dashboard");
     } catch (error: any) {
+      // Log unauthorized attempt if it's a ward login
+      if (error.message === 'This ward account is already logged in on another device') {
+        try {
+          await supabase
+            .from('unauthorized_login_attempts')
+            .insert({
+              username: values.username,
+              account_type: 'ward',
+              device_info: navigator.userAgent,
+              ip_address: 'Unavailable in client',
+              reason: 'Duplicate session attempt'
+            });
+        } catch (logError) {
+          console.error('Failed to log unauthorized attempt:', logError);
+        }
+      }
+      
       toast({
         title: "Login failed",
         description: error.message,
@@ -102,7 +131,7 @@ export function LoginForm() {
         throw new Error('Invalid credentials');
       }
 
-      // Set session timeout for non-ward employees
+      // For non-ward employees, set up session timeout if they're not a ward role
       if (employee.role !== 'ward') {
         const timeout = setTimeout(() => {
           navigate('/');
@@ -129,7 +158,7 @@ export function LoginForm() {
           navigate("/data-encoder-dashboard");
           break;
         case "lab_technician":
-          navigate("/lab-technician-dashboard");
+          navigate("/lab-dashboard");
           break;
         default:
           navigate("/");
@@ -180,7 +209,7 @@ export function LoginForm() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Username</FormLabel>
+                    <Label htmlFor="username">Username</Label>
                     <FormControl>
                       <Input placeholder="Enter your username" {...field} />
                     </FormControl>
@@ -193,7 +222,7 @@ export function LoginForm() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <Label htmlFor="password">Password</Label>
                     <FormControl>
                       <Input
                         type="password"
@@ -227,3 +256,6 @@ export function LoginForm() {
     </div>
   );
 }
+
+// Add default export
+export default LoginForm;
