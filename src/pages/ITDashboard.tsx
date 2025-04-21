@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -12,12 +13,23 @@ import { UnauthorizedLoginAttempts } from "@/components/UnauthorizedLoginAttempt
 import LogoutButton from "@/components/LogoutButton";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // Define role types based on what's accepted in the database
 type DatabaseEmployeeRole = "admin" | "data_encoder" | "lab_technician";
-
-// Define UI role types that will be shown in the dropdown
-type UIEmployeeRole = DatabaseEmployeeRole | "Officer" | "Staff" | "Nurse";
 
 type PasswordResetRequest = {
   id: string;
@@ -26,21 +38,28 @@ type PasswordResetRequest = {
   status: 'pending' | 'cleared';
 };
 
+type WardAccount = {
+  id: string;
+  ward: string;
+  username: string;
+  created_at: string;
+};
+
+const wardOptions = ["wardA", "wardB", "wardC", "wardD", "wardE", "wardF"];
+
 const ITDashboard = () => {
   const { toast } = useToast();
   const [passwordResetRequests, setPasswordResetRequests] = useState<PasswordResetRequest[]>([]);
-  const [activeTab, setActiveTab] = useState("alerts");
+  const [activeTab, setActiveTab] = useState("register-employee");
+  const [wardAccounts, setWardAccounts] = useState<WardAccount[]>([]);
+  const [loadingWardAccounts, setLoadingWardAccounts] = useState(false);
 
   // Employee registration state
   const [empForm, setEmpForm] = useState({
-    first_name: "",
-    last_name: "",
     employee_id: "",
     username: "",
     password: "",
-    contact_number: "",
-    role: "" as UIEmployeeRole,
-    gender: "",
+    role: "" as DatabaseEmployeeRole,
   });
   const [empLoading, setEmpLoading] = useState(false);
 
@@ -51,6 +70,30 @@ const ITDashboard = () => {
     password: "",
   });
   const [wardLoading, setWardLoading] = useState(false);
+
+  // Load ward accounts when the component mounts
+  useEffect(() => {
+    fetchWardAccounts();
+  }, []);
+  
+  const fetchWardAccounts = async () => {
+    setLoadingWardAccounts(true);
+    const { data, error } = await supabase
+      .from("ward_accounts")
+      .select("id, ward, username, created_at");
+    
+    setLoadingWardAccounts(false);
+    if (error) {
+      toast({ 
+        title: "Error fetching ward accounts", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    setWardAccounts(data || []);
+  };
 
   useEffect(() => {
     const loadPasswordResetRequests = () => {
@@ -89,11 +132,16 @@ const ITDashboard = () => {
   const clearedRequests = passwordResetRequests.filter(req => req.status === 'cleared');
 
   // Handle Employee Registration
-  const onEmployeeChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const onEmployeeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmpForm((f) => ({
       ...f,
       [e.target.name]: e.target.value,
     }));
+  };
+  
+  // Handle role selection
+  const handleRoleChange = (value: DatabaseEmployeeRole) => {
+    setEmpForm(prev => ({ ...prev, role: value }));
   };
   
   const handleEmployeeRegister = async (e: React.FormEvent) => {
@@ -111,28 +159,17 @@ const ITDashboard = () => {
       return;
     }
     
-    // Map UI roles to database roles if necessary
-    let databaseRole: DatabaseEmployeeRole;
+    // Create employee with minimal required fields
+    const { error } = await supabase.from("employees").insert({
+      employee_id: empForm.employee_id,
+      username: empForm.username,
+      password: empForm.password,
+      role: empForm.role,
+      first_name: "Not provided", // Adding required fields with default values
+      last_name: "Not provided",
+      gender: "Not specified"
+    });
     
-    // Map UI roles to database roles
-    switch(empForm.role) {
-      case "Officer":
-      case "Staff":
-      case "Nurse":
-        databaseRole = "admin"; // Map custom roles to admin for now
-        break;
-      default:
-        // For roles that are already compatible with the database
-        databaseRole = empForm.role as DatabaseEmployeeRole;
-    }
-    
-    // Create the form data with the correct role type
-    const formData = {
-      ...empForm,
-      role: databaseRole
-    };
-    
-    const { error } = await supabase.from("employees").insert(formData);
     setEmpLoading(false);
     
     if (!error) {
@@ -141,17 +178,17 @@ const ITDashboard = () => {
         description: "The new employee account was registered successfully.",
       });
       setEmpForm({
-        first_name: "",
-        last_name: "",
         employee_id: "",
         username: "",
         password: "",
-        contact_number: "",
-        role: "" as UIEmployeeRole,
-        gender: "",
+        role: "" as DatabaseEmployeeRole,
       });
     } else {
-      toast({ title: "Registration failed", description: error.message, variant: "destructive" });
+      toast({ 
+        title: "Registration failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
     }
   };
 
@@ -163,11 +200,34 @@ const ITDashboard = () => {
     }));
   };
   
+  const handleWardSelect = (value: string) => {
+    setWardForm(prev => ({ ...prev, ward: value }));
+  };
+  
   const handleWardRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setWardLoading(true);
+    
+    // Check if the ward already exists
+    const { data: existingWard } = await supabase
+      .from("ward_accounts")
+      .select("id")
+      .eq("ward", wardForm.ward)
+      .single();
+    
+    if (existingWard) {
+      toast({
+        title: "Registration failed",
+        description: `Ward ${wardForm.ward} already exists.`,
+        variant: "destructive"
+      });
+      setWardLoading(false);
+      return;
+    }
+    
     const { error } = await supabase.from("ward_accounts").insert([wardForm]);
     setWardLoading(false);
+    
     if (!error) {
       toast({
         title: "Ward account created",
@@ -178,8 +238,14 @@ const ITDashboard = () => {
         username: "",
         password: "",
       });
+      // Refresh ward accounts list
+      fetchWardAccounts();
     } else {
-      toast({ title: "Registration failed", description: error.message, variant: "destructive" });
+      toast({ 
+        title: "Registration failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
     }
   };
 
@@ -191,8 +257,10 @@ const ITDashboard = () => {
           <h1 className="text-3xl font-light tracking-tight text-gray-800">IT Officer Dashboard</h1>
           <p className="text-base text-gray-500">Manage system alerts and employee/ward accounts</p>
         </div>
-        <Tabs defaultValue="alerts" value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+        <Tabs defaultValue="register-employee" value={activeTab} onValueChange={setActiveTab} className="space-y-8">
           <TabsList className="bg-gray-100/80 rounded-xl shadow-sm w-full justify-start flex-wrap">
+            <TabsTrigger value="register-employee" className="rounded-lg data-[state=active]:bg-white">Register Employee Account</TabsTrigger>
+            <TabsTrigger value="register-ward" className="rounded-lg data-[state=active]:bg-white">Register Ward Account</TabsTrigger>
             <TabsTrigger value="alerts" className="rounded-lg data-[state=active]:bg-white">System Alerts</TabsTrigger>
             <TabsTrigger value="password-resets" className="rounded-lg data-[state=active]:bg-white">
               Password Reset Requests
@@ -200,9 +268,126 @@ const ITDashboard = () => {
                 <Badge variant="destructive" className="ml-2">{pendingRequests.length}</Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="register-employee" className="rounded-lg data-[state=active]:bg-white">Register Employee Account</TabsTrigger>
-            <TabsTrigger value="register-ward" className="rounded-lg data-[state=active]:bg-white">Register Ward Account</TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="register-employee">
+            <Card>
+              <CardHeader>
+                <CardTitle>Register New Employee</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form className="grid gap-4 max-w-md mx-auto" onSubmit={handleEmployeeRegister}>
+                  <div>
+                    <label className="block mb-1 text-gray-700">Employee ID</label>
+                    <Input name="employee_id" required value={empForm.employee_id} onChange={onEmployeeChange} />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-gray-700">Username</label>
+                    <Input name="username" required value={empForm.username} onChange={onEmployeeChange} />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-gray-700">Password</label>
+                    <Input name="password" type="password" required value={empForm.password} onChange={onEmployeeChange} />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-gray-700">Role</label>
+                    <Select value={empForm.role} onValueChange={(value) => handleRoleChange(value as DatabaseEmployeeRole)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="data_encoder">Data Encoder</SelectItem>
+                        <SelectItem value="lab_technician">Lab Technician</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button type="submit" disabled={empLoading}>
+                    {empLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Registering...
+                      </>
+                    ) : (
+                      "Register"
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="register-ward">
+            <Card>
+              <CardHeader>
+                <CardTitle>Register New Ward Account</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form className="grid gap-4 max-w-md mx-auto" onSubmit={handleWardRegister}>
+                  <div>
+                    <label className="block mb-1 text-gray-700">Ward Name</label>
+                    <Select value={wardForm.ward} onValueChange={handleWardSelect}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select ward" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {wardOptions.map((ward) => (
+                          <SelectItem key={ward} value={ward}>{ward}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-gray-700">Username</label>
+                    <Input name="username" required value={wardForm.username} onChange={onWardChange} />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-gray-700">Password</label>
+                    <Input name="password" type="password" required value={wardForm.password} onChange={onWardChange} />
+                  </div>
+                  <Button type="submit" disabled={wardLoading}>
+                    {wardLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Registering...
+                      </>
+                    ) : (
+                      "Register"
+                    )}
+                  </Button>
+                </form>
+                
+                <div className="mt-8">
+                  <h3 className="text-lg font-medium mb-4">Active Ward Accounts</h3>
+                  {loadingWardAccounts ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                  ) : wardAccounts.length === 0 ? (
+                    <p className="text-center text-gray-500 py-4">No ward accounts registered yet</p>
+                  ) : (
+                    <div className="grid gap-4">
+                      {wardAccounts.map(account => (
+                        <div key={account.id} className="flex items-center justify-between p-4 bg-white border rounded-lg shadow-sm">
+                          <div>
+                            <div className="font-medium">{account.ward}</div>
+                            <div className="text-sm text-gray-500">Username: {account.username}</div>
+                            <div className="text-xs text-gray-400">
+                              Created: {formatDateTime(account.created_at)}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            Active
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
           <TabsContent value="alerts" className="space-y-6">
             <Card>
               <CardHeader>
@@ -221,6 +406,7 @@ const ITDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
+          
           <TabsContent value="password-resets">
             <Card>
               <CardHeader>
@@ -285,105 +471,6 @@ const ITDashboard = () => {
                     )}
                   </TabsContent>
                 </Tabs>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="register-employee">
-            <Card>
-              <CardHeader>
-                <CardTitle>Register New Employee</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form className="grid gap-4 max-w-md mx-auto" onSubmit={handleEmployeeRegister}>
-                  <div>
-                    <label className="block mb-1 text-gray-700">First Name</label>
-                    <Input name="first_name" required value={empForm.first_name} onChange={onEmployeeChange} />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-gray-700">Last Name</label>
-                    <Input name="last_name" required value={empForm.last_name} onChange={onEmployeeChange} />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-gray-700">Employee ID</label>
-                    <Input name="employee_id" required value={empForm.employee_id} onChange={onEmployeeChange} />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-gray-700">Username</label>
-                    <Input name="username" required value={empForm.username} onChange={onEmployeeChange} />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-gray-700">Password</label>
-                    <Input name="password" type="password" required value={empForm.password} onChange={onEmployeeChange} />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-gray-700">Contact Number</label>
-                    <Input name="contact_number" value={empForm.contact_number} onChange={onEmployeeChange} />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-gray-700">Role</label>
-                    <select name="role" required value={empForm.role} onChange={onEmployeeChange} className="w-full border rounded-md px-3 py-2 text-lg focus:outline-none">
-                      <option value="">Select role</option>
-                      <option value="admin">Admin</option>
-                      <option value="Officer">Officer</option>
-                      <option value="Staff">Staff</option>
-                      <option value="Nurse">Nurse</option>
-                      <option value="data_encoder">Data Encoder</option>
-                      <option value="lab_technician">Lab Technician</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-gray-700">Gender</label>
-                    <select name="gender" required value={empForm.gender} onChange={onEmployeeChange} className="w-full border rounded-md px-3 py-2 text-lg focus:outline-none">
-                      <option value="">Select gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                  <Button type="submit" disabled={empLoading}>
-                    {empLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Registering...
-                      </>
-                    ) : (
-                      "Register"
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="register-ward">
-            <Card>
-              <CardHeader>
-                <CardTitle>Register New Ward Account</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form className="grid gap-4 max-w-md mx-auto" onSubmit={handleWardRegister}>
-                  <div>
-                    <label className="block mb-1 text-gray-700">Ward Name</label>
-                    <Input name="ward" required value={wardForm.ward} onChange={onWardChange} />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-gray-700">Username</label>
-                    <Input name="username" required value={wardForm.username} onChange={onWardChange} />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-gray-700">Password</label>
-                    <Input name="password" type="password" required value={wardForm.password} onChange={onWardChange} />
-                  </div>
-                  <Button type="submit" disabled={wardLoading}>
-                    {wardLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Registering...
-                      </>
-                    ) : (
-                      "Register"
-                    )}
-                  </Button>
-                </form>
               </CardContent>
             </Card>
           </TabsContent>
