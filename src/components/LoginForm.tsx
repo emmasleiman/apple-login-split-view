@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -134,8 +133,8 @@ export function LoginForm() {
         lastName: employee.last_name
       }));
 
-      // Set timeout for non-ward employees
-      const needsTimeout = ["admin", "data_encoder", "lab_technician"].includes(employee.role);
+      // Set timeout for all employee types that need it
+      const needsTimeout = ["admin", "data_encoder", "lab_technician", "it_officer"].includes(employee.role);
       
       if (needsTimeout) {
         const timeout = setTimeout(() => {
@@ -156,15 +155,19 @@ export function LoginForm() {
         description: `Welcome, ${employee.username}!`,
       });
 
+      // Correct redirection based on employee role
       switch (employee.role) {
         case "admin":
           navigate("/admin-dashboard");
           break;
         case "data_encoder":
-          navigate("/data-encoder-dashboard");
+          navigate("/dashboard");
           break;
         case "lab_technician":
           navigate("/lab-dashboard");
+          break;
+        case "it_officer":
+          navigate("/it-dashboard");
           break;
         default:
           navigate("/");
@@ -262,11 +265,7 @@ export function LoginForm() {
               </Button>
             </form>
           </Form>
-          <div className="mt-4 text-center">
-            <Link to="/register" className="text-sm text-gray-600 hover:underline">
-              Don't have an account? Register
-            </Link>
-          </div>
+          {/* Registration link removed as requested */}
         </CardContent>
       </Card>
     </div>
