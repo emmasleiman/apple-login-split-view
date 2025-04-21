@@ -18,7 +18,17 @@ const LogoutButton = ({
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // Simulate logout functionality 
+    // Clear all user data from storage
+    localStorage.removeItem('employeeData');
+    localStorage.removeItem('wardData');
+    
+    // Clear any session timeout
+    const timeoutId = sessionStorage.getItem('sessionTimeoutId');
+    if (timeoutId) {
+      clearTimeout(parseInt(timeoutId));
+      sessionStorage.removeItem('sessionTimeoutId');
+    }
+    
     toast.success("You have been logged out successfully");
     navigate("/");
   };

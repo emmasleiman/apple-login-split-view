@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -125,6 +126,9 @@ export function LoginForm() {
     try {
       setIsLoading(true);
       
+      // Debug the query
+      console.log(`Attempting to log in with username: ${values.username}`);
+      
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
         .select('*')
@@ -133,6 +137,7 @@ export function LoginForm() {
         .single();
 
       if (employeeError || !employee) {
+        console.error("Employee login error:", employeeError);
         throw new Error('Invalid credentials');
       }
 
@@ -180,11 +185,13 @@ export function LoginForm() {
       } else if (employee.role === "it_officer") {
         navigate("/it-dashboard");
       } else {
+        console.log("Unknown role:", employee.role);
         navigate("/");
       }
       
       return true;
     } catch (error: any) {
+      console.error("Employee login failed:", error);
       throw error;
     } finally {
       setIsLoading(false);
