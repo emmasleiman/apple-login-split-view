@@ -138,6 +138,39 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_notifications: {
+        Row: {
+          cleared_at: string | null
+          created_at: string | null
+          id: string
+          is_cleared: boolean | null
+          message: string
+          notification_type: string
+          patient_id: string
+          ward: string | null
+        }
+        Insert: {
+          cleared_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_cleared?: boolean | null
+          message: string
+          notification_type: string
+          patient_id: string
+          ward?: string | null
+        }
+        Update: {
+          cleared_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_cleared?: boolean | null
+          message?: string
+          notification_type?: string
+          patient_id?: string
+          ward?: string | null
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           culture_qr_code: string | null
