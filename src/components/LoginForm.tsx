@@ -96,8 +96,8 @@ export function LoginForm() {
           await supabase
             .from('unauthorized_login_attempts')
             .insert({
-              ward_id: values.username, // Using ward_id instead of username
-              ward_name: values.username, // Required field in the schema
+              ward_id: values.username, 
+              ward_name: values.username,
               device_info: navigator.userAgent
             });
         } catch (logError) {
@@ -133,8 +133,12 @@ export function LoginForm() {
         lastName: employee.last_name
       }));
 
-      // Set timeout for all employee types that need it
-      const needsTimeout = ["admin", "data_encoder", "lab_technician", "it_officer"].includes(employee.role);
+      // Define roles that need timeout
+      // Note: We're checking for string equality rather than using includes() on the enum type
+      const needsTimeout = employee.role === "admin" || 
+                           employee.role === "data_encoder" || 
+                           employee.role === "lab_technician" || 
+                           employee.role === "it_officer";
       
       if (needsTimeout) {
         const timeout = setTimeout(() => {
@@ -156,21 +160,16 @@ export function LoginForm() {
       });
 
       // Correct redirection based on employee role
-      switch (employee.role) {
-        case "admin":
-          navigate("/admin-dashboard");
-          break;
-        case "data_encoder":
-          navigate("/dashboard");
-          break;
-        case "lab_technician":
-          navigate("/lab-dashboard");
-          break;
-        case "it_officer":
-          navigate("/it-dashboard");
-          break;
-        default:
-          navigate("/");
+      if (employee.role === "admin") {
+        navigate("/admin-dashboard");
+      } else if (employee.role === "data_encoder") {
+        navigate("/dashboard");
+      } else if (employee.role === "lab_technician") {
+        navigate("/lab-dashboard");
+      } else if (employee.role === "it_officer") {
+        navigate("/it-dashboard");
+      } else {
+        navigate("/");
       }
       
       return true;
