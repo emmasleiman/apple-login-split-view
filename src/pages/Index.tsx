@@ -24,12 +24,12 @@ const Index = () => {
       </div>
       
       {/* Login Form Section - Right Side on desktop, Bottom on mobile */}
-      <div className="md:w-1/2 flex-1 bg-white flex flex-col items-center justify-center">
-        <div className="w-full max-w-md px-6">
+      <div className="md:w-1/2 flex-1 bg-white flex flex-col items-center justify-center p-6">
+        <div className="w-full max-w-md">
           <img 
             src="/lovable-uploads/3fa4235d-815a-4a5e-96df-a97a1d7312ea.png" 
             alt="TraceMed Logo" 
-            className="h-48 mb-16 mx-auto object-contain"
+            className="h-28 mb-8 mx-auto object-contain"
           />
           <LoginForm />
         </div>

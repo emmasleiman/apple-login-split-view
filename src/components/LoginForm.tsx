@@ -37,8 +37,6 @@ export function LoginForm() {
 
   async function handleWardLogin(values: z.infer<typeof loginSchema>) {
     try {
-      setIsLoading(true);
-
       // Check if ward has an active session already
       const { data: existingSession, error: sessionQueryError } = await supabase
         .from('ward_active_sessions')
@@ -90,6 +88,7 @@ export function LoginForm() {
       });
 
       navigate("/ward-dashboard");
+      return true;
     } catch (error: any) {
       // Log unauthorized attempt if it's a ward login
       if (error.message === 'This ward account is already logged in on another device') {
@@ -107,18 +106,14 @@ export function LoginForm() {
         }
       }
       
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      throw error;
     }
   }
 
   const handleEmployeeLogin = async (values: z.infer<typeof loginSchema>) => {
     try {
+      setIsLoading(true);
+      
       const { data: employee, error: employeeError } = await supabase
         .from('employees')
         .select('*')
@@ -130,13 +125,21 @@ export function LoginForm() {
         throw new Error('Invalid credentials');
       }
 
-      // Fix the comparison - employee.role is of type "admin" | "data_encoder" | "lab_technician"
-      // We can't compare to "ward" directly since it's not in the enum
-      // Instead check if it's NOT one of the valid roles for timeout
+      // Store employee data in local storage
+      localStorage.setItem('employeeData', JSON.stringify({
+        id: employee.id,
+        username: employee.username,
+        role: employee.role,
+        firstName: employee.first_name,
+        lastName: employee.last_name
+      }));
+
+      // Set timeout for non-ward employees
       const needsTimeout = ["admin", "data_encoder", "lab_technician"].includes(employee.role);
       
       if (needsTimeout) {
         const timeout = setTimeout(() => {
+          localStorage.removeItem('employeeData');
           navigate('/');
           toast({
             title: "Session Expired",
@@ -144,8 +147,8 @@ export function LoginForm() {
           });
         }, 60 * 60 * 1000); // 1 hour timeout
 
-        // Clear timeout on unmount
-        return () => clearTimeout(timeout);
+        // Store the timeout ID
+        sessionStorage.setItem('sessionTimeoutId', timeout.toString());
       }
 
       toast({
@@ -166,6 +169,37 @@ export function LoginForm() {
         default:
           navigate("/");
       }
+      
+      return true;
+    } catch (error: any) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onSubmit = async (values: z.infer<typeof loginSchema>) => {
+    setIsLoading(true);
+    try {
+      // Try ward login first
+      try {
+        const wardLoginSuccess = await handleWardLogin(values);
+        if (wardLoginSuccess) return;
+      } catch (wardError: any) {
+        console.log("Ward login failed, trying employee login");
+      }
+
+      // If ward login fails, try employee login
+      try {
+        const employeeLoginSuccess = await handleEmployeeLogin(values);
+        if (employeeLoginSuccess) return;
+      } catch (employeeError: any) {
+        toast({
+          title: "Login failed",
+          description: employeeError.message,
+          variant: "destructive",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Login failed",
@@ -177,30 +211,9 @@ export function LoginForm() {
     }
   };
 
-  const onSubmit = async (values: z.infer<typeof loginSchema>) => {
-    setIsLoading(true);
-    try {
-      // Attempt ward login first
-      await handleWardLogin(values);
-    } catch (wardError) {
-      // If ward login fails, attempt employee login
-      try {
-        await handleEmployeeLogin(values);
-      } catch (employeeError: any) {
-        toast({
-          title: "Login failed",
-          description: employeeError.message,
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-md">
+    <div>
+      <Card className="w-full">
         <CardHeader className="text-center">
           <h1 className="text-2xl font-semibold">Login</h1>
         </CardHeader>
@@ -260,5 +273,4 @@ export function LoginForm() {
   );
 }
 
-// Add default export
 export default LoginForm;
