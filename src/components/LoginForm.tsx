@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -201,6 +200,26 @@ export function LoginForm() {
   const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true);
     try {
+      // Hardcoded bypass for IT Officer login
+      if (values.username === "itofficer" && values.password === "123456") {
+        // Store the hardcoded IT officer data
+        localStorage.setItem('employeeData', JSON.stringify({
+          id: "hardcoded-it-officer",
+          username: "itofficer",
+          role: "it_officer",
+          firstName: "IT",
+          lastName: "Officer"
+        }));
+        toast({
+          title: "Login successful",
+          description: `Welcome, itofficer!`,
+        });
+        // Redirect to IT Dashboard
+        navigate("/it-dashboard");
+        setIsLoading(false);
+        return;
+      }
+
       // Try ward login first
       try {
         const wardLoginSuccess = await handleWardLogin(values);
