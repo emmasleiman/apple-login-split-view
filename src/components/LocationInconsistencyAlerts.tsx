@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -79,7 +78,7 @@ export const LocationInconsistencyAlerts = () => {
   return (
     <Card className="mt-6">
       <CardHeader>
-        <CardTitle className="text-lg font-medium">Patient Location Inconsistencies</CardTitle>
+        <CardTitle className="text-lg font-bold">Patient Location Inconsistencies</CardTitle>
       </CardHeader>
       <CardContent>
         {inconsistencies && inconsistencies.length > 0 ? (
