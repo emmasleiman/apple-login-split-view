@@ -22,8 +22,15 @@ const loginSchema = z.object({
   }),
 });
 
+const forgotPasswordSchema = z.object({
+  employeeId: z.string().min(1, {
+    message: "Employee ID is required.",
+  }),
+});
+
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const form = useForm<z.infer<typeof loginSchema>>({
@@ -31,6 +38,13 @@ export function LoginForm() {
     defaultValues: {
       username: "",
       password: "",
+    },
+  });
+
+  const forgotPasswordForm = useForm<z.infer<typeof forgotPasswordSchema>>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      employeeId: "",
     },
   });
 
@@ -92,7 +106,6 @@ export function LoginForm() {
       // Log unauthorized attempt if it's a ward login
       if (error.message === 'This ward account is already logged in on another device') {
         try {
-          // Using the correct schema for unauthorized_login_attempts
           await supabase
             .from('unauthorized_login_attempts')
             .insert({
@@ -124,6 +137,8 @@ export function LoginForm() {
         throw new Error('Invalid credentials');
       }
 
+      console.log("Employee login successful:", employee);
+
       // Store employee data in local storage
       localStorage.setItem('employeeData', JSON.stringify({
         id: employee.id,
@@ -134,7 +149,6 @@ export function LoginForm() {
       }));
 
       // Define roles that need timeout
-      // Note: We're checking for string equality rather than using includes() on the enum type
       const needsTimeout = employee.role === "admin" || 
                            employee.role === "data_encoder" || 
                            employee.role === "lab_technician" || 
@@ -213,58 +227,143 @@ export function LoginForm() {
     }
   };
 
+  const handleForgotPassword = async (values: z.infer<typeof forgotPasswordSchema>) => {
+    try {
+      setIsLoading(true);
+      
+      // Store password reset request in localStorage for IT officers to see
+      const existingRequests = JSON.parse(localStorage.getItem('passwordResetRequests') || '[]');
+      const newRequest = {
+        id: Math.random().toString(36).substring(2, 9),
+        employeeId: values.employeeId,
+        requestTime: new Date().toISOString(),
+        status: 'pending'
+      };
+      
+      localStorage.setItem('passwordResetRequests', JSON.stringify([...existingRequests, newRequest]));
+      
+      toast({
+        title: "Request submitted",
+        description: "Your password reset request has been sent to IT support.",
+      });
+      
+      setShowForgotPassword(false);
+      forgotPasswordForm.reset();
+    } catch (error: any) {
+      toast({
+        title: "Request failed",
+        description: "Failed to submit your request. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div>
       <Card className="w-full">
         <CardHeader className="text-center">
-          <h1 className="text-2xl font-semibold">Login</h1>
+          <h1 className="text-2xl font-semibold">
+            {showForgotPassword ? "Forgot Password" : "Login"}
+          </h1>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <Label htmlFor="username">Username</Label>
-                    <FormControl>
-                      <Input placeholder="Enter your username" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <Label htmlFor="password">Password</Label>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter your password"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Logging in
-                  </>
-                ) : (
-                  "Sign in"
-                )}
-              </Button>
-            </form>
-          </Form>
-          {/* Registration link removed as requested */}
+          {!showForgotPassword ? (
+            <>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Label htmlFor="username">Username</Label>
+                        <FormControl>
+                          <Input placeholder="Enter your username" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Label htmlFor="password">Password</Label>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="Enter your password"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Logging in
+                      </>
+                    ) : (
+                      "Sign in"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+              <div className="mt-4 text-center">
+                <Button 
+                  variant="link" 
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Forgot password?
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Form {...forgotPasswordForm}>
+                <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPassword)} className="space-y-6">
+                  <FormField
+                    control={forgotPasswordForm.control}
+                    name="employeeId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Label htmlFor="employeeId">Employee ID</Label>
+                        <FormControl>
+                          <Input placeholder="Enter your employee ID" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      "Submit Request"
+                    )}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full mt-2"
+                    onClick={() => setShowForgotPassword(false)}
+                  >
+                    Back to Login
+                  </Button>
+                </form>
+              </Form>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
