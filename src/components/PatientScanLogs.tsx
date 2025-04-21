@@ -31,7 +31,7 @@ type WardScanLog = {
 interface PatientScanLogsProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onClose?: () => void;  // Added onClose as an optional prop
+  onClose?: () => void;
   patientId: string | null;
   scanLogs: WardScanLog[];
   isLoading: boolean;

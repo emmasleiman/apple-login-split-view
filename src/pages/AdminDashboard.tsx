@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, Users, FileText, Search, Loader2, Clock, CheckCircle } from "lucide-react";
@@ -1079,10 +1078,11 @@ const AdminDashboard = () => {
       </div>
 
       <PatientScanLogs
-        isOpen={isPatientLogsOpen}
+        open={isPatientLogsOpen}
+        onOpenChange={setIsPatientLogsOpen}
         onClose={() => setIsPatientLogsOpen(false)}
         patientId={selectedPatientForLogs || ""}
-        logs={patientScanLogs}
+        scanLogs={patientScanLogs}
         isLoading={isLoadingPatientLogs}
       />
       
