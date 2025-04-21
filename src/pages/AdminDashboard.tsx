@@ -644,6 +644,8 @@ const AdminDashboard = () => {
         </div>
         
         <AdminNotifications />
+        <LocationInconsistencyAlerts />
+
         <Tabs defaultValue="criticalCases" className="w-full">
           <TabsList className="mb-8 bg-gray-100/80 rounded-xl shadow-sm">
             <TabsTrigger 
@@ -677,7 +679,6 @@ const AdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="criticalCases">
-            <LocationInconsistencyAlerts />
             <Card className="border-gray-100 shadow-sm mb-8">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
                 <CardTitle className="text-2xl font-normal text-gray-700">Critical Cases - Positive Results</CardTitle>
@@ -837,4 +838,110 @@ const AdminDashboard = () => {
                   
                   {patientLabSamples.length > 0 && (
                     <div className="mt-8">
-                      <h3 className="text-xl font-medium text-gray-70
+                      <h3 className="text-xl font-medium text-gray-700 mb-4">Pending Lab Samples</h3>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Sample ID</TableHead>
+                            <TableHead>Collection Date</TableHead>
+                            <TableHead>Action</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {patientLabSamples.map(sample => (
+                            <TableRow key={sample.id}>
+                              <TableCell>{sample.sample_id}</TableCell>
+                              <TableCell>{format(new Date(sample.collection_date), 'MMM dd, yyyy')}</TableCell>
+                              <TableCell className="space-x-3">
+                                <Button
+                                  size="sm"
+                                  variant={selectedResult === "positive" ? "default" : "outline"}
+                                  onClick={() => handleSelectSampleForResult(sample, "positive")}
+                                >
+                                  Positive
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={selectedResult === "negative" ? "default" : "outline"}
+                                  onClick={() => handleSelectSampleForResult(sample, "negative")}
+                                >
+                                  Negative
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="allPatients">
+            <div className="flex flex-col space-y-6">
+              <Input
+                placeholder="Search patient ID"
+                value={patientIdFilter}
+                onChange={e => setPatientIdFilter(e.target.value)}
+                className="max-w-md"
+              />
+              <div className="overflow-x-auto rounded-md border border-gray-300">
+                <table className="w-full border-collapse">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discharge Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPatients.map(patient => (
+                      <tr key={patient.id} className="hover:bg-gray-50">
+                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">{patient.patient_id}</td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{patient.status}</td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{format(new Date(patient.registration_date), 'MMM dd, yyyy')}</td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{patient.discharge_date ? format(new Date(patient.discharge_date), 'MMM dd, yyyy') : '-'}</td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                          <Button
+                            size="sm"
+                            onClick={() => handleViewPatientLogs(patient.patient_id)}
+                          >
+                            View Logs
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="dischargePatient">
+            <form onSubmit={handleDischargeSubmit} className="max-w-sm space-y-4">
+              <Label htmlFor="dischargePatientId" className="block text-sm font-medium text-gray-700">
+                Patient ID to Discharge
+              </Label>
+              <Input
+                id="dischargePatientId"
+                type="text"
+                value={dischargePatientId}
+                onChange={e => setDischargePatientId(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm"
+              />
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Discharging...' : 'Discharge Patient'}
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+};
+
+export default AdminDashboard;
