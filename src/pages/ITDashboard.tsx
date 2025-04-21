@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import LocationInconsistencyAlerts from "@/components/LocationInconsistencyAlerts";
-import UnauthorizedLoginAttempts from "@/components/UnauthorizedLoginAttempts";
+import { LocationInconsistencyAlerts } from "@/components/LocationInconsistencyAlerts";
+import { UnauthorizedLoginAttempts } from "@/components/UnauthorizedLoginAttempts";
 
 type PasswordResetRequest = {
   id: string;
