@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -149,10 +148,7 @@ export function LoginForm() {
       }));
 
       // Define roles that need timeout
-      const needsTimeout = employee.role === "admin" || 
-                           employee.role === "data_encoder" || 
-                           employee.role === "lab_technician" || 
-                           employee.role === "it_officer";
+      const needsTimeout = ["admin", "data_encoder", "lab_technician", "it_officer"].includes(employee.role);
       
       if (needsTimeout) {
         const timeout = setTimeout(() => {
@@ -173,7 +169,8 @@ export function LoginForm() {
         description: `Welcome, ${employee.username}!`,
       });
 
-      // Correct redirection based on employee role
+      // Correct redirection based on employee role 
+      // Using string comparison instead of relying on the enum type
       if (employee.role === "admin") {
         navigate("/admin-dashboard");
       } else if (employee.role === "data_encoder") {
