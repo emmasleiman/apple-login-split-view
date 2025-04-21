@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -14,7 +13,11 @@ import LogoutButton from "@/components/LogoutButton";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
-type EmployeeRole = "admin" | "data_encoder" | "lab_technician" | "Officer" | "Staff" | "Nurse";
+// Define role types based on what's accepted in the database
+type DatabaseEmployeeRole = "admin" | "data_encoder" | "lab_technician";
+
+// Define UI role types that will be shown in the dropdown
+type UIEmployeeRole = DatabaseEmployeeRole | "Officer" | "Staff" | "Nurse";
 
 type PasswordResetRequest = {
   id: string;
@@ -36,7 +39,7 @@ const ITDashboard = () => {
     username: "",
     password: "",
     contact_number: "",
-    role: "" as EmployeeRole,
+    role: "" as UIEmployeeRole,
     gender: "",
   });
   const [empLoading, setEmpLoading] = useState(false);
@@ -97,7 +100,7 @@ const ITDashboard = () => {
     e.preventDefault();
     setEmpLoading(true);
     
-    // Ensure role is properly typed before sending to Supabase
+    // Ensure role is properly selected
     if (!empForm.role) {
       toast({
         title: "Registration failed",
@@ -108,8 +111,30 @@ const ITDashboard = () => {
       return;
     }
     
-    const { error } = await supabase.from("employees").insert(empForm);
+    // Map UI roles to database roles if necessary
+    let databaseRole: DatabaseEmployeeRole;
+    
+    // Map UI roles to database roles
+    switch(empForm.role) {
+      case "Officer":
+      case "Staff":
+      case "Nurse":
+        databaseRole = "admin"; // Map custom roles to admin for now
+        break;
+      default:
+        // For roles that are already compatible with the database
+        databaseRole = empForm.role as DatabaseEmployeeRole;
+    }
+    
+    // Create the form data with the correct role type
+    const formData = {
+      ...empForm,
+      role: databaseRole
+    };
+    
+    const { error } = await supabase.from("employees").insert(formData);
     setEmpLoading(false);
+    
     if (!error) {
       toast({
         title: "Employee account created",
@@ -122,7 +147,7 @@ const ITDashboard = () => {
         username: "",
         password: "",
         contact_number: "",
-        role: "" as EmployeeRole,
+        role: "" as UIEmployeeRole,
         gender: "",
       });
     } else {
