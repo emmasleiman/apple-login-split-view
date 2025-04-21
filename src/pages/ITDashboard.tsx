@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -9,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { LocationInconsistencyAlerts } from "@/components/LocationInconsistencyAlerts";
 import { UnauthorizedLoginAttempts } from "@/components/UnauthorizedLoginAttempts";
+import LogoutButton from "@/components/LogoutButton";
 
 type PasswordResetRequest = {
   id: string;
@@ -22,7 +22,6 @@ const ITDashboard = () => {
   const [passwordResetRequests, setPasswordResetRequests] = useState<PasswordResetRequest[]>([]);
   
   useEffect(() => {
-    // Load password reset requests from localStorage
     const loadPasswordResetRequests = () => {
       const requests = JSON.parse(localStorage.getItem('passwordResetRequests') || '[]');
       setPasswordResetRequests(requests);
@@ -30,14 +29,12 @@ const ITDashboard = () => {
     
     loadPasswordResetRequests();
     
-    // Set up an interval to check for new requests every 30 seconds
     const intervalId = setInterval(loadPasswordResetRequests, 30000);
     
     return () => clearInterval(intervalId);
   }, []);
   
   const clearPasswordResetRequest = (id: string) => {
-    // Update the request status to 'cleared' in localStorage
     const updatedRequests = passwordResetRequests.map(request => 
       request.id === id ? { ...request, status: 'cleared' as const } : request
     );
@@ -62,13 +59,14 @@ const ITDashboard = () => {
     }).format(date);
   };
   
-  // Filter requests by status
   const pendingRequests = passwordResetRequests.filter(req => req.status === 'pending');
   const clearedRequests = passwordResetRequests.filter(req => req.status === 'cleared');
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50/40">
-      <DashboardHeader title="TraceMed" role="IT Officer" />
+      <DashboardHeader title="TraceMed" role="IT Officer">
+        <LogoutButton variant="outline" className="ml-auto" />
+      </DashboardHeader>
       
       <div className="w-full max-w-6xl mx-auto px-4 py-10">
         <div className="flex flex-col gap-2 mb-10 text-center">
