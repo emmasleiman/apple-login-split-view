@@ -12,6 +12,9 @@ import { LocationInconsistencyAlerts } from "@/components/LocationInconsistencyA
 import { UnauthorizedLoginAttempts } from "@/components/UnauthorizedLoginAttempts";
 import LogoutButton from "@/components/LogoutButton";
 import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
+
+type EmployeeRole = "admin" | "data_encoder" | "lab_technician" | "Officer" | "Staff" | "Nurse";
 
 type PasswordResetRequest = {
   id: string;
@@ -33,7 +36,7 @@ const ITDashboard = () => {
     username: "",
     password: "",
     contact_number: "",
-    role: "",
+    role: "" as EmployeeRole,
     gender: "",
   });
   const [empLoading, setEmpLoading] = useState(false);
@@ -89,10 +92,23 @@ const ITDashboard = () => {
       [e.target.name]: e.target.value,
     }));
   };
+  
   const handleEmployeeRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmpLoading(true);
-    const { error } = await supabase.from("employees").insert([empForm]);
+    
+    // Ensure role is properly typed before sending to Supabase
+    if (!empForm.role) {
+      toast({
+        title: "Registration failed",
+        description: "Please select a role",
+        variant: "destructive"
+      });
+      setEmpLoading(false);
+      return;
+    }
+    
+    const { error } = await supabase.from("employees").insert(empForm);
     setEmpLoading(false);
     if (!error) {
       toast({
@@ -106,7 +122,7 @@ const ITDashboard = () => {
         username: "",
         password: "",
         contact_number: "",
-        role: "",
+        role: "" as EmployeeRole,
         gender: "",
       });
     } else {
@@ -121,6 +137,7 @@ const ITDashboard = () => {
       [e.target.name]: e.target.value,
     }));
   };
+  
   const handleWardRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setWardLoading(true);
@@ -143,7 +160,6 @@ const ITDashboard = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50/40">
-      {/* Remove children prop from DashboardHeader (build error fix) */}
       <DashboardHeader title="TraceMed" role="IT Officer" />
       <div className="w-full max-w-6xl mx-auto px-4 py-10">
         <div className="flex flex-col gap-2 mb-10 text-center">
@@ -286,6 +302,8 @@ const ITDashboard = () => {
                       <option value="Officer">Officer</option>
                       <option value="Staff">Staff</option>
                       <option value="Nurse">Nurse</option>
+                      <option value="data_encoder">Data Encoder</option>
+                      <option value="lab_technician">Lab Technician</option>
                     </select>
                   </div>
                   <div>
@@ -297,8 +315,15 @@ const ITDashboard = () => {
                       <option value="Other">Other</option>
                     </select>
                   </div>
-                  <Button type="submit" loading={empLoading} disabled={empLoading}>
-                    {empLoading ? "Registering..." : "Register"}
+                  <Button type="submit" disabled={empLoading}>
+                    {empLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Registering...
+                      </>
+                    ) : (
+                      "Register"
+                    )}
                   </Button>
                 </form>
               </CardContent>
@@ -323,8 +348,15 @@ const ITDashboard = () => {
                     <label className="block mb-1 text-gray-700">Password</label>
                     <Input name="password" type="password" required value={wardForm.password} onChange={onWardChange} />
                   </div>
-                  <Button type="submit" loading={wardLoading} disabled={wardLoading}>
-                    {wardLoading ? "Registering..." : "Register"}
+                  <Button type="submit" disabled={wardLoading}>
+                    {wardLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Registering...
+                      </>
+                    ) : (
+                      "Register"
+                    )}
                   </Button>
                 </form>
               </CardContent>
@@ -337,4 +369,3 @@ const ITDashboard = () => {
 };
 
 export default ITDashboard;
-
