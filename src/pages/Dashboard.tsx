@@ -23,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AlertTriangle } from "lucide-react";
 
 type Patient = {
   id: string;
@@ -37,6 +38,15 @@ type Patient = {
   other_qr_code: string | null;
 };
 
+type RegisterPatientFunctionResult = {
+  wristband_qr_code: string;
+  other_qr_code: string;
+  is_new_registration: boolean;
+  has_positive_history: boolean;
+  last_positive_date: string | null;
+  patient_uuid: string;
+};
+
 const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -49,38 +59,29 @@ const Dashboard = () => {
   const [existingPatientData, setExistingPatientData] = useState<Patient | null>(null);
   const [showDischargeConfirm, setShowDischargeConfirm] = useState(false);
 
+  // + new: for registration "history" indicator
+  const [hasPositiveHistory, setHasPositiveHistory] = useState<boolean>(false);
+  const [positiveHistoryDate, setPositiveHistoryDate] = useState<string | null>(null);
+
   const { refetch: checkPatientExists } = useQuery({
     queryKey: ["checkPatient", patientId],
     queryFn: async () => {
       if (!patientId) return null;
-      
-      console.log("Checking if patient exists:", patientId);
-      
       const { data, error } = await supabase
         .from('patients')
         .select('*')
         .eq('patient_id', patientId)
         .eq('status', 'admitted')
         .single();
-      
-      console.log("Patient check result:", { data, error });
-      
       if (error && error.code !== 'PGRST116') {
-        console.error("Error checking patient:", error);
         throw error;
       }
-      
       if (data) {
-        const patientData = data as Patient;
         setPatientExists(true);
-        setExistingPatientData(patientData);
-        if (patientData.wristband_qr_code) {
-          setWristbandQRCode(patientData.wristband_qr_code);
-        }
-        if (patientData.other_qr_code) {
-          setOtherQRCode(patientData.other_qr_code);
-        }
-        return patientData;
+        setExistingPatientData(data as Patient);
+        setWristbandQRCode(data.wristband_qr_code);
+        setOtherQRCode(data.other_qr_code);
+        return data;
       } else {
         setPatientExists(false);
         setExistingPatientData(null);
@@ -97,111 +98,55 @@ const Dashboard = () => {
       const timer = setTimeout(() => {
         checkPatientExists();
       }, 500);
-      
       return () => clearTimeout(timer);
     } else {
       setPatientExists(false);
       setExistingPatientData(null);
       setWristbandQRCode(null);
       setOtherQRCode(null);
+      setHasPositiveHistory(false);
+      setPositiveHistoryDate(null);
     }
   }, [patientId, checkPatientExists]);
 
   const { mutate: registerPatient, isPending: isRegistering } = useMutation({
     mutationFn: async ({ patientId, cultureRequired }: { patientId: string, cultureRequired: boolean }) => {
-      if (patientExists) {
-        return existingPatientData;
+      // Use the new register_or_update_patient function
+      const { data, error } = await supabase
+        .rpc("register_or_update_patient", {
+          p_patient_id: patientId,
+          p_culture_required: cultureRequired,
+        });
+      if (error) {
+        throw error;
       }
-      
-      console.log("Registering patient:", { patientId, cultureRequired });
-      
-      const { data: existingPatient, error: checkError } = await supabase
-        .from('patients')
-        .select('patient_id')
-        .eq('patient_id', patientId)
-        .maybeSingle();
-      
-      console.log("Existing patient check:", { existingPatient, checkError });
-      
-      if (existingPatient) {
-        throw new Error("Patient ID already exists");
+      // Supabase returns an array (table return), use the first row.
+      if (data && data.length > 0) {
+        return data[0] as RegisterPatientFunctionResult;
       }
-      
-      const wristbandQRData = JSON.stringify({
-        patientId: patientId,
-        cultureRequired: cultureRequired,
-        type: "wristband",
-        timestamp: new Date().toISOString(),
-      });
-      
-      const otherQRData = JSON.stringify({
-        patientId: patientId,
-        cultureRequired: cultureRequired,
-        type: "other",
-        timestamp: new Date().toISOString(),
-      });
-      
-      const { data: patientData, error: patientError } = await supabase
-        .from('patients')
-        .insert([
-          {
-            patient_id: patientId,
-            culture_required: cultureRequired,
-            status: 'admitted',
-            wristband_qr_code: wristbandQRData,
-            other_qr_code: otherQRData
-          }
-        ])
-        .select();
-
-      console.log("Patient registration result:", { patientData, patientError });
-      
-      if (patientError) {
-        console.error("Error registering patient:", patientError);
-        throw patientError;
-      }
-      
-      if (cultureRequired && patientData && patientData.length > 0) {
-        const { error: labError } = await supabase
-          .from('lab_results')
-          .insert([
-            {
-              patient_id: patientData[0].id,
-              sample_id: `${patientId}-${Date.now()}`,
-              result: null
-            }
-          ]);
-        
-        if (labError) {
-          console.error("Error creating lab result:", labError);
-          throw labError;
-        }
-      }
-      
-      return patientData && patientData.length > 0 ? patientData[0] : null;
+      return null;
     },
     onSuccess: (data) => {
-      if (patientExists) {
-        toast({
-          title: "Patient Already Registered",
-          description: `Patient ${patientId} is already in the system. QR codes have been loaded.`,
-        });
-        return;
-      }
-      
       if (data) {
         setWristbandQRCode(data.wristband_qr_code);
         setOtherQRCode(data.other_qr_code);
-        
+
+        // Handle history logic
+        if (data.has_positive_history) {
+          setHasPositiveHistory(true);
+          setPositiveHistoryDate(data.last_positive_date);
+        } else {
+          setHasPositiveHistory(false);
+          setPositiveHistoryDate(null);
+        }
+
         toast({
           title: "Patient Registered",
-          description: `Patient ${patientId} registered successfully with 2 QR codes`,
+          description: `Patient ${patientId} registered. QR codes loaded.${data.is_new_registration ? "" : " (Re-admission)"}`
         });
       }
     },
     onError: (error) => {
-      console.error("Registration error:", error);
-      
       toast({
         title: "Registration Error",
         description: error instanceof Error ? error.message : "Failed to register patient. Please try again.",
@@ -220,7 +165,6 @@ const Dashboard = () => {
         })
         .eq('patient_id', patientId)
         .select() as { data: Patient[] | null, error: any };
-      
       if (error) throw error;
       return data;
     },
@@ -233,7 +177,6 @@ const Dashboard = () => {
       setShowDischargeConfirm(false);
     },
     onError: (error) => {
-      console.error("Error discharging patient:", error);
       toast({
         title: "Discharge Error",
         description: "Failed to discharge patient. Patient may not exist.",
@@ -253,17 +196,7 @@ const Dashboard = () => {
       });
       return;
     }
-
-    if (patientExists && existingPatientData) {
-      setWristbandQRCode(existingPatientData.wristband_qr_code);
-      setOtherQRCode(existingPatientData.other_qr_code);
-      toast({
-        title: "Patient Already Registered",
-        description: `Patient ${patientId} is already in the system. QR codes have been loaded.`,
-      });
-      return;
-    }
-
+    // Always do function-driven registration (handles readmission and history)
     registerPatient({
       patientId: patientId,
       cultureRequired: cultureRequired === "yes"
@@ -272,9 +205,7 @@ const Dashboard = () => {
 
   const handlePrint = (qrType: string, qrData: string | null) => {
     if (!qrData) return;
-
     const typeLabel = qrType === "wristband" ? "Wristband (W)" : "Other";
-
     const printWindow = window.open("", "_blank");
     if (printWindow) {
       printWindow.document.write(`
@@ -311,7 +242,6 @@ const Dashboard = () => {
 
   const handleDischargeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!dischargePatientId.trim()) {
       toast({
         title: "Error",
@@ -320,7 +250,6 @@ const Dashboard = () => {
       });
       return;
     }
-
     setShowDischargeConfirm(true);
   };
 
@@ -331,13 +260,11 @@ const Dashboard = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50/40">
       <DashboardHeader title="TraceMed" role="Data Encoder" />
-      
       <div className="w-full max-w-4xl mx-auto px-4 py-10">
         <div className="flex flex-col gap-2 mb-10 text-center">
           <h1 className="text-3xl font-light tracking-tight text-gray-800">Data Encoder Dashboard</h1>
           <p className="text-base text-gray-500">Manage patient registrations and discharges</p>
         </div>
-
         <Tabs defaultValue="register" className="w-full">
           <TabsList className="mb-8 bg-gray-100/80 rounded-xl shadow-sm">
             <TabsTrigger value="register" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-lg py-3 flex-1">
@@ -347,7 +274,6 @@ const Dashboard = () => {
               Discharge Patient
             </TabsTrigger>
           </TabsList>
-
           <TabsContent value="register" className="w-full space-y-6">
             <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
@@ -370,7 +296,6 @@ const Dashboard = () => {
                       placeholder="e.g. P12345"
                     />
                   </div>
-
                   <div className="space-y-3">
                     <Label className="text-base text-gray-700">Carbapenem Culture Required</Label>
                     <RadioGroup 
@@ -388,20 +313,36 @@ const Dashboard = () => {
                       </div>
                     </RadioGroup>
                   </div>
-
                   <Button 
                     type="submit" 
                     className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
                     disabled={isRegistering}
                   >
-                    {isRegistering ? "Registering..." : patientExists ? "Load Existing QR Codes" : "Register Patient"}
+                    {isRegistering ? "Registering..." : "Register Patient"}
                   </Button>
                 </form>
-
+                {/* Indicate lab culture history if present */}
+                {hasPositiveHistory && (
+                  <div className="mt-8">
+                    <div className="flex items-center gap-3 bg-amber-100 border border-amber-300 rounded-lg p-4 shadow-sm">
+                      <AlertTriangle className="h-6 w-6 text-amber-600" />
+                      <div>
+                        <div className="text-amber-800 font-semibold text-base">
+                          Previous Positive Lab Result!
+                        </div>
+                        <div className="text-sm text-amber-700 mt-1">
+                          This patient has a history of carbapenem resistance.
+                          <br />
+                          Last positive lab processed:&nbsp;
+                          <span className="font-medium">{positiveHistoryDate ? new Date(positiveHistoryDate).toLocaleString() : "Unknown"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {(wristbandQRCode || otherQRCode) && (
                   <div className="mt-8 flex flex-col items-center space-y-6 pt-6 border-t border-gray-100">
                     <p className="text-lg text-center font-medium text-gray-700">Patient ID: {patientId} - QR Codes</p>
-                    
                     {wristbandQRCode && (
                       <div className="w-full border rounded-lg p-5 bg-gray-50">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -427,7 +368,6 @@ const Dashboard = () => {
                         </div>
                       </div>
                     )}
-                    
                     {otherQRCode && (
                       <div className="w-full border rounded-lg p-5 bg-gray-50">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -458,7 +398,6 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
-
           <TabsContent value="discharge">
             <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
               <CardHeader className="bg-gray-50/60 border-b border-gray-100">
@@ -476,7 +415,6 @@ const Dashboard = () => {
                       placeholder="e.g. P12345"
                     />
                   </div>
-
                   <Button 
                     type="submit" 
                     className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
@@ -488,7 +426,6 @@ const Dashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
-
         <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -515,3 +452,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

@@ -171,6 +171,33 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_qr_history: {
+        Row: {
+          created_at: string
+          id: string
+          other_qr_code: string
+          patient_id: string
+          updated_at: string
+          wristband_qr_code: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          other_qr_code: string
+          patient_id: string
+          updated_at?: string
+          wristband_qr_code: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          other_qr_code?: string
+          patient_id?: string
+          updated_at?: string
+          wristband_qr_code?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           culture_qr_code: string | null
@@ -336,6 +363,19 @@ export type Database = {
       }
     }
     Views: {
+      patient_history_view: {
+        Row: {
+          discharge_date: string | null
+          notes: string | null
+          patient_id: string | null
+          processed_date: string | null
+          registration_date: string | null
+          result: string | null
+          sample_id: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
       patient_lab_results: {
         Row: {
           collection_date: string | null
@@ -356,7 +396,17 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      register_or_update_patient: {
+        Args: { p_patient_id: string; p_culture_required: boolean }
+        Returns: {
+          wristband_qr_code: string
+          other_qr_code: string
+          is_new_registration: boolean
+          has_positive_history: boolean
+          last_positive_date: string
+          patient_uuid: string
+        }[]
+      }
     }
     Enums: {
       employee_role: "admin" | "data_encoder" | "lab_technician"
