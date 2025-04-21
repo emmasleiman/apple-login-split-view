@@ -643,9 +643,6 @@ const AdminDashboard = () => {
           <p className="text-base text-gray-500">Monitor and manage patient data</p>
         </div>
         
-        <AdminNotifications />
-        <LocationInconsistencyAlerts />
-
         <Tabs defaultValue="criticalCases" className="w-full">
           <TabsList className="mb-8 bg-gray-100/80 rounded-xl shadow-sm">
             <TabsTrigger 
@@ -675,6 +672,12 @@ const AdminDashboard = () => {
             >
               <Users className="h-5 w-5" />
               Discharge Patient
+            </TabsTrigger>
+            <TabsTrigger
+              value="notifications"
+              className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-lg py-3 flex-1 flex items-center justify-center gap-2"
+            >
+              Notifications
             </TabsTrigger>
           </TabsList>
 
@@ -937,6 +940,13 @@ const AdminDashboard = () => {
                 {isSubmitting ? 'Discharging...' : 'Discharge Patient'}
               </Button>
             </form>
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <div className="flex flex-col gap-8">
+              <AdminNotifications />
+              <LocationInconsistencyAlerts />
+            </div>
           </TabsContent>
         </Tabs>
       </div>
