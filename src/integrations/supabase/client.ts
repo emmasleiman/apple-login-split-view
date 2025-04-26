@@ -10,3 +10,18 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Add debugging for register_or_update_patient function responses
+const originalRpc = supabase.rpc.bind(supabase);
+supabase.rpc = function(fnName: string, params?: any, options?: any) {
+  const result = originalRpc(fnName, params, options);
+  
+  // Log important function calls
+  if (fnName === 'register_or_update_patient') {
+    result.then(response => {
+      console.log(`Register patient response:`, response);
+    });
+  }
+  
+  return result;
+};

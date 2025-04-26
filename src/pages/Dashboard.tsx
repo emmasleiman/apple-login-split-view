@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,8 +130,9 @@ const Dashboard = () => {
         setWristbandQRCode(data.wristband_qr_code);
         setOtherQRCode(data.other_qr_code);
 
-        // Handle history logic
-        if (data.has_positive_history) {
+        // FIX: Only show history alert if has_positive_history is true AND last_positive_date has a value
+        // This fixes the incorrect warning for new patients
+        if (data.has_positive_history && data.last_positive_date) {
           setHasPositiveHistory(true);
           setPositiveHistoryDate(data.last_positive_date);
         } else {
@@ -321,8 +321,8 @@ const Dashboard = () => {
                     {isRegistering ? "Registering..." : "Register Patient"}
                   </Button>
                 </form>
-                {/* Indicate lab culture history if present */}
-                {hasPositiveHistory && (
+                {/* Indicate lab culture history if present - only show if both conditions are true */}
+                {hasPositiveHistory && positiveHistoryDate && (
                   <div className="mt-8">
                     <div className="flex items-center gap-3 bg-amber-100 border border-amber-300 rounded-lg p-4 shadow-sm">
                       <AlertTriangle className="h-6 w-6 text-amber-600" />
@@ -452,4 +452,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
