@@ -950,6 +950,13 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Patient History Sheet Component */}
+      <PatientHistory
+        open={isPatientHistoryOpen}
+        onOpenChange={setIsPatientHistoryOpen}
+        patientId={selectedPatientForHistory}
+      />
     </div>
   );
 };
