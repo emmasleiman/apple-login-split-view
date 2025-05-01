@@ -41,33 +41,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import LogoutButton from "@/components/LogoutButton";
 
-type PatientLabResult = {
-  patient_uuid: string;
+type PatientInfo = {
+  id: string;
   patient_id: string;
   culture_required: boolean;
   status: string;
-  registration_date: string;
-  discharge_date: string | null;
-  lab_result_id: string | null;
-  sample_id: string | null;
-  result: string | null;
-  collection_date: string | null;
-  processed_by: string | null;
-  processed_date: string | null;
-  notes: string | null;
 };
 
 type LabTest = {
   id: string;
-  type: string;
-  requestedOn: string;
-  status: string;
-  resistanceResult: string | null;
-};
-
-type PatientData = {
-  id: string;
-  labs: LabTest[];
+  patient_id: string;
+  sample_id: string;
+  collection_date: string;
+  status: "pending" | "completed";
+  result: string | null;
 };
 
 const LabDashboard = () => {
@@ -75,7 +62,8 @@ const LabDashboard = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedPatientId, setSelectedPatientId] = useState("");
-  const [patientData, setPatientData] = useState<PatientData | null>(null);
+  const [patientInfo, setPatientInfo] = useState<PatientInfo | null>(null);
+  const [labTests, setLabTests] = useState<LabTest[]>([]);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedLabTest, setSelectedLabTest] = useState<LabTest | null>(null);
   const [resistance, setResistance] = useState<"positive" | "negative" | null>(null);
@@ -86,89 +74,69 @@ const LabDashboard = () => {
     }
   });
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account",
-      });
-      navigate('/');
-    } catch (error) {
-      console.error("Error logging out:", error);
-      toast({
-        variant: "destructive",
-        title: "Error logging out",
-        description: "An error occurred while logging out",
-      });
-    }
-  };
-
-  const fetchPatientLabResults = async (patientId: string) => {
+  // Fetch patient information by patient ID
+  const fetchPatientInfo = async (patientId: string) => {
+    console.log("Fetching patient info for:", patientId);
     const { data, error } = await supabase
-      .from('patient_lab_results')
+      .from('patients')
       .select('*')
-      .eq('patient_id', patientId) as { data: PatientLabResult[] | null, error: any };
+      .eq('patient_id', patientId)
+      .eq('status', 'admitted')
+      .single();
     
-    if (error) throw error;
-    return data || [];
-  };
-
-  const { mutate: searchPatient } = useMutation({
-    mutationFn: async (values: { patientId: string }) => {
-      const patientId = values.patientId.trim();
-      if (!patientId) {
-        throw new Error('Patient ID is required');
-      }
-
-      return await fetchPatientLabResults(patientId);
-    },
-    onSuccess: (data) => {
-      if (data.length > 0) {
-        setSelectedPatientId(form.getValues().patientId);
-        
-        const labTests = data.map(item => ({
-          id: item.lab_result_id || '',
-          type: item.sample_id ? item.sample_id.split('-')[0] : 'Unknown',
-          requestedOn: item.collection_date ? new Date(item.collection_date).toISOString().split('T')[0] : '',
-          status: item.result === null ? 'pending' : 'completed',
-          resistanceResult: item.result
-        })).filter(lab => lab.id);
-        
-        setPatientData({
-          id: form.getValues().patientId,
-          labs: labTests
-        });
-        
-        toast({
-          title: "Patient Found",
-          description: `Found ${labTests.length} lab cultures for patient ${form.getValues().patientId}`,
-        });
-      } else {
-        setPatientData(null);
-        toast({
-          variant: "destructive",
-          title: "Patient Not Found",
-          description: "No lab cultures found for the provided patient ID",
-        });
-      }
-    },
-    onError: (error) => {
-      console.error("Error searching for patient:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to search for patient",
-      });
+    if (error) {
+      console.error("Error fetching patient:", error);
+      throw error;
     }
-  });
-
-  const handleSearch = (values: { patientId: string }) => {
-    searchPatient(values);
+    
+    return data;
   };
 
+  // Fetch lab tests for a patient
+  const fetchLabTests = async (patientUuid: string) => {
+    console.log("Fetching lab tests for patient UUID:", patientUuid);
+    // First check if there are any existing lab results
+    const { data: existingTests, error: existingError } = await supabase
+      .from('lab_results')
+      .select('*')
+      .eq('patient_id', patientUuid);
+    
+    if (existingError) {
+      console.error("Error fetching existing lab tests:", existingError);
+      throw existingError;
+    }
+
+    // If the patient requires culture but doesn't have any lab tests yet, create one
+    if (patientInfo?.culture_required && (!existingTests || existingTests.length === 0)) {
+      console.log("Creating new lab test for patient with MDRO culture required");
+      // Generate a unique sample ID using patient ID and timestamp
+      const timestamp = new Date().getTime();
+      const sampleId = `MDRO-${patientInfo.patient_id}-${timestamp}`;
+      
+      const { data: newTest, error: insertError } = await supabase
+        .from('lab_results')
+        .insert([{
+          patient_id: patientUuid,
+          sample_id: sampleId,
+          collection_date: new Date().toISOString(),
+        }])
+        .select();
+      
+      if (insertError) {
+        console.error("Error creating lab test:", insertError);
+        throw insertError;
+      }
+      
+      return newTest;
+    }
+    
+    return existingTests || [];
+  };
+
+  // Submit a lab result
   const { mutate: submitLabResult } = useMutation({
     mutationFn: async ({ labId, result }: { labId: string, result: string }) => {
+      console.log("Submitting lab result:", { labId, result });
       const { data, error } = await supabase
         .from('lab_results')
         .update({
@@ -177,7 +145,7 @@ const LabDashboard = () => {
           processed_date: new Date().toISOString()
         })
         .eq('id', labId)
-        .select() as { data: any, error: any };
+        .select();
       
       if (error) throw error;
       return data;
@@ -185,23 +153,22 @@ const LabDashboard = () => {
     onSuccess: () => {
       toast({
         title: "Lab Result Submitted",
-        description: `Recorded ${resistance} result for ${selectedLabTest?.type}`,
+        description: `Recorded ${resistance === "positive" ? "Resistant" : "Susceptible"} result for MDRO test`,
       });
       
-      if (patientData) {
-        const updatedLabs = patientData.labs.map((lab: LabTest) => 
-          lab.id === selectedLabTest?.id 
-            ? { ...lab, status: "completed", resistanceResult: resistance } 
-            : lab
-        );
+      // Update the lab tests list after submission
+      if (patientInfo) {
+        queryClient.invalidateQueries({ queryKey: ['labTests', patientInfo.id] });
         
-        setPatientData({
-          ...patientData,
-          labs: updatedLabs
-        });
+        // Update the local state for immediate UI update
+        setLabTests(prevTests => 
+          prevTests.map(test => 
+            test.id === selectedLabTest?.id 
+              ? { ...test, status: "completed", result: resistance } 
+              : test
+          )
+        );
       }
-      
-      queryClient.invalidateQueries({ queryKey: ['patientLabResults', selectedPatientId] });
       
       setConfirmDialogOpen(false);
       setSelectedLabTest(null);
@@ -216,6 +183,79 @@ const LabDashboard = () => {
       });
     }
   });
+
+  // Search for a patient and fetch their lab tests
+  const { mutate: searchPatient, isLoading: isSearching } = useMutation({
+    mutationFn: async (values: { patientId: string }) => {
+      const patientId = values.patientId.trim();
+      if (!patientId) {
+        throw new Error('Patient ID is required');
+      }
+
+      // First, fetch the patient information
+      const patient = await fetchPatientInfo(patientId);
+      return patient;
+    },
+    onSuccess: (patient) => {
+      if (patient) {
+        setPatientInfo(patient);
+        setSelectedPatientId(patient.patient_id);
+        
+        // Fetch lab tests for this patient
+        fetchLabTests(patient.id)
+          .then(tests => {
+            console.log("Lab tests retrieved:", tests);
+            
+            // Transform to our LabTest type
+            const formattedTests = tests.map((test: any) => ({
+              id: test.id,
+              patient_id: test.patient_id,
+              sample_id: test.sample_id,
+              collection_date: test.collection_date,
+              status: test.result ? "completed" : "pending",
+              result: test.result
+            }));
+            
+            setLabTests(formattedTests);
+            
+            toast({
+              title: "Patient Found",
+              description: `Found patient ${patient.patient_id} with ${formattedTests.length} lab tests`,
+            });
+          })
+          .catch(error => {
+            console.error("Error fetching lab tests:", error);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Failed to fetch lab tests for this patient",
+            });
+          });
+      } else {
+        setPatientInfo(null);
+        setLabTests([]);
+        toast({
+          variant: "destructive",
+          title: "Patient Not Found",
+          description: "No admitted patient found with this ID",
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Error searching for patient:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to search for patient",
+      });
+      setPatientInfo(null);
+      setLabTests([]);
+    }
+  });
+
+  const handleSearch = (values: { patientId: string }) => {
+    searchPatient(values);
+  };
 
   const handleSelectLabTest = (lab: LabTest, resistanceStatus: "positive" | "negative") => {
     setSelectedLabTest(lab);
@@ -237,7 +277,7 @@ const LabDashboard = () => {
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-light text-gray-800 tracking-tight">TraceMed Lab Dashboard</h1>
-          <p className="text-gray-500 mt-1">Record carbapenem resistance test results</p>
+          <p className="text-gray-500 mt-1">Record MDRO resistance test results</p>
         </div>
         <div className="flex items-center mt-4 md:mt-0 gap-4">
           <div className="flex items-center gap-2 bg-white p-2 rounded-md shadow-sm">
@@ -279,7 +319,11 @@ const LabDashboard = () => {
                                 placeholder="Enter Patient ID" 
                                 className="h-16 text-xl"
                               />
-                              <Button type="submit" className="h-16 px-6 text-xl">
+                              <Button 
+                                type="submit" 
+                                className="h-16 px-6 text-xl"
+                                disabled={isSearching}
+                              >
                                 <Search className="h-5 w-5 mr-2" />
                                 Search
                               </Button>
@@ -291,11 +335,11 @@ const LabDashboard = () => {
                   </form>
                 </Form>
 
-                {patientData && (
+                {patientInfo && (
                   <div className="mt-6">
                     <h3 className="text-xl font-medium mb-3 flex items-center gap-2">
                       <UserCheck className="h-5 w-5 text-green-500" />
-                      Lab Cultures for Patient {patientData.id}
+                      Lab Tests for Patient {patientInfo.patient_id}
                     </h3>
                     
                     <div className="rounded-md border overflow-hidden">
@@ -303,17 +347,21 @@ const LabDashboard = () => {
                         <TableHeader>
                           <TableRow>
                             <TableHead className="text-lg">Test Type</TableHead>
-                            <TableHead className="text-lg">Requested On</TableHead>
+                            <TableHead className="text-lg">Sample ID</TableHead>
+                            <TableHead className="text-lg">Collected On</TableHead>
                             <TableHead className="text-lg">Status</TableHead>
                             <TableHead className="text-right text-lg">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {patientData.labs.length > 0 ? (
-                            patientData.labs.map((lab: LabTest) => (
+                          {labTests.length > 0 ? (
+                            labTests.map((lab) => (
                               <TableRow key={lab.id}>
-                                <TableCell className="font-medium text-lg">{lab.type}</TableCell>
-                                <TableCell className="text-lg">{lab.requestedOn}</TableCell>
+                                <TableCell className="font-medium text-lg">MDRO Test</TableCell>
+                                <TableCell className="text-lg">{lab.sample_id}</TableCell>
+                                <TableCell className="text-lg">
+                                  {new Date(lab.collection_date).toLocaleDateString()}
+                                </TableCell>
                                 <TableCell>
                                   <Badge variant={lab.status === "completed" ? "default" : "secondary"} className="text-md">
                                     {lab.status}
@@ -343,18 +391,24 @@ const LabDashboard = () => {
                                     </div>
                                   ) : (
                                     <span className="text-lg text-gray-500">
-                                      {lab.resistanceResult === "positive" 
-                                        ? "Carbapenem Resistant"
-                                        : "Carbapenem Susceptible"}
+                                      {lab.result === "positive" 
+                                        ? "MDRO Resistant"
+                                        : "MDRO Susceptible"}
                                     </span>
                                   )}
                                 </TableCell>
                               </TableRow>
                             ))
+                          ) : patientInfo.culture_required ? (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center py-4 text-gray-500">
+                                Loading lab tests...
+                              </TableCell>
+                            </TableRow>
                           ) : (
                             <TableRow>
-                              <TableCell colSpan={4} className="text-center py-4 text-gray-500">
-                                No lab tests found for this patient
+                              <TableCell colSpan={5} className="text-center py-4 text-gray-500">
+                                No MDRO culture required for this patient
                               </TableCell>
                             </TableRow>
                           )}
@@ -374,7 +428,7 @@ const LabDashboard = () => {
           <DialogHeader>
             <DialogTitle className="text-xl">Confirm Test Result</DialogTitle>
             <DialogDescription className="text-lg">
-              You are about to submit a carbapenem resistance test result for:
+              You are about to submit an MDRO resistance test result for:
             </DialogDescription>
           </DialogHeader>
           
@@ -386,17 +440,19 @@ const LabDashboard = () => {
                   <span className="font-medium text-lg">{selectedPatientId}</span>
                 </div>
                 <div className="flex justify-between border-b pb-2">
-                  <span className="text-gray-500 text-lg">Test Type:</span>
-                  <span className="font-medium text-lg">{selectedLabTest.type}</span>
+                  <span className="text-gray-500 text-lg">Sample ID:</span>
+                  <span className="font-medium text-lg">{selectedLabTest.sample_id}</span>
                 </div>
                 <div className="flex justify-between border-b pb-2">
-                  <span className="text-gray-500 text-lg">Requested On:</span>
-                  <span className="font-medium text-lg">{selectedLabTest.requestedOn}</span>
+                  <span className="text-gray-500 text-lg">Collection Date:</span>
+                  <span className="font-medium text-lg">
+                    {new Date(selectedLabTest.collection_date).toLocaleDateString()}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500 text-lg">Result:</span>
                   <span className={`font-medium text-lg ${resistance === "positive" ? "text-amber-600" : "text-green-600"}`}>
-                    Carbapenem {resistance === "positive" ? "Resistant" : "Susceptible"}
+                    MDRO {resistance === "positive" ? "Resistant" : "Susceptible"}
                   </span>
                 </div>
               </div>

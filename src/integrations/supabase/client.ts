@@ -11,7 +11,7 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-// Add debugging for register_or_update_patient function responses
+// Add debugging for important API calls
 const originalRpc = supabase.rpc.bind(supabase);
 supabase.rpc = function(fnName: string, params?: any, options?: any) {
   const result = originalRpc(fnName, params, options);
@@ -24,4 +24,43 @@ supabase.rpc = function(fnName: string, params?: any, options?: any) {
   }
   
   return result;
+};
+
+// Add debugging for lab results operations
+const originalFrom = supabase.from.bind(supabase);
+supabase.from = function(table: string) {
+  const builder = originalFrom(table);
+  
+  if (table === 'lab_results') {
+    const originalSelect = builder.select.bind(builder);
+    builder.select = function(...args: any[]) {
+      const query = originalSelect(...args);
+      query.then((result: any) => {
+        console.log(`Lab results select query:`, result);
+      });
+      return query;
+    };
+    
+    const originalInsert = builder.insert.bind(builder);
+    builder.insert = function(...args: any[]) {
+      console.log(`Lab results insert args:`, args);
+      const query = originalInsert(...args);
+      query.then((result: any) => {
+        console.log(`Lab results insert query result:`, result);
+      });
+      return query;
+    };
+    
+    const originalUpdate = builder.update.bind(builder);
+    builder.update = function(...args: any[]) {
+      console.log(`Lab results update args:`, args);
+      const query = originalUpdate(...args);
+      query.then((result: any) => {
+        console.log(`Lab results update query result:`, result);
+      });
+      return query;
+    };
+  }
+  
+  return builder;
 };
