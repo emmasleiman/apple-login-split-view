@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import PatientScanLogs from "@/components/PatientScanLogs";
+import PatientHistory from "@/components/PatientHistory";
 import DashboardHeader from "@/components/DashboardHeader";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -127,7 +127,9 @@ const AdminDashboard = () => {
   const [selectedSample, setSelectedSample] = useState<PatientLabSample | null>(null);
   const [selectedResult, setSelectedResult] = useState<"positive" | "negative" | null>(null);
   const [showResultConfirm, setShowResultConfirm] = useState(false);
-
+  const [isPatientHistoryOpen, setIsPatientHistoryOpen] = useState(false);
+  const [selectedPatientForHistory, setSelectedPatientForHistory] = useState<string | null>(null);
+  
   const form = useForm({
     defaultValues: {
       patientId: "",
@@ -341,14 +343,9 @@ const AdminDashboard = () => {
   };
 
   const handleViewPatientLogs = async (patientId: string) => {
-    console.log('View logs requested for patient ID:', patientId);
-    setSelectedPatientForLogs(patientId);
-    
-    const logs = await fetchPatientScanLogs(patientId);
-    console.log('Setting patient scan logs:', logs);
-    setPatientScanLogs(logs);
-    
-    setIsPatientLogsOpen(true);
+    console.log('View history requested for patient ID:', patientId);
+    setSelectedPatientForHistory(patientId);
+    setIsPatientHistoryOpen(true);
   };
 
   const { mutate: searchPatient } = useMutation({
