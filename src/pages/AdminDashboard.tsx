@@ -478,18 +478,20 @@ const AdminDashboard = () => {
     setIsLoadingPatientSamples(true);
     
     try {
+      // First, check if patient exists and is currently admitted
       const { data: patientExists, error: patientError } = await supabase
         .from("patients")
-        .select("id, patient_id")
+        .select("id, patient_id, status, culture_required")
         .eq("patient_id", patientIdInput)
+        .eq("status", "admitted") // Make sure patient is admitted
         .maybeSingle();
       
       if (patientError) throw patientError;
       
       if (!patientExists) {
         toast({
-          title: "Patient not found",
-          description: `No patient found with ID: ${patientIdInput}`,
+          title: "Patient not found or not admitted",
+          description: `No admitted patient found with ID: ${patientIdInput}`,
           variant: "destructive",
         });
         setPatientLabSamples([]);
@@ -497,22 +499,61 @@ const AdminDashboard = () => {
         return;
       }
 
-      const { data: samples, error: samplesError } = await supabase
+      console.log("Found patient:", patientExists);
+      
+      // Check if there are pending lab samples
+      const { data: existingSamples, error: existingSamplesError } = await supabase
         .from("lab_results")
-        .select("id, sample_id, collection_date, patient_id")
+        .select("id, sample_id, collection_date, patient_id, result")
         .eq("patient_id", patientExists.id)
         .is("result", null);
       
-      if (samplesError) throw samplesError;
+      if (existingSamplesError) throw existingSamplesError;
+
+      console.log("Existing samples:", existingSamples);
       
-      setPatientLabSamples(samples || []);
-      
-      if (samples && samples.length === 0) {
+      // If there are pending samples, show them
+      if (existingSamples && existingSamples.length > 0) {
+        setPatientLabSamples(existingSamples);
         toast({
-          title: "No pending samples",
-          description: `Patient ${patientIdInput} has no pending lab samples`,
-          variant: "default",
+          title: "Pending samples found",
+          description: `Found ${existingSamples.length} pending lab samples for patient ${patientIdInput}`,
         });
+      } else {
+        // If no pending samples but culture is required, create a new sample
+        if (patientExists.culture_required) {
+          // Generate a sample ID for the lab test
+          const sampleId = `MDRO-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+          
+          // Create a new lab sample
+          const { data: newSample, error: newSampleError } = await supabase
+            .from("lab_results")
+            .insert([{
+              patient_id: patientExists.id,
+              sample_id: sampleId,
+              collection_date: new Date().toISOString(),
+            }])
+            .select();
+          
+          if (newSampleError) throw newSampleError;
+          
+          console.log("Created new sample:", newSample);
+          
+          if (newSample && newSample.length > 0) {
+            setPatientLabSamples(newSample);
+            toast({
+              title: "New sample created",
+              description: `Created a new lab sample for patient ${patientIdInput}`,
+            });
+          }
+        } else {
+          toast({
+            title: "No culture required",
+            description: `Patient ${patientIdInput} does not require MDRO culture`,
+            variant: "default",
+          });
+          setPatientLabSamples([]);
+        }
       }
     } catch (error) {
       console.error("Error finding patient samples:", error);
@@ -633,6 +674,64 @@ const AdminDashboard = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50/40">
       <DashboardHeader title="TraceMed" role="Administrator" />
+
+      {/* Result Confirmation Dialog */}
+      <AlertDialog open={showResultConfirm} onOpenChange={setShowResultConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Lab Result</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to submit the following result:
+              <div className="mt-4 p-4 bg-gray-100 rounded-md">
+                <p><strong>Sample ID:</strong> {selectedSample?.sample_id}</p>
+                <p><strong>Collection Date:</strong> {selectedSample?.collection_date && format(new Date(selectedSample.collection_date), "MMM dd, yyyy")}</p>
+                <p className="mt-2">
+                  <strong>Result:</strong>{" "}
+                  <Badge variant={selectedResult === "positive" ? "destructive" : "default"}>
+                    {selectedResult === "positive" ? "MDRO Resistant" : "MDRO Susceptible"}
+                  </Badge>
+                </p>
+              </div>
+              <p className="mt-4">
+                Are you sure you want to submit this result? This action cannot be undone.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmLabResult}
+              disabled={isSubmitting}
+              className={selectedResult === "positive" ? "bg-red-600 hover:bg-red-700" : ""}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Result"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Discharge Confirmation Dialog */}
+      <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Patient Discharge</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to discharge patient {dischargePatientId}? This will update their status to "discharged" and record the current date as their discharge date.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDischarge}>Confirm Discharge</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div className="w-full max-w-6xl mx-auto px-4 py-10">
         <div className="flex flex-col gap-2 mb-10 text-center">
@@ -856,17 +955,19 @@ const AdminDashboard = () => {
                               <TableCell className="space-x-3">
                                 <Button
                                   size="sm"
-                                  variant={selectedResult === "positive" ? "default" : "outline"}
-                                  onClick={() => handleSelectSampleForResult(sample, "positive")}
+                                  variant="outline"
+                                  className="border-green-500 hover:bg-green-50 text-green-700"
+                                  onClick={() => handleSelectSampleForResult(sample, "negative")}
                                 >
-                                  Positive
+                                  Susceptible
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant={selectedResult === "negative" ? "default" : "outline"}
-                                  onClick={() => handleSelectSampleForResult(sample, "negative")}
+                                  variant="outline"
+                                  className="border-red-500 hover:bg-red-50 text-red-700"
+                                  onClick={() => handleSelectSampleForResult(sample, "positive")}
                                 >
-                                  Negative
+                                  Resistant
                                 </Button>
                               </TableCell>
                             </TableRow>
