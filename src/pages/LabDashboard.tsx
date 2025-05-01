@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   AlertDialog,
@@ -14,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -166,7 +164,7 @@ const LabDashboard = () => {
     }
   };
 
-  const { mutate: submitLabResult, isLoading: isSubmitting } = useMutation({
+  const { mutate: submitLabResult, isPending: isSubmitting } = useMutation({
     mutationFn: async ({ labId, result }: { labId: string, result: string }) => {
       const { data, error } = await supabase
         .from("lab_results")
