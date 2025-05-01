@@ -897,6 +897,7 @@ const AdminDashboard = () => {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MDRO Culture</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discharge Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
@@ -907,6 +908,7 @@ const AdminDashboard = () => {
                       <tr key={patient.id} className="hover:bg-gray-50">
                         <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">{patient.patient_id}</td>
                         <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{patient.status}</td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{patient.culture_required ? "Required" : "Not Required"}</td>
                         <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{format(new Date(patient.registration_date), 'MMM dd, yyyy')}</td>
                         <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{patient.discharge_date ? format(new Date(patient.discharge_date), 'MMM dd, yyyy') : '-'}</td>
                         <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">

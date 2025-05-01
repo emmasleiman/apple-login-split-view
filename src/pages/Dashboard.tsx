@@ -297,7 +297,7 @@ const Dashboard = () => {
                     />
                   </div>
                   <div className="space-y-3">
-                    <Label className="text-base text-gray-700">Carbapenem Culture Required</Label>
+                    <Label className="text-base text-gray-700">MDRO Culture Required</Label>
                     <RadioGroup 
                       value={cultureRequired} 
                       onValueChange={(value) => setCultureRequired(value as "yes" | "no")}
@@ -331,7 +331,7 @@ const Dashboard = () => {
                           Previous Positive Lab Result!
                         </div>
                         <div className="text-sm text-amber-700 mt-1">
-                          This patient has a history of carbapenem resistance.
+                          This patient has a history of MDRO resistance.
                           <br />
                           Last positive lab processed:&nbsp;
                           <span className="font-medium">{positiveHistoryDate ? new Date(positiveHistoryDate).toLocaleString() : "Unknown"}</span>
