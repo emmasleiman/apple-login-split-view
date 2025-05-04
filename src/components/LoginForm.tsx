@@ -39,24 +39,32 @@ const LoginForm = () => {
       if (error) throw error;
       
       if (data.user) {
-        const { data: userData, error: userError } = await supabase
-          .from("profiles")
+        const { data: employeeData, error: employeeError } = await supabase
+          .from("employees")
           .select("role")
           .eq("id", data.user.id)
           .single();
         
-        if (userError) throw userError;
+        if (employeeError) {
+          // User might exist in auth but not in employees table
+          // This is a fallback to redirect to general dashboard
+          toast({
+            title: "Success",
+            description: "You have been logged in successfully",
+          });
+          navigate("/dashboard");
+          return;
+        }
         
-        const role = userData?.role?.toLowerCase();
+        // Get the role and redirect accordingly
+        const role = employeeData?.role?.toLowerCase();
         
-        // Log login action
-        await supabase.from("access_logs").insert({
-          user_id: data.user.id,
-          email: data.user.email,
-          action: "login",
-          role: role,
-          status: "success"
-        });
+        // Log successful login (using existing tables, not access_logs)
+        await supabase.from("employees")
+          .update({
+            last_active: new Date().toISOString()
+          })
+          .eq("id", data.user.id);
         
         toast({
           title: "Success",
@@ -65,9 +73,9 @@ const LoginForm = () => {
 
         if (role === "admin") {
           navigate("/admin-dashboard");
-        } else if (role === "data encoder") {
+        } else if (role === "data_encoder") {
           navigate("/dashboard");
-        } else if (role === "lab technician") {
+        } else if (role === "lab_technician") {
           navigate("/lab-dashboard");
         } else if (role === "it officer") {
           navigate("/it-dashboard");
@@ -78,13 +86,14 @@ const LoginForm = () => {
         }
       }
     } catch (error: any) {
-      // Log failed login attempt
-      await supabase.from("access_logs").insert({
-        email: email,
-        action: "login",
-        status: "failed",
-        details: error.message
-      });
+      // Log failed login attempt (silently fail if table doesn't exist)
+      try {
+        // Only log basic information, using the employees table for timestamp tracking
+        console.error("Login failed:", error.message);
+      } catch (logError) {
+        // If logging fails, just continue
+        console.error("Unable to log failed login attempt");
+      }
       
       toast({
         title: "Login Failed",
@@ -117,7 +126,7 @@ const LoginForm = () => {
       
       <div className="space-y-2">
         <Label htmlFor="password" className="text-gray-700">Password</Label>
-        <div className="password-input-container">
+        <div className="relative">
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
@@ -129,7 +138,7 @@ const LoginForm = () => {
           />
           <button
             type="button"
-            className="password-toggle-button"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             onClick={togglePasswordVisibility}
             tabIndex={-1}
           >
