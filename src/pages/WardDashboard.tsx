@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Scan } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import QrScanner from 'react-qr-scanner';
+import DashboardLayout from "@/components/DashboardLayout";
 import LogoutButton from "@/components/LogoutButton";
 
 type WardScanLog = {
@@ -344,22 +345,16 @@ const WardDashboard = () => {
   };
   
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">
-              Ward Dashboard - {wardName}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Scan patient QR codes to update their location
-            </p>
-          </div>
-          
-          <LogoutButton />
+    <DashboardLayout title={`${wardName} Ward`} role="Ward">
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-6">
+          <h2 className="text-2xl font-medium text-gray-800">Ward Scanner</h2>
+          <p className="text-gray-500 mt-1">
+            Scan patient QR codes to update their location
+          </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+        <div className="grid gap-6">
           <Card>
             <CardHeader>
               <CardTitle>QR Code Scanner</CardTitle>
@@ -417,7 +412,7 @@ const WardDashboard = () => {
           </Card>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

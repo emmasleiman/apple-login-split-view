@@ -22,7 +22,7 @@ export default {
 			fontFamily: {
 				'helvetica': ['Helvetica', 'Arial', 'sans-serif'],
 				'sfpro': ['"SF Pro Display"', 'Inter', 'Helvetica', 'system-ui', 'sans-serif'],
-				'sans': ['Helvetica', 'Arial', 'system-ui', 'sans-serif'],
+				'sans': ['Inter', 'Helvetica', 'Arial', 'system-ui', 'sans-serif'],
 				'inter': ['Inter', 'Helvetica', 'Arial', 'sans-serif']
 			},
 			fontSize: {

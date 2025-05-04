@@ -21,15 +21,6 @@ const Index = () => {
         {/* Wave patterns overlay */}
         <div className="absolute inset-0 wave-pattern opacity-20"></div>
         
-        {/* Logo in top left corner */}
-        <div className="absolute top-6 left-8">
-          <img 
-            src="/lovable-uploads/3fa4235d-815a-4a5e-96df-a97a1d7312ea.png" 
-            alt="TraceMed Logo" 
-            className="h-10 object-contain"
-          />
-        </div>
-        
         {/* Main content */}
         <div className="max-w-2xl relative z-10">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">

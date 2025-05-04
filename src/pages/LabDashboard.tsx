@@ -18,9 +18,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Loader2, Search } from "lucide-react";
-import DashboardHeader from "@/components/DashboardHeader";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import DashboardLayout from "@/components/DashboardLayout";
 
 type Patient = {
   id: string;
@@ -48,7 +48,7 @@ const LabDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
+  
   const [patientId, setPatientId] = useState("");
   const [patient, setPatient] = useState<Patient | null>(null);
   const [labTests, setLabTests] = useState<LabTest[]>([]);
@@ -234,54 +234,10 @@ const LabDashboard = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      <DashboardHeader title="TraceMed" role="Lab Technician" />
-
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Lab Result</AlertDialogTitle>
-            <AlertDialogDescription>
-              You are about to submit the following result:
-              <div className="mt-4 p-4 bg-gray-100 rounded-md">
-                <p><strong>Patient ID:</strong> {patient?.patient_id}</p>
-                <p><strong>Sample ID:</strong> {selectedLabTest?.sample_id}</p>
-                <p><strong>Collection Date:</strong> {selectedLabTest?.collection_date && format(new Date(selectedLabTest.collection_date), "MMM dd, yyyy")}</p>
-                <p className="mt-2">
-                  <strong>Result:</strong>{" "}
-                  <Badge variant={selectedResult === "positive" ? "destructive" : "default"}>
-                    {selectedResult === "positive" ? "MDRO Positive" : "MDRO Negative"}
-                  </Badge>
-                </p>
-              </div>
-              <p className="mt-4">
-                This action cannot be undone. Are you sure you want to continue?
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleConfirmSubmit}
-              disabled={isSubmitting}
-              className={selectedResult === "positive" ? "bg-red-600 hover:bg-red-700" : ""}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                "Submit Result"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <div className="flex-1 p-8 max-w-6xl mx-auto w-full">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-light tracking-tight text-gray-800">Lab Dashboard</h1>
+    <DashboardLayout title="Lab Management" role="Lab Technician">
+      <div className="flex-1">
+        <div className="mb-8">
+          <h2 className="text-2xl font-medium text-gray-800">Lab Dashboard</h2>
           <p className="text-gray-500">Process patient samples and record results</p>
         </div>
 
@@ -408,7 +364,7 @@ const LabDashboard = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

@@ -11,7 +11,7 @@ import QRCode from "react-qr-code";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import LogoutButton from "@/components/LogoutButton";
-import DashboardHeader from "@/components/DashboardHeader";
+import DashboardLayout from "@/components/DashboardLayout";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -258,19 +258,18 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50/40">
-      <DashboardHeader title="TraceMed" role="Data Encoder" />
-      <div className="w-full max-w-4xl mx-auto px-4 py-10">
-        <div className="flex flex-col gap-2 mb-10 text-center">
-          <h1 className="text-3xl font-light tracking-tight text-gray-800">Data Encoder Dashboard</h1>
+    <DashboardLayout title="Patient Management" role="Data Encoder">
+      <div className="w-full max-w-4xl mx-auto">
+        <div className="flex flex-col gap-2 mb-8">
+          <h2 className="text-2xl font-medium text-gray-800">Data Encoder Dashboard</h2>
           <p className="text-base text-gray-500">Manage patient registrations and discharges</p>
         </div>
         <Tabs defaultValue="register" className="w-full">
-          <TabsList className="mb-8 bg-gray-100/80 rounded-xl shadow-sm">
-            <TabsTrigger value="register" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-lg py-3 flex-1">
+          <TabsList className="mb-6 bg-gray-100/80 rounded-lg shadow-sm">
+            <TabsTrigger value="register" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm">
               Register Patient
             </TabsTrigger>
-            <TabsTrigger value="discharge" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm text-lg py-3 flex-1">
+            <TabsTrigger value="discharge" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm">
               Discharge Patient
             </TabsTrigger>
           </TabsList>
@@ -447,7 +446,7 @@ const Dashboard = () => {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 
