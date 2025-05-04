@@ -6,32 +6,50 @@ const Index = () => {
   const isMobile = useIsMobile();
   
   return (
-    <div className="min-h-screen w-full flex flex-col md:flex-row bg-white">
-      {/* Image Section with noise overlay - Left Side on desktop, Top on mobile */}
-      <div className="md:w-1/2 h-[300px] md:h-screen relative overflow-hidden">
-        {/* Base image */}
-        <img 
-          src="/lovable-uploads/6e4d5ba9-b898-4255-93c1-5d3d0a7f7c28.png"
-          alt="Arched window with scenic view"
-          className="w-full h-full object-cover"
-        />
-        
-        {/* Noise overlay */}
-        <div className="absolute inset-0 bg-noise opacity-30"></div>
-        
-        {/* Dark gradient overlay to improve text visibility */}
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/40 to-transparent"></div>
+    <div className="min-h-screen w-full flex flex-col md:flex-row bg-blue-500 overflow-hidden">
+      {/* Login Form Section - Left Side on desktop, Top on mobile */}
+      <div className="md:w-1/3 bg-white flex-1 flex flex-col items-center justify-center p-6 z-10 drop-shadow-xl">
+        <div className="w-full max-w-md bg-white p-8 rounded-lg">
+          <h2 className="text-2xl font-medium text-gray-800 mb-2 text-center">Sign in</h2>
+          <p className="text-gray-500 text-sm text-center mb-6">Welcome to TraceMed</p>
+          <LoginForm />
+        </div>
       </div>
       
-      {/* Login Form Section - Right Side on desktop, Bottom on mobile */}
-      <div className="md:w-1/2 flex-1 bg-white flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-md">
+      {/* Content Section with wave background - Right Side on desktop, Bottom on mobile */}
+      <div className="md:w-2/3 relative overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center p-10">
+        {/* Wave patterns overlay */}
+        <div className="absolute inset-0 wave-pattern opacity-20"></div>
+        
+        {/* Logo in top left corner */}
+        <div className="absolute top-6 left-8">
           <img 
             src="/lovable-uploads/3fa4235d-815a-4a5e-96df-a97a1d7312ea.png" 
             alt="TraceMed Logo" 
-            className="h-28 mb-8 mx-auto object-contain"
+            className="h-10 object-contain"
           />
-          <LoginForm />
+        </div>
+        
+        {/* Main content */}
+        <div className="max-w-2xl relative z-10">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
+            Everything <br/>
+            <span className="text-blue-100">Healthcare</span> <br/>
+            Teams <br/>
+            Need
+          </h1>
+          <p className="text-blue-100 md:text-lg mt-6 max-w-md">
+            Streamline patient tracking, improve infection control, 
+            and enhance hospital workflow with our comprehensive healthcare management solution.
+          </p>
+          
+          {/* Small circular accent */}
+          <div className="mt-12 flex items-center">
+            <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mr-3">
+              <div className="h-2 w-2 bg-white rounded-full"></div>
+            </div>
+            <p className="text-blue-100 text-sm">Hospital infection control and patient management system</p>
+          </div>
         </div>
       </div>
     </div>

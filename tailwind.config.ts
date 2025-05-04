@@ -22,7 +22,8 @@ export default {
 			fontFamily: {
 				'helvetica': ['Helvetica', 'Arial', 'sans-serif'],
 				'sfpro': ['"SF Pro Display"', 'Inter', 'Helvetica', 'system-ui', 'sans-serif'],
-				'sans': ['Helvetica', 'Arial', 'system-ui', 'sans-serif']
+				'sans': ['Helvetica', 'Arial', 'system-ui', 'sans-serif'],
+				'inter': ['Inter', 'Helvetica', 'Arial', 'sans-serif']
 			},
 			fontSize: {
 				'base': '1.05rem',
@@ -98,12 +99,18 @@ export default {
 						opacity: '1',
 						transform: 'translateY(0)'
 					}
+				},
+				'wave': {
+					'0%': { transform: 'translateX(0)' },
+					'50%': { transform: 'translateX(-25%)' },
+					'100%': { transform: 'translateX(0)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'fade-in': 'fade-in 0.3s ease-out'
+				'fade-in': 'fade-in 0.3s ease-out',
+				'wave': 'wave 15s ease-in-out infinite'
 			},
 			transitionTimingFunction: {
 				'ease-in-out-expo': 'cubic-bezier(0.87, 0, 0.13, 1)',
