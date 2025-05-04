@@ -39,6 +39,14 @@ export default {
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				sidebar: {
+					DEFAULT: '#f8f9fa',
+					foreground: '#333',
+					accent: '#e9ecef',
+					'accent-foreground': '#0066ff',
+					border: '#dee2e6',
+					ring: '#0066ff',
+				},
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
 					foreground: 'hsl(var(--primary-foreground))'

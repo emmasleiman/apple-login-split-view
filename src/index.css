@@ -71,7 +71,7 @@
   @apply bg-blue-500 hover:bg-blue-600 transition-colors;
 }
 
-/* Font adjustments for login form */
+/* Form title styling */
 .form-title {
   @apply text-gray-800 font-medium;
 }
@@ -90,20 +90,56 @@
   background-size: 200px 200px;
 }
 
-/* Subtle animation for button hover */
-@keyframes button-hover {
-  0% { background-position: 0% 0%; }
-  100% { background-position: 100% 100%; }
+/* Dashboard layout styling */
+.dashboard-layout {
+  @apply font-inter bg-gray-50;
 }
 
-/* Input focus animations */
-@keyframes focus-in {
-  0% { border-color: transparent; }
-  100% { border-color: rgba(59, 130, 246, 1); }
+.sidebar-nav {
+  @apply bg-white border-r border-gray-200 w-64 h-screen;
 }
 
-input:focus {
-  animation: focus-in 0.2s ease-out forwards;
+.sidebar-nav-collapsed {
+  @apply w-16;
+}
+
+.sidebar-item {
+  @apply flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg mx-2 transition-all;
+}
+
+.sidebar-item-active {
+  @apply bg-blue-50 text-blue-600;
+}
+
+/* Card styling to match design */
+.dashboard-card {
+  @apply bg-white shadow-sm border border-gray-100 rounded-lg overflow-hidden;
+}
+
+.dashboard-card-header {
+  @apply bg-gray-50/60 border-b border-gray-100 p-4;
+}
+
+/* Button styling */
+.btn-modern {
+  @apply rounded-lg font-medium;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
 }
 
 /* Transition properties */
@@ -113,7 +149,16 @@ input:focus {
   transition-duration: 150ms;
 }
 
-/* New font family for the updated design */
+/* Font family for the updated design */
 .font-inter {
   font-family: 'Inter', 'Helvetica', 'Arial', 'sans-serif';
+}
+
+/* Update password input container */
+.password-input-container {
+  @apply relative w-full;
+}
+
+.password-toggle-button {
+  @apply absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600;
 }
