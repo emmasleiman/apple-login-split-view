@@ -6,7 +6,7 @@ const Index = () => {
   const isMobile = useIsMobile();
   
   return (
-    <div className="min-h-screen w-full flex flex-col md:flex-row bg-blue-500 overflow-hidden">
+    <div className="min-h-screen w-full flex flex-col md:flex-row bg-blue-50 overflow-hidden">
       {/* Login Form Section - Left Side on desktop, Top on mobile */}
       <div className="md:w-1/3 bg-white flex-1 flex flex-col items-center justify-center p-6 z-10 drop-shadow-xl">
         <div className="w-full max-w-md bg-white p-8 rounded-lg">
@@ -17,7 +17,7 @@ const Index = () => {
       </div>
       
       {/* Content Section with wave background - Right Side on desktop, Bottom on mobile */}
-      <div className="md:w-2/3 relative overflow-hidden bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center p-10">
+      <div className="md:w-2/3 relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center p-10">
         {/* Wave patterns overlay */}
         <div className="absolute inset-0 wave-pattern opacity-20"></div>
         

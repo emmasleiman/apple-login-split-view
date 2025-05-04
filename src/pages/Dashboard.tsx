@@ -1,5 +1,5 @@
+
 import { useState, useEffect } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,6 @@ import { useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import LogoutButton from "@/components/LogoutButton";
-import DashboardLayout from "@/components/DashboardLayout";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,8 +55,9 @@ const Dashboard = () => {
   const [patientExists, setPatientExists] = useState(false);
   const [existingPatientData, setExistingPatientData] = useState<Patient | null>(null);
   const [showDischargeConfirm, setShowDischargeConfirm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'register' | 'discharge'>('register');
 
-  // + new: for registration "history" indicator
+  // For registration "history" indicator
   const [hasPositiveHistory, setHasPositiveHistory] = useState<boolean>(false);
   const [positiveHistoryDate, setPositiveHistoryDate] = useState<string | null>(null);
 
@@ -110,7 +109,7 @@ const Dashboard = () => {
 
   const { mutate: registerPatient, isPending: isRegistering } = useMutation({
     mutationFn: async ({ patientId, cultureRequired }: { patientId: string, cultureRequired: boolean }) => {
-      // Use the new register_or_update_patient function
+      // Use the register_or_update_patient function
       const { data, error } = await supabase
         .rpc("register_or_update_patient", {
           p_patient_id: patientId,
@@ -130,8 +129,7 @@ const Dashboard = () => {
         setWristbandQRCode(data.wristband_qr_code);
         setOtherQRCode(data.other_qr_code);
 
-        // FIX: Only show history alert if has_positive_history is true AND last_positive_date has a value
-        // This fixes the incorrect warning for new patients
+        // Only show history alert if has_positive_history is true AND last_positive_date has a value
         if (data.has_positive_history && data.last_positive_date) {
           setHasPositiveHistory(true);
           setPositiveHistoryDate(data.last_positive_date);
@@ -258,195 +256,244 @@ const Dashboard = () => {
   };
 
   return (
-    <DashboardLayout title="Patient Management" role="Data Encoder">
-      <div className="w-full max-w-4xl mx-auto">
-        <div className="flex flex-col gap-2 mb-8">
-          <h2 className="text-2xl font-medium text-gray-800">Data Encoder Dashboard</h2>
-          <p className="text-base text-gray-500">Manage patient registrations and discharges</p>
+    <div className="min-h-screen w-full flex bg-gray-50 font-inter">
+      {/* Left sidebar with tabs */}
+      <div className="w-64 border-r border-gray-200 bg-white shadow-sm flex flex-col">
+        <div className="p-5 border-b border-gray-200">
+          <h1 className="text-xl font-semibold text-gray-800">TraceMed</h1>
+          <p className="text-sm text-gray-500 mt-1">Data Encoder</p>
         </div>
-        <Tabs defaultValue="register" className="w-full">
-          <TabsList className="mb-6 bg-gray-100/80 rounded-lg shadow-sm">
-            <TabsTrigger value="register" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm">
-              Register Patient
-            </TabsTrigger>
-            <TabsTrigger value="discharge" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-gray-800 data-[state=active]:shadow-sm">
-              Discharge Patient
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="register" className="w-full space-y-6">
-            <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
-                <CardTitle className="text-2xl font-normal text-gray-700">Register New Patient</CardTitle>
-                {patientExists && (
-                  <div className="text-amber-600 text-sm font-medium mt-1 flex items-center gap-1">
-                    Patient ID already exists in the system
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent className="pt-6">
-                <form onSubmit={handleRegisterSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="patientId" className="text-base text-gray-700">Enter Patient ID</Label>
-                    <Input
-                      id="patientId"
-                      value={patientId}
-                      onChange={(e) => setPatientId(e.target.value)}
-                      className={`h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base ${patientExists ? 'border-amber-300' : ''}`}
-                      placeholder="e.g. P12345"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <Label className="text-base text-gray-700">MDRO Culture Required</Label>
-                    <RadioGroup 
-                      value={cultureRequired} 
-                      onValueChange={(value) => setCultureRequired(value as "yes" | "no")}
-                      className="flex space-x-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="yes" id="yes" />
-                        <Label htmlFor="yes" className="font-normal text-base text-gray-600">Yes</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="no" id="no" />
-                        <Label htmlFor="no" className="font-normal text-base text-gray-600">No</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
-                    disabled={isRegistering}
-                  >
-                    {isRegistering ? "Registering..." : "Register Patient"}
-                  </Button>
-                </form>
-                {/* Indicate lab culture history if present - only show if both conditions are true */}
-                {hasPositiveHistory && positiveHistoryDate && (
-                  <div className="mt-8">
-                    <div className="flex items-center gap-3 bg-amber-100 border border-amber-300 rounded-lg p-4 shadow-sm">
-                      <AlertTriangle className="h-6 w-6 text-amber-600" />
-                      <div>
-                        <div className="text-amber-800 font-semibold text-base">
-                          Previous Positive Lab Result!
+        
+        <div className="flex flex-col gap-1 p-3 mt-4">
+          <button
+            onClick={() => setActiveTab('register')}
+            className={`flex items-center px-4 py-3 text-sm rounded-md transition-colors 
+              ${activeTab === 'register' 
+                ? 'bg-blue-50 text-blue-700 font-medium' 
+                : 'text-gray-700 hover:bg-gray-100'}`}
+          >
+            Register Patient
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('discharge')}
+            className={`flex items-center px-4 py-3 text-sm rounded-md transition-colors 
+              ${activeTab === 'discharge' 
+                ? 'bg-blue-50 text-blue-700 font-medium' 
+                : 'text-gray-700 hover:bg-gray-100'}`}
+          >
+            Discharge Patient
+          </button>
+        </div>
+        
+        <div className="mt-auto p-4 border-t border-gray-200">
+          <div className="flex items-center">
+            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
+              D
+            </div>
+            <span className="ml-2 text-sm text-gray-600">Data Encoder</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Main content area */}
+      <div className="flex-1 overflow-y-auto">
+        <header className="bg-white border-b border-gray-200 px-8 py-4 shadow-sm">
+          <h1 className="text-2xl font-semibold text-gray-800">
+            {activeTab === 'register' ? 'Patient Registration' : 'Patient Discharge'}
+          </h1>
+        </header>
+        
+        <div className="p-8">
+          {/* Register Patient Tab Content */}
+          {activeTab === 'register' && (
+            <div className="max-w-3xl">
+              <Card className="border border-gray-200 shadow-sm bg-white">
+                <CardHeader className="bg-gray-50 border-b border-gray-100">
+                  <CardTitle className="text-xl font-medium text-gray-700">Register New Patient</CardTitle>
+                  {patientExists && (
+                    <div className="text-amber-600 text-sm font-medium mt-1 flex items-center gap-1">
+                      Patient ID already exists in the system
+                    </div>
+                  )}
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <form onSubmit={handleRegisterSubmit} className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="patientId" className="text-base text-gray-700">Enter Patient ID</Label>
+                      <Input
+                        id="patientId"
+                        value={patientId}
+                        onChange={(e) => setPatientId(e.target.value)}
+                        className={`h-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400/30 text-base ${patientExists ? 'border-amber-300' : ''}`}
+                        placeholder="e.g. P12345"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="text-base text-gray-700">MDRO Culture Required</Label>
+                      <RadioGroup 
+                        value={cultureRequired} 
+                        onValueChange={(value) => setCultureRequired(value as "yes" | "no")}
+                        className="flex space-x-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="yes" id="yes" />
+                          <Label htmlFor="yes" className="font-normal text-base text-gray-600">Yes</Label>
                         </div>
-                        <div className="text-sm text-amber-700 mt-1">
-                          This patient has a history of MDRO resistance.
-                          <br />
-                          Last positive lab processed:&nbsp;
-                          <span className="font-medium">{positiveHistoryDate ? new Date(positiveHistoryDate).toLocaleString() : "Unknown"}</span>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="no" id="no" />
+                          <Label htmlFor="no" className="font-normal text-base text-gray-600">No</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white"
+                      disabled={isRegistering}
+                    >
+                      {isRegistering ? "Registering..." : "Register Patient"}
+                    </Button>
+                  </form>
+                  
+                  {/* Indicate lab culture history if present */}
+                  {hasPositiveHistory && positiveHistoryDate && (
+                    <div className="mt-8">
+                      <div className="flex items-center gap-3 bg-amber-100 border border-amber-300 rounded-md p-4 shadow-sm">
+                        <AlertTriangle className="h-5 w-5 text-amber-600" />
+                        <div>
+                          <div className="text-amber-800 font-medium text-sm">
+                            Previous Positive Lab Result!
+                          </div>
+                          <div className="text-xs text-amber-700 mt-1">
+                            This patient has a history of MDRO resistance.
+                            <br />
+                            Last positive lab processed:&nbsp;
+                            <span className="font-medium">{positiveHistoryDate ? new Date(positiveHistoryDate).toLocaleString() : "Unknown"}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
-                {(wristbandQRCode || otherQRCode) && (
-                  <div className="mt-8 flex flex-col items-center space-y-6 pt-6 border-t border-gray-100">
-                    <p className="text-lg text-center font-medium text-gray-700">Patient ID: {patientId} - QR Codes</p>
-                    {wristbandQRCode && (
-                      <div className="w-full border rounded-lg p-5 bg-gray-50">
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                          <div className="flex flex-col items-center">
-                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                              <QRCode value={wristbandQRCode} size={150} />
+                  )}
+                  
+                  {/* QR code section */}
+                  {(wristbandQRCode || otherQRCode) && (
+                    <div className="mt-8 flex flex-col items-center space-y-6 pt-6 border-t border-gray-100">
+                      <p className="text-lg font-medium text-gray-700">Patient ID: {patientId} - QR Codes</p>
+                      
+                      {wristbandQRCode && (
+                        <div className="w-full border rounded-md p-4 bg-gray-50">
+                          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div className="flex flex-col items-center">
+                              <div className="bg-white p-3 rounded-md shadow-sm border border-gray-100">
+                                <QRCode value={wristbandQRCode} size={120} />
+                              </div>
+                              <p className="mt-2 font-medium text-blue-600 text-sm">Wristband (W)</p>
                             </div>
-                            <p className="mt-2 font-medium text-blue-600">Wristband (W)</p>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-sm text-gray-500 text-center md:text-left mb-2">
-                              Primary QR code for patient identification.<br />
-                              <span className="font-medium">This scan takes priority over other scans.</span>
-                            </p>
-                            <Button 
-                              onClick={() => handlePrint("wristband", wristbandQRCode)}
-                              variant="outline" 
-                              className="w-full md:w-auto border-blue-300 text-blue-700 hover:bg-blue-50"
-                            >
-                              Print Wristband QR
-                            </Button>
+                            <div className="flex flex-col items-center">
+                              <p className="text-xs text-gray-500 text-center md:text-left mb-2">
+                                Primary QR code for patient identification.<br />
+                                <span className="font-medium">This scan takes priority over other scans.</span>
+                              </p>
+                              <Button 
+                                onClick={() => handlePrint("wristband", wristbandQRCode)}
+                                variant="outline" 
+                                size="sm"
+                                className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                              >
+                                Print Wristband QR
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                    {otherQRCode && (
-                      <div className="w-full border rounded-lg p-5 bg-gray-50">
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                          <div className="flex flex-col items-center">
-                            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                              <QRCode value={otherQRCode} size={150} />
+                      )}
+                      
+                      {otherQRCode && (
+                        <div className="w-full border rounded-md p-4 bg-gray-50">
+                          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div className="flex flex-col items-center">
+                              <div className="bg-white p-3 rounded-md shadow-sm border border-gray-100">
+                                <QRCode value={otherQRCode} size={120} />
+                              </div>
+                              <p className="mt-2 font-medium text-gray-600 text-sm">Other</p>
                             </div>
-                            <p className="mt-2 font-medium text-gray-600">Other</p>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <p className="text-sm text-gray-500 text-center md:text-left mb-2">
-                              Additional QR code for other purposes.<br />
-                              <span className="font-medium">Lower priority for patient location.</span>
-                            </p>
-                            <Button 
-                              onClick={() => handlePrint("other", otherQRCode)}
-                              variant="outline" 
-                              className="w-full md:w-auto border-gray-300 text-gray-700 hover:bg-gray-50"
-                            >
-                              Print Other QR
-                            </Button>
+                            <div className="flex flex-col items-center">
+                              <p className="text-xs text-gray-500 text-center md:text-left mb-2">
+                                Additional QR code for other purposes.<br />
+                                <span className="font-medium">Lower priority for patient location.</span>
+                              </p>
+                              <Button 
+                                onClick={() => handlePrint("other", otherQRCode)}
+                                variant="outline"
+                                size="sm"
+                                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                              >
+                                Print Other QR
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="discharge">
-            <Card className="border-gray-100 shadow-sm bg-white overflow-hidden">
-              <CardHeader className="bg-gray-50/60 border-b border-gray-100">
-                <CardTitle className="text-2xl font-normal text-gray-700">Discharge Patient</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <form onSubmit={handleDischargeSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="dischargePatientId" className="text-base text-gray-700">Enter Patient ID to Discharge</Label>
-                    <Input
-                      id="dischargePatientId"
-                      value={dischargePatientId}
-                      onChange={(e) => setDischargePatientId(e.target.value)}
-                      className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30 text-base"
-                      placeholder="e.g. P12345"
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white text-base"
-                  >
-                    Discharge Patient
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Patient Discharge</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to discharge patient with ID: <strong>{dischargePatientId}</strong>?
-                This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={confirmDischarge}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Yes, Discharge Patient
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          
+          {/* Discharge Patient Tab Content */}
+          {activeTab === 'discharge' && (
+            <div className="max-w-3xl">
+              <Card className="border border-gray-200 shadow-sm bg-white">
+                <CardHeader className="bg-gray-50 border-b border-gray-100">
+                  <CardTitle className="text-xl font-medium text-gray-700">Discharge Patient</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <form onSubmit={handleDischargeSubmit} className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="dischargePatientId" className="text-base text-gray-700">Enter Patient ID to Discharge</Label>
+                      <Input
+                        id="dischargePatientId"
+                        value={dischargePatientId}
+                        onChange={(e) => setDischargePatientId(e.target.value)}
+                        className="h-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400/30 text-base"
+                        placeholder="e.g. P12345"
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Discharge Patient
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
       </div>
-    </DashboardLayout>
+      
+      <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Patient Discharge</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to discharge patient with ID: <strong>{dischargePatientId}</strong>?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDischarge}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Yes, Discharge Patient
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 };
 

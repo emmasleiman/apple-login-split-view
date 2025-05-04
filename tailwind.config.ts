@@ -26,8 +26,10 @@ export default {
 				'inter': ['Inter', 'Helvetica', 'Arial', 'sans-serif']
 			},
 			fontSize: {
-				'base': '1.05rem',
-				'lg': '1.15rem',
+				'base': '1rem',
+				'sm': '0.875rem',
+				'xs': '0.75rem',
+				'lg': '1.125rem',
 				'xl': '1.25rem',
 				'2xl': '1.5rem',
 				'3xl': '1.875rem',
