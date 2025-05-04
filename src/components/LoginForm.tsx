@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Eye, EyeOff } from "lucide-react";
 
 const LoginForm = () => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -19,7 +19,7 @@ const LoginForm = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!username || !password) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -31,69 +31,52 @@ const LoginForm = () => {
     try {
       setIsLoading(true);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Query the employee table directly with username and password
+      const { data: employeeData, error: employeeError } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("username", username)
+        .eq("password", password)
+        .single();
+      
+      if (employeeError || !employeeData) {
+        throw new Error("Invalid username or password");
+      }
+      
+      // User authenticated successfully
+      const role = employeeData.role?.toLowerCase();
+      
+      // Update last activity timestamp
+      await supabase
+        .from("employees")
+        .update({
+          // Using created_at as a timestamp field since last_active doesn't exist
+          created_at: new Date().toISOString()
+        })
+        .eq("id", employeeData.id);
+      
+      toast({
+        title: "Success",
+        description: "You have been logged in successfully",
       });
-      
-      if (error) throw error;
-      
-      if (data.user) {
-        const { data: employeeData, error: employeeError } = await supabase
-          .from("employees")
-          .select("role")
-          .eq("id", data.user.id)
-          .single();
-        
-        if (employeeError) {
-          // User might exist in auth but not in employees table
-          // This is a fallback to redirect to general dashboard
-          toast({
-            title: "Success",
-            description: "You have been logged in successfully",
-          });
-          navigate("/dashboard");
-          return;
-        }
-        
-        // Get the role and redirect accordingly
-        const role = employeeData?.role?.toLowerCase();
-        
-        // Log successful login (using existing tables, not access_logs)
-        await supabase.from("employees")
-          .update({
-            last_active: new Date().toISOString()
-          })
-          .eq("id", data.user.id);
-        
-        toast({
-          title: "Success",
-          description: "You have been logged in successfully",
-        });
 
-        if (role === "admin") {
-          navigate("/admin-dashboard");
-        } else if (role === "data_encoder") {
-          navigate("/dashboard");
-        } else if (role === "lab_technician") {
-          navigate("/lab-dashboard");
-        } else if (role === "it officer") {
-          navigate("/it-dashboard");
-        } else if (role === "ward") {
-          navigate("/ward-dashboard");
-        } else {
-          navigate("/dashboard");
-        }
+      // Redirect based on role
+      if (role === "admin") {
+        navigate("/admin-dashboard");
+      } else if (role === "data_encoder") {
+        navigate("/dashboard");
+      } else if (role === "lab_technician") {
+        navigate("/lab-dashboard");
+      } else if (role === "it officer") {
+        navigate("/it-dashboard");
+      } else if (role === "ward") {
+        navigate("/ward-dashboard");
+      } else {
+        navigate("/dashboard");
       }
     } catch (error: any) {
-      // Log failed login attempt (silently fail if table doesn't exist)
-      try {
-        // Only log basic information, using the employees table for timestamp tracking
-        console.error("Login failed:", error.message);
-      } catch (logError) {
-        // If logging fails, just continue
-        console.error("Unable to log failed login attempt");
-      }
+      // Log the error to console
+      console.error("Login failed:", error.message);
       
       toast({
         title: "Login Failed",
@@ -112,14 +95,14 @@ const LoginForm = () => {
   return (
     <form onSubmit={handleLogin} className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-gray-700">Email</Label>
+        <Label htmlFor="username" className="text-gray-700">Username</Label>
         <Input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          id="username"
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           className="h-12 border-gray-200 bg-gray-50/30 focus:border-gray-300 focus:ring-gray-300/30"
-          placeholder="your@email.com"
+          placeholder="Enter your username"
           disabled={isLoading}
         />
       </div>

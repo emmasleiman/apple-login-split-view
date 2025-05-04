@@ -1,14 +1,9 @@
 
-import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import LoginForm from "@/components/LoginForm";
-import { Eye, EyeOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 const Index = () => {
   const isMobile = useIsMobile();
-  const [showPassword, setShowPassword] = useState(false);
   
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row bg-blue-500 overflow-hidden">
