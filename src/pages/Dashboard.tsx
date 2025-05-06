@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -118,8 +117,7 @@ const Dashboard = () => {
           qr_code_url: qrData,
           discharge_date: null,
         }, {
-          onConflict: 'patient_id',
-          returning: 'minimal'
+          onConflict: 'patient_id'
         });
 
       if (error) throw error;
