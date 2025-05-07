@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -215,6 +216,7 @@ const Dashboard = () => {
 
   const handlePrint = (qrData: string | null) => {
     if (!qrData) return;
+    
     const printWindow = window.open("", "_blank");
     if (printWindow) {
       printWindow.document.write(`
@@ -224,23 +226,34 @@ const Dashboard = () => {
             <style>
               body { font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 20px; font-size: 16px; }
               h2 { font-weight: 300; color: #333; font-size: 24px; }
-              .container { margin-top: 30px; }
-              .patient-id { font-weight: bold; margin-top: 10px; font-size: 18px; color: #555; }
+              .container { margin-top: 30px; display: flex; justify-content: center; }
+              .patient-id { font-weight: bold; margin-top: 15px; font-size: 18px; color: #555; }
+              .qr-container { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background-color: white; }
+              p { color: #666; margin-top: 20px; }
             </style>
           </head>
           <body>
             <h2>TraceMed Patient QR Code</h2>
             <div class="patient-id">Patient ID: ${patientId}</div>
-            <div class="container" id="qrcode"></div>
+            <div class="container">
+              <div class="qr-container" id="qrcode"></div>
+            </div>
             <p>Scan for patient information</p>
             <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
             <script>
-              QRCode.toCanvas(document.getElementById('qrcode'), '${qrData}', {
-                width: 200,
-                margin: 2
-              }, function (error) {
-                if (error) console.error(error);
-              });
+              // We need to wait for the script to load
+              setTimeout(() => {
+                if (typeof QRCode !== 'undefined') {
+                  QRCode.toCanvas(document.getElementById('qrcode'), ${JSON.stringify(qrData)}, {
+                    width: 200,
+                    margin: 2
+                  }, function (error) {
+                    if (error) console.error(error);
+                  });
+                } else {
+                  document.getElementById('qrcode').innerHTML = 'QR Code library failed to load';
+                }
+              }, 300);
             </script>
           </body>
         </html>
