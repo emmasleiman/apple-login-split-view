@@ -31,7 +31,45 @@ const LoginForm = () => {
     try {
       setIsLoading(true);
       
-      // Query the employee table directly with username and password
+      // First, check for ward account login
+      const { data: wardData, error: wardError } = await supabase
+        .from("ward_accounts")
+        .select("*")
+        .eq("username", username)
+        .eq("password", password)
+        .single();
+      
+      if (wardData) {
+        // Ward login successful
+        const sessionId = Date.now().toString();
+        
+        // Store ward session data in localStorage
+        localStorage.setItem('wardData', JSON.stringify({
+          id: wardData.id,
+          username: wardData.username,
+          ward: wardData.ward,
+          sessionId: sessionId
+        }));
+        
+        // Create active session record
+        await supabase
+          .from("ward_active_sessions")
+          .insert({
+            ward_id: wardData.id,
+            session_id: sessionId,
+            device_info: navigator.userAgent
+          });
+        
+        toast({
+          title: "Success",
+          description: `Welcome to ${wardData.ward} ward dashboard`,
+        });
+        
+        navigate("/ward-dashboard");
+        return;
+      }
+      
+      // If not a ward account, check employee table
       const { data: employeeData, error: employeeError } = await supabase
         .from("employees")
         .select("*")
@@ -43,7 +81,7 @@ const LoginForm = () => {
         throw new Error("Invalid username or password");
       }
       
-      // User authenticated successfully
+      // Employee authenticated successfully
       const role = employeeData.role?.toLowerCase();
       
       // Update last activity timestamp
