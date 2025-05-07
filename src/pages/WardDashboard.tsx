@@ -172,15 +172,15 @@ const WardDashboard = () => {
       console.log("Extracted patient ID:", patientId);
       console.log("QR code type:", qrType);
       
-      // Check for recent scans in other wards
-      const fiveMinutesAgo = new Date();
-      fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+      // Check for recent scans in other wards within 2 minutes (changed from 5 minutes)
+      const twoMinutesAgo = new Date();
+      twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
       
       const { data: recentScans, error: scansError } = await supabase
         .from('ward_scan_logs')
         .select('*')
         .eq('patient_id', qrData)
-        .gt('scanned_at', fiveMinutesAgo.toISOString())
+        .gt('scanned_at', twoMinutesAgo.toISOString())
         .neq('ward', wardName)
         .order('scanned_at', { ascending: false })
         .limit(1) as { data: WardScanLog[] | null, error: any };
@@ -194,20 +194,37 @@ const WardDashboard = () => {
       if (recentScans && recentScans.length > 0) {
         const recentScan = recentScans[0];
         
-        // Create location inconsistency record if QR type is 'other'
-        if (qrType === 'other') {
-          const { error: inconsistencyError } = await supabase
-            .from('patient_location_inconsistencies')
-            .insert({
-              patient_id: patientId,
-              first_ward: recentScan.ward,
-              second_ward: wardName,
-              time_difference_mins: (new Date().getTime() - new Date(recentScan.scanned_at).getTime()) / 60000
-            });
-          
-          if (inconsistencyError) {
-            console.error('Error creating inconsistency record:', inconsistencyError);
-          }
+        // Create location inconsistency record
+        const { error: inconsistencyError } = await supabase
+          .from('patient_location_inconsistencies')
+          .insert({
+            patient_id: patientId,
+            first_ward: recentScan.ward,
+            second_ward: wardName,
+            time_difference_mins: (new Date().getTime() - new Date(recentScan.scanned_at).getTime()) / 60000
+          });
+        
+        if (inconsistencyError) {
+          console.error('Error creating inconsistency record:', inconsistencyError);
+        }
+        
+        // Create notification for admin
+        const notificationType = "location_inconsistency";
+        const message = `Patient ${patientId} scanned in ${wardName} but was recently scanned in ${recentScan.ward} (${Math.round((new Date().getTime() - new Date(recentScan.scanned_at).getTime()) / 60000 * 10) / 10} minutes apart)`;
+        
+        const { error: notificationError } = await supabase
+          .from('patient_notifications')
+          .insert({
+            patient_id: patientId,
+            notification_type: notificationType,
+            ward: wardName,
+            message: message
+          });
+        
+        if (notificationError) {
+          console.error('Error creating admin notification:', notificationError);
+        } else {
+          console.log('Admin notification created for location inconsistency');
         }
       }
 

@@ -10,19 +10,14 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          "border-transparent bg-green-500 text-white hover:bg-green-600",
+          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
         secondary:
-          "border-transparent bg-amber-500 text-white hover:bg-amber-600",
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
         destructive:
-          "border-transparent bg-red-500 text-white hover:bg-red-600",
-        outline: "text-foreground bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200",
-        // Patient status types
-        clear: "border-transparent bg-green-500 text-white hover:bg-green-600",
-        pending: "border-transparent bg-amber-500 text-white hover:bg-amber-600",
-        critical: "border-transparent bg-red-500 text-white hover:bg-red-600",
-        discharged: "border-transparent bg-blue-400 text-white hover:bg-blue-500",
-        active: "border-transparent bg-green-500 text-white hover:bg-green-600",
-        admitted: "border-transparent bg-green-500 text-white hover:bg-green-600",
+          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        outline: "text-foreground",
+        warning:
+          "border-transparent bg-yellow-500 text-white hover:bg-yellow-600",
       },
     },
     defaultVariants: {
