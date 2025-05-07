@@ -8,7 +8,7 @@ import { Scan } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import QrScanner from 'react-qr-scanner';
 import DashboardLayout from "@/components/DashboardLayout";
-import LogoutButton from "@/components/LogoutButton";
+import PatientScanLogs from "@/components/PatientScanLogs";
 
 type WardScanLog = {
   id: string;
@@ -24,6 +24,10 @@ const WardDashboard = () => {
   const [wardName, setWardName] = useState<string>("");
   const [wardUsername, setWardUsername] = useState<string>("");
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scanLogs, setScanLogs] = useState<WardScanLog[]>([]);
+  const [isLogsLoading, setIsLogsLoading] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [isPatientLogsOpen, setIsPatientLogsOpen] = useState(false);
   const scanCooldownRef = useRef(false);
   const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
@@ -61,6 +65,9 @@ const WardDashboard = () => {
       const wardData = JSON.parse(wardDataStr);
       setWardName(wardData.ward);
       setWardUsername(wardData.username);
+      
+      // Fetch initial scan logs
+      fetchScanLogs();
     } catch (error) {
       console.error('Error parsing ward data:', error);
       navigate('/');
@@ -72,6 +79,27 @@ const WardDashboard = () => {
       }
     };
   }, [navigate, toast]);
+  
+  const fetchScanLogs = async () => {
+    try {
+      setIsLogsLoading(true);
+      const { data, error } = await supabase
+        .from('ward_scan_logs')
+        .select('*')
+        .order('scanned_at', { ascending: false })
+        .limit(100);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setScanLogs(data || []);
+    } catch (error) {
+      console.error('Error fetching scan logs:', error);
+    } finally {
+      setIsLogsLoading(false);
+    }
+  };
   
   const updatePatientLabStatus = async (patientId: string) => {
     try {
@@ -115,6 +143,9 @@ const WardDashboard = () => {
         toast({
           title: "Status Updated",
           description: `Patient ${patientId} marked as resolved since they're now in isolation.`,
+          action: (
+            <Button variant="outline" onClick={() => {}}>OK</Button>
+          ),
         });
       } else {
         console.log('No lab results were updated.');
@@ -196,6 +227,7 @@ const WardDashboard = () => {
             variant: "destructive",
             title: "Scan Failed",
             description: "Failed to log patient scan. Please try again.",
+            action: <Button variant="outline" onClick={() => {}}>OK</Button>,
           });
           return;
         }
@@ -210,7 +242,11 @@ const WardDashboard = () => {
         toast({
           title: "Wristband Scan Successful",
           description: `Patient ID ${patientId} location updated to ${wardName}.`,
+          action: <Button variant="outline" onClick={() => {}}>OK</Button>,
         });
+        
+        // After successful scan, update scan logs
+        fetchScanLogs();
       } else {
         const fiveMinutesAgo = new Date();
         fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
@@ -243,6 +279,7 @@ const WardDashboard = () => {
               variant: "destructive",
               title: "Scan Failed",
               description: "Failed to log patient scan. Please try again.",
+              action: <Button variant="outline" onClick={() => {}}>OK</Button>,
             });
             return;
           }
@@ -257,7 +294,11 @@ const WardDashboard = () => {
           toast({
             title: "Scan Successful",
             description: `Patient ID ${patientId} location updated to ${wardName}.`,
+            action: <Button variant="outline" onClick={() => {}}>OK</Button>,
           });
+          
+          // After successful scan, update scan logs
+          fetchScanLogs();
         } else {
           const { data: insertData, error } = await supabase
             .from('ward_scan_logs')
@@ -274,6 +315,7 @@ const WardDashboard = () => {
               variant: "destructive",
               title: "Scan Failed",
               description: "Failed to log patient scan. Please try again.",
+              action: <Button variant="outline" onClick={() => {}}>OK</Button>,
             });
             return;
           }
@@ -281,7 +323,11 @@ const WardDashboard = () => {
           toast({
             title: "Scan Recorded",
             description: `Note: A wristband scan may override this location update.`,
+            action: <Button variant="outline" onClick={() => {}}>OK</Button>,
           });
+          
+          // After successful scan, update scan logs
+          fetchScanLogs();
         }
       }
       
@@ -292,6 +338,7 @@ const WardDashboard = () => {
         variant: "destructive",
         title: "Scan Failed",
         description: "Failed to process QR code. Please try again.",
+        action: <Button variant="outline" onClick={() => {}}>OK</Button>,
       });
     } finally {
       scanTimeoutRef.current = setTimeout(() => {
@@ -307,6 +354,7 @@ const WardDashboard = () => {
       variant: "destructive",
       title: "Scanner Error",
       description: "An error occurred with the QR scanner. Please try again.",
+      action: <Button variant="outline" onClick={() => {}}>OK</Button>,
     });
   };
   
@@ -319,6 +367,11 @@ const WardDashboard = () => {
     }
   };
   
+  const handlePatientLogClick = (patientId: string) => {
+    setSelectedPatientId(patientId);
+    setIsPatientLogsOpen(true);
+  };
+
   const handleLogout = async () => {
     const wardDataStr = localStorage.getItem('wardData');
     if (wardDataStr) {
@@ -341,6 +394,7 @@ const WardDashboard = () => {
     toast({
       title: "Logged Out",
       description: "You have been logged out successfully.",
+      action: <Button variant="outline" onClick={() => {}}>OK</Button>,
     });
   };
   
@@ -412,6 +466,14 @@ const WardDashboard = () => {
           </Card>
         </div>
       </div>
+      
+      <PatientScanLogs
+        open={isPatientLogsOpen}
+        onOpenChange={setIsPatientLogsOpen}
+        patientId={selectedPatientId}
+        scanLogs={scanLogs}
+        isLoading={isLogsLoading}
+      />
     </DashboardLayout>
   );
 };
