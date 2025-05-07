@@ -14,8 +14,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 210 100% 50%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -31,134 +31,63 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
+    --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
   }
 
   * {
     @apply border-border;
   }
-
+  
   body {
-    @apply bg-background text-foreground font-inter antialiased text-base m-0 p-0;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-inter;
-  }
-  
-  /* Apple-style focus effect for inputs */
-  input:focus {
-    @apply outline-none ring-1 ring-blue-400 ring-opacity-50;
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Wave pattern background */
-.wave-pattern {
-  background-image: url("data:image/svg+xml,%3Csvg width='1600' height='900' viewBox='0 0 1600 900' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23ffffff' fill-opacity='0.2' d='M0,288L48,272C96,256,192,224,288,197.3C384,171,480,149,576,165.3C672,181,768,235,864,250.7C960,267,1056,245,1152,224C1248,203,1344,181,1392,170.7L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3Cpath fill='%23ffffff' fill-opacity='0.2' d='M0,32L48,53.3C96,75,192,117,288,133.3C384,149,480,139,576,154.7C672,171,768,213,864,218.7C960,224,1056,192,1152,192C1248,192,1344,224,1392,240L1440,256L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
-  background-size: cover;
-  background-position: center;
-}
-
-/* Input styling to match design */
-.input-highlight {
-  @apply border-blue-500 border-2;
-}
-
-/* Login button gradient */
-.btn-primary-gradient {
-  @apply bg-blue-500 hover:bg-blue-600 transition-colors;
-}
-
-/* Form title styling */
-.form-title {
-  @apply text-gray-800 font-medium;
-}
-
-/* Additional responsive adjustments */
-@media (max-width: 768px) {
+@layer components {
+  /* Wave pattern styling for the login screen */
   .wave-pattern {
-    background-size: 200% 100%;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M21.184 20c.357-.13.72-.264.888-.14 1.24.19 1.854.29 2.54.29 1.647 0 3.294-.48 4.192-1.42.898-.94 1.796-1.88 3.592-2.82 1.796-.94 3.592-1.88 4.19-1.88s.896.94 1.494 1.88c.598.94 1.094 1.88 2.39 1.88 1.297 0 2.594-.94 3.99-1.88 1.397-.94 2.794-1.88 4.19-1.88 1.397 0 2.195.94 2.993 1.88.799.94 1.298 1.88 2.794 1.88 1.497 0 2.795-.94 4.192-1.88 1.397-.94 2.794-1.88 3.592-1.88.897 0 1.197.94 1.795 1.88.598.94.898 1.88 1.795 1.88s2.094-.88 3.09-1.82c.996-.94 1.996-1.88 2.794-1.88.796 0 1.496.94 1.894 1.88.398.94.897 1.88 1.596 1.88s1.397-.94 2.293-1.88c.896-.94 1.895-1.88 2.693-1.88.898 0 1.496.94 1.995 1.88.498.94.897 1.88 1.596 1.88.799 0 1.995-.94 2.693-1.88.698-.94 1.496-1.88 2.493-1.88.997 0 1.895.94 2.493 1.88s.898 1.88 1.596 1.88c.697 0 1.894-.94 2.692-1.88.798-.94 1.596-1.88 2.394-1.88s1.298.94 1.795 1.88c.498.94.797 1.88 1.396 1.88.599 0 1.198-.94 1.896-1.88.697-.94 1.496-1.88 2.093-1.88.898 0 1.297.94 1.896 1.88s.897 1.88 1.594 1.88c.848 0 1.645-.94 1.943-1.88S90.954.01 91 0h9c-.047.01-4.846 20-9.954 20h-12.95c-.847 0-1.645-.94-1.943-1.88S74.046 16 74 16h-9c.047 0 4.846 1.48 9.954 4h12.95c.847 0 1.645-.94 1.943-1.88S90.954.01 91 0h9c-.047.01-4.846 20-9.954 20h-12.95c-.847 0-1.645-.94-1.943-1.88S74.046 16 74 16h-9c.047 0 4.846 4 9.954 4h12.95c.847 0 1.645-.94 1.943-1.88S90.954.01 91 0h9c-.047.01-4.846 20-9.954 20h-12.95c-.847 0-1.645-.94-1.943-1.88S74.046 16 74 16h-9c.047 0 4.846 4 9.954 4h12.95c.847 0 1.645-.94 1.943-1.88S90.954.01 91 0h9c-.047.01-4.846 20-9.954 20h-12.95c-.847 0-1.645-.94-1.943-1.88S74.046 16 74 16h-9c.047 0 4.846 4 9.954 4h12.95c.847 0 1.645-.94 1.943-1.88S90.954.01 91 0h9c-.047.01-4.846 20-9.954 20H21.184z' fill='%23ffffff' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+    animation: wave 50s linear infinite;
   }
-}
 
-/* Noise texture background */
-.bg-noise {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 200px 200px;
-}
-
-/* Dashboard layout styling */
-.dashboard-layout {
-  @apply font-inter bg-gray-50;
-}
-
-.sidebar-nav {
-  @apply bg-white border-r border-gray-200 w-64 h-screen;
-}
-
-.sidebar-nav-collapsed {
-  @apply w-16;
-}
-
-.sidebar-item {
-  @apply flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg mx-2 transition-all;
-}
-
-.sidebar-item-active {
-  @apply bg-blue-50 text-blue-600;
-}
-
-/* Card styling to match design */
-.dashboard-card {
-  @apply bg-white shadow-sm border border-gray-100 rounded-lg overflow-hidden;
-}
-
-.dashboard-card-header {
-  @apply bg-gray-50/60 border-b border-gray-100 p-4;
-}
-
-/* Button styling */
-.btn-modern {
-  @apply rounded-lg font-medium;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  @apply w-2;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
-}
-
-/* Transition properties */
-.transition-all {
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-/* Font family for the updated design */
-.font-inter {
-  font-family: 'Inter', 'Helvetica', 'Arial', 'sans-serif';
-}
-
-/* Update password input container */
-.password-input-container {
-  @apply relative w-full;
-}
-
-.password-toggle-button {
-  @apply absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600;
+  @keyframes wave {
+    0% {
+      background-position: 0 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
 }
