@@ -197,6 +197,132 @@ const Dashboard = () => {
     }
   });
 
+  const handlePrint = (qrData: string | null) => {
+    if (!qrData) {
+      toast({
+        title: "Error",
+        description: "No QR code data available to print",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Open a new window for printing
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast({
+        title: "Error",
+        description: "Could not open print window. Please check your browser settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Write the HTML content with QR code
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Patient QR Code</title>
+          <style>
+            body { 
+              font-family: system-ui, -apple-system, sans-serif; 
+              text-align: center; 
+              padding: 20px; 
+            }
+            h2 { 
+              font-weight: 300; 
+              color: #333; 
+              margin-bottom: 30px;
+            }
+            .container { 
+              margin: 30px auto; 
+              display: flex; 
+              justify-content: center;
+            }
+            .patient-id { 
+              font-weight: bold; 
+              margin: 15px 0;
+              font-size: 18px; 
+            }
+            .qr-container { 
+              border: 1px solid #ddd; 
+              padding: 15px; 
+              border-radius: 8px;
+              width: 200px;
+              height: 200px;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+            }
+            #qr-fallback {
+              display: none;
+              padding: 10px;
+              background: #f8f8f8;
+              border: 1px dashed #ccc;
+              margin-top: 20px;
+              text-align: center;
+            }
+            p { color: #666; margin-top: 20px; }
+          </style>
+          <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+        </head>
+        <body>
+          <h2>TraceMed Patient QR Code</h2>
+          <div class="patient-id">Patient ID: ${patientId}</div>
+          <div class="container">
+            <div class="qr-container">
+              <canvas id="qr-canvas"></canvas>
+            </div>
+          </div>
+          <p>Scan for patient information</p>
+          <div id="qr-fallback">
+            Patient ID: ${patientId}<br>
+            Unable to display QR code
+          </div>
+          
+          <script>
+            // Try to load QRCode library and generate QR
+            try {
+              window.onload = function() {
+                if (typeof QRCode !== 'undefined') {
+                  QRCode.toCanvas(
+                    document.getElementById('qr-canvas'),
+                    '${qrData.replace(/'/g, "\\'")}',
+                    {
+                      width: 180,
+                      margin: 1,
+                      color: {
+                        dark: '#000000',
+                        light: '#ffffff'
+                      }
+                    },
+                    function(error) {
+                      if (error) {
+                        console.error(error);
+                        document.getElementById('qr-fallback').style.display = 'block';
+                      }
+                    }
+                  );
+                  // Print after a short delay to ensure QR code is rendered
+                  setTimeout(function() { window.print(); }, 1000);
+                } else {
+                  document.getElementById('qr-fallback').style.display = 'block';
+                }
+              };
+            } catch (e) {
+              console.error('QR Code generation failed:', e);
+              document.getElementById('qr-fallback').style.display = 'block';
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    
+    // Close the document for writing
+    printWindow.document.close();
+  };
+
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!patientId.trim()) {
@@ -213,109 +339,104 @@ const Dashboard = () => {
     });
   };
 
-  const handlePrint = (qrData: string | null) => {
-    if (!qrData) return;
-    
-    // Open a new window for printing
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      toast({
-        title: "Error",
-        description: "Could not open print window. Please check your browser settings.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Encode QR data to be embedded safely in HTML
-    const encodedQrData = encodeURIComponent(qrData);
-    
-    // Write the HTML content with inline SVG for the QR code
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Patient QR Code</title>
-          <style>
-            body { 
-              font-family: system-ui, -apple-system, sans-serif; 
-              text-align: center; 
-              padding: 20px; 
-              font-size: 16px; 
-            }
-            h2 { 
-              font-weight: 300; 
-              color: #333; 
-              font-size: 24px; 
-              margin-bottom: 30px;
-            }
-            .container { 
-              margin: 30px auto; 
-              display: flex; 
-              justify-content: center;
-            }
-            .patient-id { 
-              font-weight: bold; 
-              margin: 15px 0;
-              font-size: 18px; 
-              color: #555; 
-            }
-            .qr-container { 
-              border: 1px solid #ddd; 
-              padding: 15px; 
-              border-radius: 8px; 
-              background-color: white;
-              width: 200px;
-              height: 200px;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-            }
-            p { 
-              color: #666; 
-              margin-top: 20px; 
-            }
-            #error-message {
-              color: red;
-              margin-top: 15px;
-              display: none;
-            }
-          </style>
-        </head>
-        <body>
-          <h2>TraceMed Patient QR Code</h2>
-          <div class="patient-id">Patient ID: ${patientId}</div>
-          <div class="container">
-            <div class="qr-container" id="qr-container"></div>
+  const dischargePatientConfirm = (patientId: string) => {
+    setDischargePatientId(patientId);
+    setShowDischargeConfirm(true);
+  };
+
+  return (
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Patient Management</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex space-x-4 mb-4">
+            <Button variant={activeTab === 'register' ? 'default' : 'secondary'} onClick={() => setActiveTab('register')}>Register Patient</Button>
+            <Button variant={activeTab === 'discharge' ? 'default' : 'secondary'} onClick={() => setActiveTab('discharge')}>Discharge Patient</Button>
           </div>
-          <p>Scan for patient information</p>
-          <div id="error-message">Error loading QR code. Please try again.</div>
-          
-          <script>
-            // Function to show error message
-            function showError() {
-              document.getElementById('error-message').style.display = 'block';
-            }
-          </script>
-          
-          <!-- React QR Code library direct embed -->
-          <script src="https://unpkg.com/react-qr-code@2.0.15/lib/index.min.js"></script>
-          
-          <script>
-            try {
-              // Wait for the document to fully load
-              window.addEventListener('load', function() {
-                try {
-                  // Create a QR code SVG
-                  var qrSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                  qrSvg.setAttribute('width', '200px');
-                  qrSvg.setAttribute('height', '200px');
-                  qrSvg.setAttribute('viewBox', '0 0 256 256');
-                  
-                  // QR code data
-                  var qrData = "${encodedQrData}";
-                  
-                  // Simple QR code renderer (basic black squares)
-                  // This is a simplified implementation
-                  var qrCode = document.createElement('img');
-                  qrCode.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 37 37"><path fill="#ffffff" d="M0 0h37v37H0z"/><path d="M4 4h1v1H4zM5 4h1v1H5zM6 4h1v1H6zM7 4h1v1H7zM8 4h1v1H8zM9 4h1v1H9zM10 4h1v1h-1zM12 4h1v1h-1zM14 4h1v1h-1zM18 4h1v1h-1zM19 4h1v1h-1zM20 4h1v1h-1zM21 4h1v1h-1zM22 4h1v1h-1zM23 4h1v1h-1zM24 4h1v1h-1zM26 4h1v1h-1zM27 4h1v1h-1zM28 4h1v1h-1zM29 4h1v1h-1zM30 4h1v1h-1zM31 4h1v1h-1zM32 4h1v1h-1zM4 5h1v1H4zM10 5h1v1h-1zM11 5h1v1h-1zM12 5h1v1h-1zM14 5h1v1h-1zM15 5h1v1h-1zM17 5h1v1h-1zM18 5h1v1h-1zM20 5h1v1h-1zM26 5h1v1h-1zM32 5h1v1h-1zM4 6h1v1H4zM6 6h1v1H6zM7 6h1v1H7zM8 6h1v1H8zM10 6h1v1h-1zM16 6h1v1h-1zM19 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM26 6h1v1h-1zM28 6h1v1h-1zM29 6h1v1h-1zM30 6h1v1h-1zM32 6h1v1h-1zM4 7h1v1H4zM6 7h1v1H6zM7 7h1v1H7zM8 7h1v1H8zM10 7h1v1h-1zM12 7h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM16 7h1v1h-1zM17 7h1v1h-1zM20 7h1v1h-1zM21 7h1v1h-1zM22 7h1v1h-1zM24 7h1v1h-1zM26 7h1v1h-1zM28 7h1v1h-1zM29 7h1v1h-1zM30 7h1v1h-1zM32 7h1v1h-1zM4 8h1v1H4zM6 8h1v1H6zM7 8h1v1H7zM8 8h1v1H8zM10 8h1v1h-1zM12 8h1v1h-1zM15 8h1v1h-1zM17 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM24 8h1v1h-1zM26 8h1v1h-1zM28 8h1v1h-1zM29 8h1v1h-1zM30 8h1v1h-1zM32 8h1v1h-1zM4 9h1v1H4zM10 9h1v1h-1zM12 9h1v1h-1zM13 9h1v1h-1zM14 9h1v1h-1zM15 9h1v1h-1zM16 9h1v1h-1zM18 9h1v1h-1zM22 9h1v1h-1zM23 9h1v1h-1zM26 9h1v1h-1zM32 9h1v1h-1zM4 10h1v1H4zM5 10h1v1H5zM6 10h1v1H6zM7 10h1v1H7zM8 10h1v1H8zM9 10h1v1H9zM10 10h1v1h-1zM12 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM22 10h1v1h-1zM24 10h1v1h-1zM26 10h1v1h-1zM27 10h1v1h-1zM28 10h1v1h-1zM29 10h1v1h-1zM30 10h1v1h-1zM31 10h1v1h-1zM32 10h1v1h-1zM12 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM16 11h1v1h-1zM17 11h1v1h-1zM19 11h1v1h-1zM21 11h1v1h-1zM22 11h1v1h-1zM24 11h1v1h-1zM4 12h1v1H4zM5 12h1v1H5zM6 12h1v1H6zM8 12h1v1H8zM9 12h1v1H9zM10 12h1v1h-1zM11 12h1v1h-1zM13 12h1v1h-1zM14 12h1v1h-1zM19 12h1v1h-1zM21 12h1v1h-1zM22 12h1v1h-1zM23 12h1v1h-1zM26 12h1v1h-1zM27 12h1v1h-1zM29 12h1v1h-1zM31 12h1v1h-1zM32 12h1v1h-1zM4 13h1v1H4zM5 13h1v1H5zM7 13h1v1H7zM8 13h1v1H8zM11 13h1v1h-1zM12 13h1v1h-1zM13 13h1v1h-1zM14 13h1v1h-1zM16 13h1v1h-1zM17 13h1v1h-1zM19 13h1v1h-1zM20 13h1v1h-1zM24 13h1v1h-1zM27 13h1v1h-1zM28 13h1v1h-1zM29 13h1v1h-1zM30 13h1v1h-1zM31 13h1v1h-1zM32 13h1v1h-1zM4 14h1v1H4zM8 14h1v1H8zM9 14h1v1H9zM11 14h1v1h-1zM12 14h1v1h-1zM14 14h1v1h-1zM15 14h1v1h-1zM16 14h1v1h-1zM18 14h1v1h-1zM22 14h1v1h-1zM23 14h1v1h-1zM25 14h1v1h-1zM26 14h1v1h-1zM28 14h1v1h-1zM29 14h1v1h-1zM32 14h1v1h-1zM5 15h1v1H5zM6 15h1v1H6zM7 15h1v1H7zM9 15h1v1H9zM12 15h1v1h-1zM14 15h1v1h-1zM15 15h1v1h-1zM17 15h1v1h-1zM21 15h1v1h-1zM25 15h1v1h-1zM26 15h1v1h-1zM27 15h1v1h-1zM29 15h1v1h-1zM31 15h1v1h-1zM32 15h1v1h-1zM4 16h1v1H4zM5 16h1v1H5zM7 16h1v1H7zM9 16h1v1H9zM11 16h1v1h-1zM12 16h1v1h-1zM14 16h1v1h-1zM16 16h1v1h-1zM19 16h1v1h-1zM22 16h1v1h-1zM26 16h1v1h-1zM27 16h1v1h-1zM28 16h1v1h-1zM31 16h1v1h-1zM5 17h1v1H5zM6 17h1v1H6zM9 17h1v1H9zM10 17h1v1h-1zM11 17h1v1h-1zM12 17h1v1h-1zM18 17h1v1h-1zM21 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM27 17h1v1h-1zM29 17h1v1h-1zM31 17h1v1h-1zM6 18h1v1H6zM7 18h1v1H7zM9 18h1v1H9zM10 18h1v1h-1zM11 18h1v1h-1zM15 18h1v1h-1zM17 18h1v1h-1zM18 18h1v1h-1zM19 18h1v1h-1zM20 18h1v1h-1zM21 18h1v1h-1zM22 18h1v1h-1zM25 18h1v1h-1zM26 18h1v1h-1zM29 18h1v1h-1zM31 18h1v1h-1zM32 18h1v1h-1zM4 19h1v1H4zM8 19h1v1H8zM10 19h1v1h-1zM13 19h1v1h-1zM19 19h1v1h-1zM20 19h1v1h-1zM21 19h1v1h-1zM24 19h1v1h-1zM25 19h1v1h-1zM28 19h1v1h-1zM29 19h1v1h-1zM30 19h1v1h-1zM31 19h1v1h-1zM32 19h1v1h-1zM4 20h1v1H4zM5 20h1v1H5zM7 20h1v1H7zM13 20h1v1h-1zM16 20h1v1h-1zM17 20h1v1h-1zM19 20h1v1h-1zM20 20h1v1h-1zM21 20h1v1h-1zM23 20h1v1h-1zM24 20h1v1h-1zM25 20h1v1h-1zM27 20h1v1h-1zM28 20h1v1h-1zM29 20h1v1h-1zM30 20h1v1h-1zM31 20h1v1h-1zM32 20h1v1h-1zM4 21h1v1H4zM5 21h1v1H5zM7 21h1v1H7zM8 21h1v1H8zM9 21h1v1H9zM10 21h1v1h-1zM11 21h1v1h-1zM14 21h1v1h-1zM16 21h1v1h-1zM19 21h1v1h-1zM20 21h1v1h-1zM23 21h1v1h-1zM24 21h1v1h-1zM27 21h1v1h-1zM31 21h1v1h-1zM4 22h1v1H4zM5 22h1v1H5zM7 22h1v1H7zM11 22h1v1h-1zM12 22h1v1h-1zM14 22h1v1h-1zM16 22h1v1h-1zM18 22h1v1h-1zM20 22h1v1h-1zM22 22h1v1h-1zM23 22h1v1h-1zM24 22h1v1h-1zM26 22h1v1h-1zM29 22h1v1h-1zM32 22h1v1h-1zM4 23h1v1H4zM8 23h1v1H8zM9 23h1v1H9zM10 23h1v1h-1zM12 23h1v1h-1zM14 23h1v1h-1zM15 23h1v1h-1zM16 23h1v1h-1zM17 23h1v1h-1zM18 23h1v1h-1zM20 23h1v1h-1zM21 23h1v1h-1zM22 23h1v1h-1zM23 23h1v1h-1zM25 23h1v1h-1zM27 23h1v1h-1zM28 23h1v1h-1zM29 23h1v1h-1zM30 23h1v1h-1zM31 23h1v1h-1zM32 23h1v1h-1zM4 24h1v1H4zM8 24h1v1H8zM9 24h1v1H9zM10 24h1v1h-1zM13 24h1v1h-1zM15 24h1v1h-1zM16 24h1v1h-1zM17 24h1v1h-1zM19 24h1v1h-1zM24 24h1v1h-1zM25 24h1v1h-1zM26 24h1v1h-1zM27 24h1v1h-1zM29 24h1v1h-1zM32 24h1v1h-1zM4 25h1v1H4zM8 25h1v1H8zM9 25h1v1H9zM10 25h1v1h-1zM12 25h1v1h-1zM14 25h1v1h-1zM16 25h1v1h-1zM17 25h1v1h-1zM18 25h1v1h-1zM19 25h1v1h-1zM20 25h1v1h-1zM22 25h1v1h-1zM27 25h1v1h-1zM29 25h1v1h-1zM31 25h1v1h-1zM32 25h1v1h-1zM4 26h1v1H4zM10 26h1v1h-1zM14 26h1v1h-1zM18 26h1v1h-1zM20 26h1v1h-1zM21 26h1v1h-1zM22 26h1v1h-1zM23 26h1v1h-1zM24 26h1v1h-1zM25 26h1v1h-1zM27 26h1v1h-1zM28 26h1v1h-1zM31 26h1v1h-1zM32 26h1v1h-1zM4 27h1v1H4zM5 27h1v1H5zM6 27h1v1H6zM7 27h1v1H7zM8 27h1v1H8zM9 27h1v1H9zM10 27h1v1h-1zM12 27h1v1h-1zM13 27h1v1h-1zM15 27h1v1h-1zM19 27h1v1h-1zM21 27h1v1h-1zM23 27h1v1h-1zM24 27h1v1h-1zM26 27h1v1h-1zM28 27h1v1h-1zM29 27h1v1h-1zM30 27h1v1h-1zM32 27h1v1h-1zM12 28h1v1h-1zM13 28h1v1h-1zM14 28h1v1h-1zM15 28h1v1h-1zM16 28h1v1h-1zM17 28h1v1h-1zM19 28h1v1h-1zM21 28h1v1h-1zM24 28h1v1h-1zM25 28h1v1h-1zM30 28h1v1h-1zM4 29h1v1H4zM5 29h1v1H5zM6 29h1v1H6zM7 29h1v1H7zM8 29h
+
+          {activeTab === 'register' && (
+            <form onSubmit={handleRegisterSubmit} className="grid gap-4">
+              <div>
+                <Label htmlFor="patientId">Patient ID</Label>
+                <Input
+                  type="text"
+                  id="patientId"
+                  value={patientId}
+                  onChange={(e) => setPatientId(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Culture Required?</Label>
+                <RadioGroup defaultValue={cultureRequired} onValueChange={(value) => setCultureRequired(value as "yes" | "no")}>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="yes" id="culture-yes" />
+                    <Label htmlFor="culture-yes">Yes</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="no" id="culture-no" />
+                    <Label htmlFor="culture-no">No</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {hasPositiveHistory && positiveHistoryDate && (
+                <div className="rounded-md border p-4 bg-yellow-100 border-yellow-200 text-sm text-yellow-700">
+                  <AlertTriangle className="h-4 w-4 mr-2 inline-block align-middle" />
+                  <span className="align-middle">
+                    <strong>Warning:</strong> Patient has a history of positive lab results as of {new Date(positiveHistoryDate).toLocaleDateString()}.
+                  </span>
+                </div>
+              )}
+
+              <Button type="submit" disabled={isRegistering}>
+                {isRegistering ? "Registering..." : "Register Patient"}
+              </Button>
+            </form>
+          )}
+
+          {activeTab === 'discharge' && (
+            <div className="grid gap-4">
+              <div>
+                <Label htmlFor="dischargePatientId">Patient ID to Discharge</Label>
+                <Input
+                  type="text"
+                  id="dischargePatientId"
+                  value={dischargePatientId}
+                  onChange={(e) => setDischargePatientId(e.target.value)}
+                />
+              </div>
+              <Button onClick={() => dischargePatientConfirm(dischargePatientId)}>Discharge Patient</Button>
+            </div>
+          )}
+        </CardContent>
+        {qrCode && (
+          <CardFooter className="flex justify-between items-center">
+            <Button onClick={() => handlePrint(qrCode)}>Print QR Code</Button>
+            {/* <QRCode value={qrCode} size={128} /> */}
+          </CardFooter>
+        )}
+      </Card>
+
+      <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will discharge the patient from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDischargeConfirm(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => dischargePatient(dischargePatientId)}>Discharge</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default Dashboard;
