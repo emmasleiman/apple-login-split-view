@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -39,17 +38,23 @@ const toastVariants = cva(
   }
 )
 
+// Define a custom type for additional toast props we need
+interface ToastCustomProps {
+  action?: React.ReactNode;
+}
+
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
-    VariantProps<typeof toastVariants>
->(({ className, variant, ...props }, ref) => {
+    VariantProps<typeof toastVariants> & 
+    ToastCustomProps
+>(({ className, variant, action, ...props }, ref) => {
   return (
     <ToastPrimitives.Root
       ref={ref}
       className={cn(toastVariants({ variant }), className)}
-      // Set duration to infinity to make toast persist until dismissed
-      duration={props.action ? Infinity : 5000}
+      // Set duration to infinity to make toast persist until dismissed if there's an action
+      duration={action ? Infinity : 5000}
       {...props}
     />
   )
