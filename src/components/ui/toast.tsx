@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as ToastPrimitives from "@radix-ui/react-toast"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -53,8 +54,8 @@ const Toast = React.forwardRef<
     <ToastPrimitives.Root
       ref={ref}
       className={cn(toastVariants({ variant }), className)}
-      // Set duration to infinity to make toast persist until dismissed if there's an action
-      duration={action ? Infinity : 5000}
+      // Always set duration to infinity so toasts stay until dismissed
+      duration={Infinity}
       {...props}
     />
   )
