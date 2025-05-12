@@ -19,7 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, LogOut } from "lucide-react";
+import DashboardHeader from "@/components/DashboardHeader";
 
 type Patient = {
   id: string;
@@ -334,152 +335,154 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Data Entry Dashboard</h1>
-      </div>
+    <div className="flex flex-col min-h-screen">
+      <DashboardHeader title="Data Encoder Dashboard" role="Data Encoder" />
       
-      <div className="flex space-x-2 border-b pb-2">
-        <Button 
-          variant={activeTab === 'register' ? "default" : "outline"} 
-          onClick={() => setActiveTab('register')}
-        >
-          Register Patient
-        </Button>
-        <Button 
-          variant={activeTab === 'discharge' ? "default" : "outline"} 
-          onClick={() => setActiveTab('discharge')}
-        >
-          Discharge Patient
-        </Button>
-      </div>
-      
-      {activeTab === 'register' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Register New Patient</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleRegisterSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="patientId">Patient ID</Label>
-                  <Input
-                    id="patientId"
-                    value={patientId}
-                    onChange={(e) => setPatientId(e.target.value)}
-                    placeholder="Enter patient ID"
-                    required
-                  />
-                  {patientExists && (
-                    <div className="text-amber-600 text-sm flex items-center">
-                      <AlertTriangle className="w-4 h-4 mr-1" /> 
-                      Patient already registered. Re-registering will update their information.
-                    </div>
-                  )}
-                  {hasPositiveHistory && positiveHistoryDate && (
-                    <div className="text-red-600 text-sm flex items-center">
-                      <AlertTriangle className="w-4 h-4 mr-1" /> 
-                      Patient has positive history from {new Date(positiveHistoryDate).toLocaleDateString()}
-                    </div>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Culture Required</Label>
-                  <RadioGroup 
-                    value={cultureRequired} 
-                    onValueChange={(val) => setCultureRequired(val as "yes" | "no")} 
-                    className="flex space-x-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="no" id="no" />
-                      <Label htmlFor="no">No</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="yes" id="yes" />
-                      <Label htmlFor="yes">Yes</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-                
-                <Button type="submit" disabled={isRegistering}>
-                  {isRegistering ? "Registering..." : "Register Patient"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+      <div className="flex-grow p-6 bg-gray-50">
+        <div className="w-full max-w-6xl mx-auto space-y-6">
+          <div className="flex space-x-2 border-b pb-2">
+            <Button 
+              variant={activeTab === 'register' ? "default" : "outline"} 
+              onClick={() => setActiveTab('register')}
+            >
+              Register Patient
+            </Button>
+            <Button 
+              variant={activeTab === 'discharge' ? "default" : "outline"} 
+              onClick={() => setActiveTab('discharge')}
+            >
+              Discharge Patient
+            </Button>
+          </div>
           
-          {qrCode && (
+          {activeTab === 'register' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Register New Patient</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="patientId">Patient ID</Label>
+                      <Input
+                        id="patientId"
+                        value={patientId}
+                        onChange={(e) => setPatientId(e.target.value)}
+                        placeholder="Enter patient ID"
+                        required
+                      />
+                      {patientExists && (
+                        <div className="text-amber-600 text-sm flex items-center">
+                          <AlertTriangle className="w-4 h-4 mr-1" /> 
+                          Patient already registered. Re-registering will update their information.
+                        </div>
+                      )}
+                      {hasPositiveHistory && positiveHistoryDate && (
+                        <div className="text-red-600 text-sm flex items-center">
+                          <AlertTriangle className="w-4 h-4 mr-1" /> 
+                          Patient has positive history from {new Date(positiveHistoryDate).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Culture Required</Label>
+                      <RadioGroup 
+                        value={cultureRequired} 
+                        onValueChange={(val) => setCultureRequired(val as "yes" | "no")} 
+                        className="flex space-x-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="no" id="no" />
+                          <Label htmlFor="no">No</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="yes" id="yes" />
+                          <Label htmlFor="yes">Yes</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    
+                    <Button type="submit" disabled={isRegistering}>
+                      {isRegistering ? "Registering..." : "Register Patient"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+              
+              {qrCode && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Patient QR Code</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex justify-center">
+                    <div className="w-48 h-48 border p-2 bg-white">
+                      <QRCode
+                        value={qrCode}
+                        size={176}
+                        level="H"
+                        style={{ width: '100%', height: '100%' }}
+                      />
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-center space-x-4">
+                    <Button onClick={() => handlePrint(qrCode)}>
+                      Print QR Code
+                    </Button>
+                  </CardFooter>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'discharge' && (
             <Card>
               <CardHeader>
-                <CardTitle>Patient QR Code</CardTitle>
+                <CardTitle>Discharge Patient</CardTitle>
               </CardHeader>
-              <CardContent className="flex justify-center">
-                <div className="w-48 h-48 border p-2 bg-white">
-                  <QRCode
-                    value={qrCode}
-                    size={176}
-                    level="H"
-                    style={{ width: '100%', height: '100%' }}
-                  />
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dischargePatientId">Patient ID</Label>
+                    <Input
+                      id="dischargePatientId"
+                      value={dischargePatientId}
+                      onChange={(e) => setDischargePatientId(e.target.value)}
+                      placeholder="Enter patient ID to discharge"
+                      required
+                    />
+                  </div>
+                  
+                  <Button
+                    disabled={!dischargePatientId.trim()}
+                    onClick={() => setShowDischargeConfirm(true)}
+                  >
+                    Discharge Patient
+                  </Button>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-center space-x-4">
-                <Button onClick={() => handlePrint(qrCode)}>
-                  Print QR Code
-                </Button>
-              </CardFooter>
             </Card>
           )}
+
+          <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Discharge Patient</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to discharge patient {dischargePatientId}? This will mark them as discharged in the system.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => dischargePatient(dischargePatientId)}>
+                  Yes, Discharge Patient
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
-      )}
-
-      {activeTab === 'discharge' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Discharge Patient</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="dischargePatientId">Patient ID</Label>
-                <Input
-                  id="dischargePatientId"
-                  value={dischargePatientId}
-                  onChange={(e) => setDischargePatientId(e.target.value)}
-                  placeholder="Enter patient ID to discharge"
-                  required
-                />
-              </div>
-              
-              <Button
-                disabled={!dischargePatientId.trim()}
-                onClick={() => setShowDischargeConfirm(true)}
-              >
-                Discharge Patient
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <AlertDialog open={showDischargeConfirm} onOpenChange={setShowDischargeConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Discharge Patient</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to discharge patient {dischargePatientId}? This will mark them as discharged in the system.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => dischargePatient(dischargePatientId)}>
-              Yes, Discharge Patient
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      </div>
     </div>
   );
 };
