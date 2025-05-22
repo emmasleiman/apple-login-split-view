@@ -31,6 +31,24 @@ const LoginForm = () => {
     try {
       setIsLoading(true);
       
+      // Special case for IT Officer credentials
+      if (username === "itofficer" && password === "123456") {
+        // Store session data in localStorage for IT Officer
+        localStorage.setItem('employeeData', JSON.stringify({
+          id: "it-officer-id",
+          username: "itofficer",
+          role: "it officer",
+        }));
+        
+        toast({
+          title: "Success",
+          description: "IT Officer logged in successfully",
+        });
+        
+        navigate("/it-dashboard");
+        return;
+      }
+      
       // First, check for ward account login
       const { data: wardData, error: wardError } = await supabase
         .from("ward_accounts")
